@@ -1,0 +1,22 @@
+{
+  "name": "tapao",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Juego arcade: el temporal baja por la Alameda y hay que destapar los sumideros antes de que el agua llegue a La Moneda.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  }
+}
