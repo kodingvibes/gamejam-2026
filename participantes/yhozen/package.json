@@ -4,11 +4,23 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "tsx server/index.ts --dev",
+    "build": "tsc --noEmit && vite build",
+    "start": "tsx server/index.ts --production",
+    "test": "tsx --test tests/*.test.js tests/*.test.ts"
+  },
+  "dependencies": {
+    "@enable3d/phaser-extension": "0.26.1",
+    "phaser": "3.90.0",
+    "three": "0.171.0",
+    "ws": "8.21.1"
   },
   "devDependencies": {
-    "vite": "^8.2.0"
+    "@types/node": "^24.0.0",
+    "@types/three": "0.171.0",
+    "@types/ws": "8.18.1",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3",
+    "vite": "8.2.0"
   }
 }

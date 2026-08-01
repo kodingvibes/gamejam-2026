@@ -7,21 +7,12 @@
       name="description"
       content="Juego de Yhozen para la GameJam 2026 de Koding Vibes"
     />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Yhozen · GameJam 2026</title>
   </head>
   <body>
-    <main class="game-shell">
-      <canvas id="game" aria-label="Área de juego"></canvas>
+    <main id="game-shell" class="game-shell" aria-label="Skatefire Arena"></main>
 
-      <section class="overlay" aria-live="polite">
-        <p class="eyebrow">Koding Vibes · GameJam 2026</p>
-        <h1>Yhozen</h1>
-        <p class="instructions">
-          Base lista. Mueve el puntero o toca la pantalla para probar el canvas.
-        </p>
-      </section>
-    </main>
-
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

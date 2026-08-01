@@ -1,6 +1,6 @@
 :root {
   color: #effff8;
-  background: #050810;
+  background: #03060c;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -14,8 +14,7 @@
 
 html,
 body,
-#game,
-.game-shell {
+#game-shell {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -25,59 +24,43 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow: hidden;
+  background: #03060c;
 }
 
 .game-shell {
   position: relative;
   isolation: isolate;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 50% 35%, rgba(33, 84, 103, 0.32), transparent 42%),
+    radial-gradient(circle at 50% 30%, rgba(28, 78, 93, 0.4), transparent 42%),
     linear-gradient(145deg, #07101a, #02040a 72%);
 }
 
-#game {
-  position: absolute;
+#enable3d-three-canvas,
+#enable3d-phaser-canvas,
+.game-shell > canvas {
+  position: absolute !important;
   inset: 0;
   display: block;
-  touch-action: none;
+  width: 100% !important;
+  height: 100% !important;
 }
 
-.overlay {
-  position: absolute;
-  top: clamp(1.5rem, 6vw, 4rem);
-  left: clamp(1.5rem, 6vw, 5rem);
+#enable3d-three-canvas {
+  z-index: 0;
+}
+
+#enable3d-phaser-canvas {
   z-index: 1;
-  max-width: 34rem;
-  pointer-events: none;
 }
 
-.eyebrow {
-  margin: 0 0 0.75rem;
-  color: #83ffc3;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(3.5rem, 14vw, 9rem);
-  font-weight: 800;
-  letter-spacing: -0.07em;
-  line-height: 0.85;
-}
-
-.instructions {
-  max-width: 28rem;
-  margin: 1.5rem 0 0;
-  color: rgba(239, 255, 248, 0.66);
-  font-size: clamp(0.9rem, 2vw, 1.05rem);
-  line-height: 1.6;
+.game-shell:focus-visible {
+  outline: 2px solid #83ffc3;
+  outline-offset: -2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #game {
-    opacity: 0.55;
+  .game-shell {
+    scroll-behavior: auto;
   }
 }
