@@ -70,11 +70,21 @@ export class VentanaDeAgua {
   llover(cantidad: number, desdeColumna: number, hastaColumna: number, azar: Azar) {
     const desde = Math.max(0, desdeColumna - this.columnaOrigen);
     const hasta = Math.min(this.columnas - 1, hastaColumna - this.columnaOrigen);
-    if (hasta < desde) {
+    if (hasta < desde || cantidad <= 0) {
       return;
     }
+    // Reparto estratificado: cada gota cae dentro de su propia franja del
+    // ancho visible, en vez de puro azar independiente. Puro azar con pocas
+    // gotas por tick (como en llovizna) deja parches visibles sin lluvia por
+    // pura casualidad; estratificar los reparte parejo sin que se vea
+    // artificialmente uniforme, porque adentro de cada franja sigue siendo
+    // al azar.
+    const ancho = hasta - desde + 1;
+    const franja = ancho / cantidad;
     for (let gota = 0; gota < cantidad; gota += 1) {
-      this.granos.verter(azar.entre(desde, hasta), 0);
+      const inicioFranja = desde + gota * franja;
+      const columna = Math.min(hasta, Math.floor(inicioFranja + azar.fraccion() * franja));
+      this.granos.verter(columna, 0);
     }
   }
 
