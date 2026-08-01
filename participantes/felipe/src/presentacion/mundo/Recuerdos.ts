@@ -17,12 +17,12 @@ const CLAVES = [
   "recuerdo_trompo",
 ] as const;
 
-const SEGUNDOS_ENTRE_CAIDAS = 2.4;
+const SEGUNDOS_ENTRE_CAIDAS = 3.2;
 const VELOCIDAD_DE_CAIDA = 130;
 const Y_DE_APARICION = 104;
 const Y_DE_RESOLUCION = SUELO_Y - 26;
 const RADIO_DE_ATRAPE = 38;
-const SUCIEDAD_POR_PERDIDO = 0.14;
+const SUCIEDAD_POR_PERDIDO = 0.08;
 const ESCALA_DE_RECUERDO = 2;
 const MARGEN_DE_APARICION = 48;
 
@@ -36,6 +36,12 @@ export class Recuerdos {
   private readonly cayendo: Cayendo[] = [];
   private readonly azar: Azar;
   private acumulado = 0;
+  private atrapados = 0;
+  private perdidos = 0;
+
+  get contadores(): { atrapados: number; perdidos: number } {
+    return { atrapados: this.atrapados, perdidos: this.perdidos };
+  }
 
   constructor(
     private readonly escena: Phaser.Scene,
@@ -60,10 +66,12 @@ export class Recuerdos {
       }
       if (Math.abs(recuerdo.x - xJugador) <= RADIO_DE_ATRAPE) {
         const ganados = PUNTOS_POR_RECUERDO * partida.puntaje.racha;
+        this.atrapados += 1;
         partida.puntaje.anotarRecuerdo();
         sonido.recuerdoAtrapado();
         this.avisar(recuerdo.x, recuerdo.y, `+${ganados}`, PALETA.luz);
       } else {
+        this.perdidos += 1;
         partida.alameda.masCercano(pixelAMetro(recuerdo.x)).ensuciar(SUCIEDAD_POR_PERDIDO);
         sonido.recuerdoPerdido();
       }

@@ -1,6 +1,6 @@
 export const PUNTOS_POR_SEGUNDO = 10;
 export const PUNTOS_POR_DESTAPADA = 120;
-export const PUNTOS_POR_RECUERDO = 75;
+export const PUNTOS_POR_RECUERDO = 28;
 export const RACHA_MAXIMA = 5;
 
 export class Puntaje {
