@@ -29,6 +29,7 @@ export class JuegoScene extends Phaser.Scene {
   private acumulado = 0;
   private teclas!: Phaser.Types.Input.Keyboard.CursorKeys;
   private espacio!: Phaser.Input.Keyboard.Key;
+  private estabaEnAgua = false;
 
   constructor() {
     super("Juego");
@@ -98,6 +99,7 @@ export class JuegoScene extends Phaser.Scene {
     this.escenario.actualizarRejillas();
     this.camioneta.actualizar(this.partida.jugador, this.partida.sumideroAlAlcance());
     sonido.intensidadDeLluvia(this.partida.caudal);
+    sonido.talVezGranizo(this.partida.oleada.granizoPorSegundo, segundos);
 
     if (this.partida.terminada) {
       this.terminar();
@@ -119,14 +121,23 @@ export class JuegoScene extends Phaser.Scene {
     const objetivo = this.partida.sumideroAlAlcance();
     if (this.espacio.isDown && objetivo) {
       this.partida.jugador.trabajar();
+      sonido.actualizarMotor(false, false);
+      sonido.actualizarSuccion(true);
       if (this.partida.destapar(objetivo, segundos)) {
         sonido.rejillaDestapada();
       }
       return;
     }
+    sonido.actualizarSuccion(false);
     const direccion = (this.teclas.left.isDown ? -1 : 0) + (this.teclas.right.isDown ? 1 : 0);
     const columna = Math.floor(metroAPixel(this.partida.jugador.metro) / CELDA_PX);
-    this.partida.jugador.mover(direccion, segundos, this.ventana.hayAguaEn(columna));
+    const enAgua = this.ventana.hayAguaEn(columna);
+    if (enAgua && !this.estabaEnAgua && direccion !== 0) {
+      sonido.chapoteo();
+    }
+    this.estabaEnAgua = enAgua;
+    sonido.actualizarMotor(direccion !== 0, enAgua);
+    this.partida.jugador.mover(direccion, segundos, enAgua);
   }
 
   private moverCamara() {

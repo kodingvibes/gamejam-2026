@@ -18,4 +18,6 @@ body {
 
 canvas {
   display: block;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
 }

@@ -3,6 +3,7 @@ import type Phaser from "phaser";
 import type { Partida } from "./dominio/partida/Partida";
 import { createTapaoGame } from "./presentacion/TapaoGame";
 import { mejorPuntaje } from "./presentacion/Records";
+import { sonido } from "./presentacion/audio/Sonido";
 
 const contenedor = document.getElementById("tapao");
 
@@ -46,6 +47,7 @@ function exponerParaDepuracionYQa(juego: Phaser.Game) {
   w.__tapao = juego;
   w.__GAME__ = juego;
   w.__EVENT_BUS__ = juego.events;
+  w.__sonidoDebug = sonido;
 
   Object.defineProperty(w, "__GAME_STATE__", {
     configurable: true,
