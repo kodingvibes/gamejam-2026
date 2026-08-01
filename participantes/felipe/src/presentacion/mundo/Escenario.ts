@@ -23,7 +23,10 @@ const CLAVES_DE_SUMIDERO = {
   tapado: ["sumidero_tapado", "sumidero_tapado_2", "sumidero_tapado_3"],
 } as const;
 
-const MS_POR_CUADRO_DE_MUGRE = 170;
+const MS_POR_CUADRO_DE_MUGRE = 340;
+const ESCALA_DE_MUGRE = 2;
+const ALTO_DE_REJILLA = 16;
+const Y_DE_REJILLA = SUELO_Y - 6;
 
 const ESCALA_DE_HITOS = 2.5;
 
@@ -50,6 +53,9 @@ export class Escenario {
       if (rejilla) {
         const claves = CLAVES_DE_SUMIDERO[sumidero.estado];
         rejilla.setTexture(claves[(cuadro + indice) % claves.length]);
+        const escala = sumidero.estado === "limpio" ? 1 : ESCALA_DE_MUGRE;
+        rejilla.setScale(escala);
+        rejilla.setY(Y_DE_REJILLA - ALTO_DE_REJILLA * (escala - 1));
       }
     });
   }
@@ -123,7 +129,7 @@ export class Escenario {
     for (const sumidero of this.alameda.sumideros) {
       this.rejillas.push(
         this.escena.add
-          .image(metroAPixel(sumidero.metro), SUELO_Y - 6, CLAVES_DE_SUMIDERO[sumidero.estado][0])
+          .image(metroAPixel(sumidero.metro), Y_DE_REJILLA, CLAVES_DE_SUMIDERO[sumidero.estado][0])
           .setOrigin(0.5, 0)
           .setDepth(30),
       );

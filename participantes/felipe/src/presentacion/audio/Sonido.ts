@@ -1,6 +1,12 @@
+import musicaUrl from "../../assets/musica-arcade-de-lluvia.mp3";
+
+const VOLUMEN_DE_MUSICA = 0.08;
+
 class Sonido {
   private contexto: AudioContext | null = null;
   private maestro: GainNode | null = null;
+  private musica: GainNode | null = null;
+  private musicaFuente: AudioBufferSourceNode | null = null;
   private lluvia: GainNode | null = null;
   private motor: GainNode | null = null;
   private motorOscilador: OscillatorNode | null = null;
@@ -29,6 +35,7 @@ class Sonido {
     this.arrancarLluvia();
     this.arrancarMotor();
     this.arrancarSuccion();
+    void this.arrancarMusica();
     if (this.contexto.state === "suspended") {
       void this.contexto.resume();
     }
@@ -102,6 +109,34 @@ class Sonido {
     [523, 659, 784].forEach((nota, indice) => {
       this.golpe(nota, 0.35, 0.22, "triangle", indice * 0.12);
     });
+  }
+
+  private async arrancarMusica() {
+    if (!this.contexto || !this.maestro || this.musica || this.musicaFuente) {
+      return;
+    }
+    const contexto = this.contexto;
+    const salida = contexto.createGain();
+    salida.gain.value = VOLUMEN_DE_MUSICA;
+    salida.connect(this.maestro);
+    this.musica = salida;
+    try {
+      const respuesta = await fetch(musicaUrl);
+      const codificado = await respuesta.arrayBuffer();
+      const buffer = await contexto.decodeAudioData(codificado);
+      if (this.musicaFuente) {
+        return;
+      }
+      const fuente = contexto.createBufferSource();
+      fuente.buffer = buffer;
+      fuente.loop = true;
+      fuente.connect(salida);
+      fuente.start();
+      this.musicaFuente = fuente;
+    } catch {
+      salida.disconnect();
+      this.musica = null;
+    }
   }
 
   private arrancarLluvia() {

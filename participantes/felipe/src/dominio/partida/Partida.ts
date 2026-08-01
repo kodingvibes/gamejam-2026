@@ -12,9 +12,9 @@ export type Resultado = "jugando" | "ganada" | "perdida";
 
 export const DESTAPADO_POR_SEGUNDO = 0.6;
 export const CRECIDA_CERCA_DE_LA_MONEDA = 1.6;
-export const SUCIEDAD_INICIAL = 0.88;
+export const SUCIEDAD_INICIAL = 0.97;
 export const SUMIDEROS_SUCIOS_AL_INICIO = 4;
-export const SUCIEDAD_INICIAL_MINIMA = 0.52;
+export const SUCIEDAD_INICIAL_MINIMA = 0.84;
 export const SEMILLA_POR_DEFECTO = 20260801;
 
 export class Partida {

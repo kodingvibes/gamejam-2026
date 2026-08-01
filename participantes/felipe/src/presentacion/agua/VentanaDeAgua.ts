@@ -10,7 +10,9 @@ const CLAVE = "ventana-de-agua";
 const FRACCION_ANEGADA = 0.3;
 const FILAS_HASTA_AHOGARSE = 40;
 const COLUMNAS_MAXIMAS = 800;
-const FILAS_DE_CHARCO_INICIAL = 3;
+const FILAS_DE_CHARCO_INICIAL = 1;
+const RADIO_DE_CHARCO_SUCIO = 11;
+const FILAS_DE_CHARCO_SUCIO = 10;
 const PASOS_PARA_ASENTAR = 20;
 
 function componentes(color: number): [number, number, number] {
@@ -134,12 +136,27 @@ export class VentanaDeAgua {
     return false;
   }
 
-  sembrarCharcos() {
+  sembrarCharcos(columnasSucias: readonly number[] = []) {
     const desde = FILAS_DE_AGUA - 1 - FILAS_DE_CHARCO_INICIAL;
     for (let fila = desde; fila < FILAS_DE_AGUA; fila += 1) {
       for (let columna = 0; columna < this.columnas; columna += 1) {
         if (this.granos.celdaEn(columna, fila) === CELDA.aire) {
           this.granos.verter(columna, fila);
+        }
+      }
+    }
+    const hondo = FILAS_DE_AGUA - 1 - FILAS_DE_CHARCO_SUCIO;
+    for (const columnaMundo of columnasSucias) {
+      const centro = columnaMundo - this.columnaOrigen;
+      for (let fila = hondo; fila < FILAS_DE_AGUA; fila += 1) {
+        for (let paso = -RADIO_DE_CHARCO_SUCIO; paso <= RADIO_DE_CHARCO_SUCIO; paso += 1) {
+          const columna = centro + paso;
+          if (columna < 0 || columna >= this.columnas) {
+            continue;
+          }
+          if (this.granos.celdaEn(columna, fila) === CELDA.aire) {
+            this.granos.verter(columna, fila);
+          }
         }
       }
     }

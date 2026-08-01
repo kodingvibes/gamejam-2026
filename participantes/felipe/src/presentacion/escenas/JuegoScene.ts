@@ -53,7 +53,11 @@ export class JuegoScene extends Phaser.Scene {
       this.partida.alameda.sumideros.map((sumidero) => this.escenario.columnaDe(sumidero, CELDA_PX)),
       Math.round(metroAPixel(METROS_ENTRE_SUMIDEROS) / CELDA_PX),
     );
-    this.ventana.sembrarCharcos();
+    this.ventana.sembrarCharcos(
+      this.partida.alameda.sumideros
+        .filter((sumidero) => sumidero.estado !== "limpio")
+        .map((sumidero) => this.escenario.columnaDe(sumidero, CELDA_PX)),
+    );
     this.camioneta = new Camioneta(this);
     this.azar = new Azar(97);
     this.acumulado = 0;
