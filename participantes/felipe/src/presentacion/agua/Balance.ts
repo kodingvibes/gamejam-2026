@@ -6,6 +6,7 @@ export const TRAGO_POR_DRENAJE = 110;
 // either is maintained — 25 is the minimum radius where two neighbors'
 // reach meets with no gap.
 export const RADIO_DE_TRAGO = 25;
+export const RADIO_DE_TRAGO_FILAS = 10;
 export const RADIO_DE_PELIGRO_COLUMNAS = 25;
 
 export function gotasDeLluvia(caudal: number, columnasVisibles: number): number {

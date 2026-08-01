@@ -77,9 +77,9 @@ export class Granos {
     return true;
   }
 
-  drenar(x: number, y: number, radio: number, maximo: number): number {
+  drenar(x: number, y: number, radio: number, maximo: number, radioFilas: number = radio): number {
     let sacados = 0;
-    for (let fila = y - radio; fila <= y + radio && sacados < maximo; fila += 1) {
+    for (let fila = y - radioFilas; fila <= y + radioFilas && sacados < maximo; fila += 1) {
       for (let columna = x - radio; columna <= x + radio && sacados < maximo; columna += 1) {
         if (this.celdaEn(columna, fila) === CELDA.agua) {
           this.celdas[this.indice(columna, fila)] = CELDA.aire;

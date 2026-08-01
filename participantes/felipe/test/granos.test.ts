@@ -6,6 +6,7 @@ import { CAPACIDAD_POR_SUMIDERO } from "../src/dominio/corredor/Sumidero";
 import {
   gotasDeLluvia,
   RADIO_DE_TRAGO,
+  RADIO_DE_TRAGO_FILAS,
   tragoDeRejilla,
 } from "../src/presentacion/agua/Balance";
 import { alturaDelPiso } from "../src/presentacion/agua/PerfilDeCalle";
@@ -50,7 +51,7 @@ function calleTrasElTemporal(caudal: number, obstruccion: number) {
     }
     if (trago > 0) {
       for (const columna of rejillas) {
-        granos.drenar(columna, 48, RADIO_DE_TRAGO, trago);
+        granos.drenar(columna, 48, RADIO_DE_TRAGO, trago, RADIO_DE_TRAGO_FILAS);
       }
     }
     granos.paso();
@@ -153,18 +154,24 @@ describe("Granos", () => {
   });
 
   it("con granizo la calle se inunda aunque las rejillas esten limpias", () => {
-    // Thresholds recalibrated twice after the flood-spiral rebalance: less
-    // rain + more drainage per rejilla, then RADIO_DE_TRAGO widened to 25
-    // columns — exactly half the 50-column sumidero spacing, so two
-    // neighboring rejillas' reach now meets with no gap between them. That
-    // was the point: profundidadEnMedio (the crown exactly between two
-    // rejillas) is now genuinely 0 with clean grates, where it used to hold
-    // standing water no matter how well the grates were maintained. Total
-    // agua (535) still confirms granizo isn't fully absorbed — it now
-    // concentrates in the sumps at the rejillas themselves, not the crown.
+    // Thresholds recalibrated three times now. First after the flood-spiral
+    // rebalance (less rain + more drainage per rejilla). Then RADIO_DE_TRAGO
+    // widened to 25 columns — exactly half the 50-column sumidero spacing,
+    // so two neighboring rejillas' column reach meets with no gap — which
+    // made profundidadEnMedio (the crown exactly between two rejillas)
+    // genuinely 0 with clean grates. Then RADIO_DE_TRAGO_FILAS was added to
+    // cap how far the drain reaches vertically (fixed a bug where the old
+    // symmetric radius drained rows 23-49 of 50 — reaching into rain still
+    // visibly falling, not just the settled puddle). Capping the row reach
+    // to the lower ~24% of the grid reintroduces 1 cell of standing water at
+    // the crown even with clean grates (measured, not assumed): a small,
+    // deliberate trade for no longer erasing mid-air rain. Total agua (882)
+    // still confirms granizo isn't fully absorbed — it concentrates in the
+    // sumps at the rejillas themselves, not the crown, which stays at a
+    // 1-cell film rather than the 6-cell depth seen with rejillas tapadas.
     const granizo = calleTrasElTemporal(2.4, 0);
     expect(granizo.agua).toBeGreaterThan(400);
-    expect(granizo.profundidadEnMedio).toBe(0);
+    expect(granizo.profundidadEnMedio).toBe(1);
   });
 
   it("con las rejillas tapadas la calle se inunda con cualquier lluvia", () => {

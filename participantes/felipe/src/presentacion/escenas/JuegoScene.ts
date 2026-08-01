@@ -4,7 +4,13 @@ import { Azar } from "../../dominio/agua/Azar";
 import { METROS_ENTRE_SUMIDEROS } from "../../dominio/corredor/Alameda";
 import { MODOS, type Modo } from "../../dominio/partida/Modo";
 import { Partida } from "../../dominio/partida/Partida";
-import { gotasDeLluvia, RADIO_DE_PELIGRO_COLUMNAS, RADIO_DE_TRAGO, tragoDeRejilla } from "../agua/Balance";
+import {
+  gotasDeLluvia,
+  RADIO_DE_PELIGRO_COLUMNAS,
+  RADIO_DE_TRAGO,
+  RADIO_DE_TRAGO_FILAS,
+  tragoDeRejilla,
+} from "../agua/Balance";
 import { VentanaDeAgua } from "../agua/VentanaDeAgua";
 import { FUENTES, HEX } from "../arte/theme";
 import { sonido } from "../audio/Sonido";
@@ -40,13 +46,14 @@ export class JuegoScene extends Phaser.Scene {
   }
 
   create() {
-    this.partida = Partida.comenzar(this.modo);
+    this.partida = Partida.comenzar(this.modo, Date.now() >>> 0);
     this.escenario = new Escenario(this, this.partida.alameda);
     this.ventana = new VentanaDeAgua(this);
     this.ventana.dondeEstanLasRejillas(
       this.partida.alameda.sumideros.map((sumidero) => this.escenario.columnaDe(sumidero, CELDA_PX)),
       Math.round(metroAPixel(METROS_ENTRE_SUMIDEROS) / CELDA_PX),
     );
+    this.ventana.sembrarCharcos();
     this.camioneta = new Camioneta(this);
     this.azar = new Azar(97);
     this.acumulado = 0;
@@ -169,7 +176,7 @@ export class JuegoScene extends Phaser.Scene {
       }
       const capacidad = tragoDeRejilla(sumidero.drenaje);
       if (capacidad > 0) {
-        this.ventana.drenarEnColumna(columna, RADIO_DE_TRAGO, capacidad);
+        this.ventana.drenarEnColumna(columna, RADIO_DE_TRAGO, RADIO_DE_TRAGO_FILAS, capacidad);
       }
     }
 

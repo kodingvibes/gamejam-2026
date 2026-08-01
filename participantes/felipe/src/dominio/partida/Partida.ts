@@ -1,6 +1,7 @@
+import { Azar } from "../agua/Azar";
 import { Frente } from "../agua/Frente";
 import type { Curva, Oleada } from "../agua/Oleadas";
-import { curvaSinFin, curvaTemporal } from "../agua/Oleadas";
+import { curvaSinFin, curvaTemporal, envolventeDeCaudal } from "../agua/Oleadas";
 import { Alameda } from "../corredor/Alameda";
 import type { Sumidero } from "../corredor/Sumidero";
 import { ALCANCE_METROS, Jugador } from "./Jugador";
@@ -11,8 +12,10 @@ export type Resultado = "jugando" | "ganada" | "perdida";
 
 export const DESTAPADO_POR_SEGUNDO = 0.6;
 export const CRECIDA_CERCA_DE_LA_MONEDA = 1.6;
-export const SUCIEDAD_INICIAL = 0.35;
-export const SUMIDEROS_SUCIOS_AL_INICIO = 2;
+export const SUCIEDAD_INICIAL = 0.88;
+export const SUMIDEROS_SUCIOS_AL_INICIO = 4;
+export const SUCIEDAD_INICIAL_MINIMA = 0.52;
+export const SEMILLA_POR_DEFECTO = 20260801;
 
 export class Partida {
   private segundos = 0;
@@ -28,10 +31,12 @@ export class Partida {
     readonly jugador: Jugador,
   ) {}
 
-  static comenzar(modo: Modo): Partida {
-    const alameda = Alameda.porDefecto();
+  static comenzar(modo: Modo, semilla: number = SEMILLA_POR_DEFECTO): Partida {
+    const azar = new Azar(semilla);
+    const alameda = Alameda.porDefecto(azar);
+    const rango = SUCIEDAD_INICIAL - SUCIEDAD_INICIAL_MINIMA;
     alameda.sumideros.slice(0, SUMIDEROS_SUCIOS_AL_INICIO).forEach((sumidero) => {
-      sumidero.ensuciar(SUCIEDAD_INICIAL);
+      sumidero.ensuciar((SUCIEDAD_INICIAL_MINIMA + azar.fraccion() * rango) / sumidero.factorDeSuciedad);
     });
     const curva = modo === MODOS.temporal ? curvaTemporal() : curvaSinFin();
     return new Partida(
@@ -78,7 +83,11 @@ export class Partida {
   }
 
   get caudal(): number {
-    return this.oleada.caudal * (1 + this.avance * CRECIDA_CERCA_DE_LA_MONEDA);
+    return (
+      this.oleada.caudal *
+      envolventeDeCaudal(this.segundos) *
+      (1 + this.avance * CRECIDA_CERCA_DE_LA_MONEDA)
+    );
   }
 
   avanzar(segundos: number, inundacion: number) {

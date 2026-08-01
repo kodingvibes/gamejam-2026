@@ -95,6 +95,7 @@ export class MenuScene extends Phaser.Scene {
       this.add
         .text(centro, alto * 0.16, "TAPA'O", {
           fontSize: "72px",
+          resolution: 2,
           color: HEX.linea,
           fontFamily: FUENTES.ui,
           fontStyle: "bold",
@@ -106,6 +107,7 @@ export class MenuScene extends Phaser.Scene {
       this.add
         .text(centro, alto * 0.27, "El temporal baja por la Alameda y tú tienes que destapar los sumideros", {
           fontSize: "17px",
+          resolution: 2,
           color: HEX.texto_suave,
           fontFamily: FUENTES.ui,
         })
@@ -119,6 +121,7 @@ export class MenuScene extends Phaser.Scene {
         this.add
           .text(centro, y, `${activa ? "> " : "  "}${opcion.titulo}`, {
             fontSize: "34px",
+            resolution: 2,
             color: activa ? HEX.figura : HEX.texto,
             fontFamily: FUENTES.ui,
             fontStyle: "bold",
@@ -129,6 +132,7 @@ export class MenuScene extends Phaser.Scene {
         this.add
           .text(centro, y + 30, opcion.bajada, {
             fontSize: "15px",
+            resolution: 2,
             color: activa ? HEX.texto : HEX.texto_suave,
             fontFamily: FUENTES.ui,
           })
@@ -141,6 +145,7 @@ export class MenuScene extends Phaser.Scene {
     this.capa.add(
       this.add.text(centro, alto - 34, "Flechas: elegir  ·  Enter: jugar", {
         fontSize: "14px",
+        resolution: 2,
         color: HEX.texto_suave,
         fontFamily: FUENTES.ui,
       }).setOrigin(0.5),
@@ -153,6 +158,7 @@ export class MenuScene extends Phaser.Scene {
       this.add
         .text(centro, y, "COMO SE JUEGA", {
           fontSize: "16px",
+          resolution: 2,
           color: HEX.linea,
           fontFamily: FUENTES.ui,
           fontStyle: "bold",
@@ -164,6 +170,7 @@ export class MenuScene extends Phaser.Scene {
         this.add
           .text(centro, y + 26 + indice * 20, linea, {
             fontSize: "15px",
+            resolution: 2,
             color: HEX.texto,
             fontFamily: FUENTES.ui,
           })

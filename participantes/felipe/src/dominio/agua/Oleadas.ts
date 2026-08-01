@@ -44,6 +44,13 @@ const BASE: readonly Oleada[] = [
   },
 ];
 
+export const CAUDAL_DE_ARRANQUE = 1.5;
+export const SEGUNDOS_PARA_DUPLICAR = 240;
+
+export function envolventeDeCaudal(segundos: number): number {
+  return CAUDAL_DE_ARRANQUE * Math.pow(2, Math.max(0, segundos) / SEGUNDOS_PARA_DUPLICAR);
+}
+
 const CRECIMIENTO_POR_VUELTA = 0.22;
 
 function escalar(oleada: Oleada, vuelta: number): Oleada {

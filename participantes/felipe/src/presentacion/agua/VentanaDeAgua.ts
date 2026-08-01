@@ -10,6 +10,8 @@ const CLAVE = "ventana-de-agua";
 const FRACCION_ANEGADA = 0.3;
 const FILAS_HASTA_AHOGARSE = 40;
 const COLUMNAS_MAXIMAS = 800;
+const FILAS_DE_CHARCO_INICIAL = 3;
+const PASOS_PARA_ASENTAR = 20;
 
 function componentes(color: number): [number, number, number] {
   return [(color >> 16) & 255, (color >> 8) & 255, color & 255];
@@ -88,12 +90,12 @@ export class VentanaDeAgua {
     }
   }
 
-  drenarEnColumna(columna: number, radio: number, maximo: number): number {
+  drenarEnColumna(columna: number, radio: number, radioFilas: number, maximo: number): number {
     const local = columna - this.columnaOrigen;
     if (local < 0 || local >= this.columnas) {
       return 0;
     }
-    return this.granos.drenar(local, FILAS_DE_AGUA - 2, radio, maximo);
+    return this.granos.drenar(local, FILAS_DE_AGUA - 2, radio, maximo, radioFilas);
   }
 
   nivelDeInundacion(columnaMundoJugador?: number, radioColumnas?: number): number {
@@ -130,6 +132,20 @@ export class VentanaDeAgua {
       }
     }
     return false;
+  }
+
+  sembrarCharcos() {
+    const desde = FILAS_DE_AGUA - 1 - FILAS_DE_CHARCO_INICIAL;
+    for (let fila = desde; fila < FILAS_DE_AGUA; fila += 1) {
+      for (let columna = 0; columna < this.columnas; columna += 1) {
+        if (this.granos.celdaEn(columna, fila) === CELDA.aire) {
+          this.granos.verter(columna, fila);
+        }
+      }
+    }
+    for (let paso = 0; paso < PASOS_PARA_ASENTAR; paso += 1) {
+      this.granos.paso();
+    }
   }
 
   simular() {

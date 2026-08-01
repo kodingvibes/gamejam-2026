@@ -8,6 +8,7 @@ export class Sumidero {
   constructor(
     readonly metro: number,
     readonly capacidad: number = CAPACIDAD_POR_SUMIDERO,
+    readonly factorDeSuciedad: number = 1,
   ) {}
 
   get obstruccion(): number {
@@ -29,7 +30,10 @@ export class Sumidero {
   }
 
   ensuciar(cantidad: number) {
-    this.obstruccionActual = Math.min(1, this.obstruccionActual + Math.max(0, cantidad));
+    this.obstruccionActual = Math.min(
+      1,
+      this.obstruccionActual + Math.max(0, cantidad) * this.factorDeSuciedad,
+    );
   }
 
   destapar(cantidad: number): number {

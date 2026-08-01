@@ -20,12 +20,14 @@ export class HudScene extends Phaser.Scene {
     this.barra = this.add.graphics();
     this.titulo = this.add.text(16, 12, "", {
       fontSize: "20px",
+      resolution: 2,
       color: HEX.linea,
       fontFamily: FUENTES.ui,
       fontStyle: "bold",
     });
     this.detalle = this.add.text(16, 38, "", {
       fontSize: "14px",
+      resolution: 2,
       color: HEX.texto_suave,
       fontFamily: FUENTES.ui,
     });

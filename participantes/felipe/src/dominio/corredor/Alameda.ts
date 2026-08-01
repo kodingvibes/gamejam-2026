@@ -1,7 +1,10 @@
+import type { Azar } from "../agua/Azar";
 import { HITOS, LARGO_DE_LA_ALAMEDA, type Hito } from "./Hitos";
-import { Sumidero } from "./Sumidero";
+import { CAPACIDAD_POR_SUMIDERO, Sumidero } from "./Sumidero";
 
 export const METROS_ENTRE_SUMIDEROS = 100;
+export const FACTOR_DE_SUCIEDAD_MINIMO = 0.55;
+export const FACTOR_DE_SUCIEDAD_MAXIMO = 1.45;
 
 export class Alameda {
   private constructor(
@@ -10,14 +13,21 @@ export class Alameda {
     readonly sumideros: readonly Sumidero[],
   ) {}
 
-  static porDefecto(): Alameda {
-    return Alameda.crear(LARGO_DE_LA_ALAMEDA, HITOS, METROS_ENTRE_SUMIDEROS);
+  static porDefecto(azar?: Azar): Alameda {
+    return Alameda.crear(LARGO_DE_LA_ALAMEDA, HITOS, METROS_ENTRE_SUMIDEROS, azar);
   }
 
-  static crear(largoMetros: number, hitos: readonly Hito[], metrosEntreSumideros: number): Alameda {
+  static crear(
+    largoMetros: number,
+    hitos: readonly Hito[],
+    metrosEntreSumideros: number,
+    azar?: Azar,
+  ): Alameda {
     const sumideros: Sumidero[] = [];
+    const rango = FACTOR_DE_SUCIEDAD_MAXIMO - FACTOR_DE_SUCIEDAD_MINIMO;
     for (let metro = 0; metro <= largoMetros; metro += metrosEntreSumideros) {
-      sumideros.push(new Sumidero(metro));
+      const factor = azar ? FACTOR_DE_SUCIEDAD_MINIMO + azar.fraccion() * rango : 1;
+      sumideros.push(new Sumidero(metro, CAPACIDAD_POR_SUMIDERO, factor));
     }
     return new Alameda(largoMetros, hitos, sumideros);
   }

@@ -14,6 +14,7 @@ export class PausaScene extends Phaser.Scene {
     this.add
       .text(ancho / 2, alto / 2 - 20, "PAUSA", {
         fontSize: "48px",
+        resolution: 2,
         color: HEX.linea,
         fontFamily: FUENTES.ui,
         fontStyle: "bold",
@@ -22,6 +23,7 @@ export class PausaScene extends Phaser.Scene {
     this.add
       .text(ancho / 2, alto / 2 + 30, "P para seguir  ·  Esc para volver al menu", {
         fontSize: "16px",
+        resolution: 2,
         color: HEX.texto,
         fontFamily: FUENTES.ui,
       })

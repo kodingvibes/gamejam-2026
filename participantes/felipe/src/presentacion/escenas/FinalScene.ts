@@ -55,6 +55,7 @@ export class FinalScene extends Phaser.Scene {
     this.add
       .text(ancho / 2, alto * 0.14, TITULOS[this.datos.resultado] ?? "SE ACABO", {
         fontSize: "34px",
+        resolution: 2,
         color: perdio ? HEX.figura : HEX.linea,
         fontFamily: FUENTES.ui,
         fontStyle: "bold",
@@ -64,6 +65,7 @@ export class FinalScene extends Phaser.Scene {
     this.add
       .text(ancho / 2, alto * 0.24, this.resumen(), {
         fontSize: "17px",
+        resolution: 2,
         color: HEX.texto,
         fontFamily: FUENTES.ui,
         align: "center",
@@ -107,6 +109,7 @@ export class FinalScene extends Phaser.Scene {
       this.add
         .text(ancho / 2, y - 34, "RECORD NUEVO - INGRESA TUS INICIALES", {
           fontSize: "18px",
+          resolution: 2,
           color: HEX.luz,
           fontFamily: FUENTES.ui,
           fontStyle: "bold",
@@ -118,6 +121,7 @@ export class FinalScene extends Phaser.Scene {
       const texto = this.add
         .text(ancho / 2 + (indice - 1) * 50, y, letra, {
           fontSize: "40px",
+          resolution: 2,
           color: indice === this.indiceLetra ? HEX.figura : HEX.texto,
           fontFamily: FUENTES.mono,
           fontStyle: "bold",
@@ -130,6 +134,7 @@ export class FinalScene extends Phaser.Scene {
     const cursor = this.add
       .text(ancho / 2 + (this.indiceLetra - 1) * 50, y + 28, "^", {
         fontSize: "22px",
+        resolution: 2,
         color: HEX.figura,
         fontFamily: FUENTES.mono,
         fontStyle: "bold",
@@ -142,6 +147,7 @@ export class FinalScene extends Phaser.Scene {
       this.add
         .text(ancho / 2, y + 56, "ARRIBA/ABAJO: letra   ·   IZQ/DER: posicion   ·   ESPACIO: confirmar", {
           fontSize: "13px",
+          resolution: 2,
           color: HEX.texto_suave,
           fontFamily: FUENTES.ui,
         })
@@ -201,6 +207,7 @@ export class FinalScene extends Phaser.Scene {
     this.add
       .text(ancho / 2, y, "MEJORES PUNTAJES", {
         fontSize: "18px",
+        resolution: 2,
         color: HEX.linea,
         fontFamily: FUENTES.ui,
         fontStyle: "bold",
@@ -212,6 +219,7 @@ export class FinalScene extends Phaser.Scene {
       this.add
         .text(ancho / 2, y + 26 + indice * 24, `${indice + 1}.  ${entrada.iniciales}   ${entrada.puntaje}`, {
           fontSize: "16px",
+          resolution: 2,
           color: esNueva ? HEX.luz : HEX.texto,
           fontFamily: FUENTES.mono,
           fontStyle: esNueva ? "bold" : "normal",
@@ -222,6 +230,7 @@ export class FinalScene extends Phaser.Scene {
     this.add
       .text(ancho / 2, alto - 40, "R: otra vez  ·  Esc: menu", {
         fontSize: "16px",
+        resolution: 2,
         color: HEX.texto,
         fontFamily: FUENTES.ui,
       })
