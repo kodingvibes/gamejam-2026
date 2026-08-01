@@ -23,6 +23,8 @@ const CLAVES_DE_SUMIDERO = {
   tapado: "sumidero_tapado",
 } as const;
 
+const ESCALA_DE_HITOS = 2.5;
+
 export class Escenario {
   readonly anchoMundo: number;
   private readonly rejillas: Phaser.GameObjects.Image[] = [];
@@ -108,6 +110,7 @@ export class Escenario {
       this.escena.add
         .image(metroAPixel(hito.metro), SUELO_Y - ALTO_VEREDA, clave)
         .setOrigin(0.5, 1)
+        .setScale(ESCALA_DE_HITOS)
         .setDepth(-10);
     }
   }

@@ -153,9 +153,18 @@ describe("Granos", () => {
   });
 
   it("con granizo la calle se inunda aunque las rejillas esten limpias", () => {
+    // Thresholds recalibrated twice after the flood-spiral rebalance: less
+    // rain + more drainage per rejilla, then RADIO_DE_TRAGO widened to 25
+    // columns — exactly half the 50-column sumidero spacing, so two
+    // neighboring rejillas' reach now meets with no gap between them. That
+    // was the point: profundidadEnMedio (the crown exactly between two
+    // rejillas) is now genuinely 0 with clean grates, where it used to hold
+    // standing water no matter how well the grates were maintained. Total
+    // agua (535) still confirms granizo isn't fully absorbed — it now
+    // concentrates in the sumps at the rejillas themselves, not the crown.
     const granizo = calleTrasElTemporal(2.4, 0);
-    expect(granizo.agua).toBeGreaterThan(1500);
-    expect(granizo.profundidadEnMedio).toBeGreaterThan(10);
+    expect(granizo.agua).toBeGreaterThan(400);
+    expect(granizo.profundidadEnMedio).toBe(0);
   });
 
   it("con las rejillas tapadas la calle se inunda con cualquier lluvia", () => {

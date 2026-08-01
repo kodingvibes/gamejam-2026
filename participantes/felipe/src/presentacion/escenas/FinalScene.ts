@@ -3,7 +3,13 @@ import Phaser from "phaser";
 import { MODOS, type Modo } from "../../dominio/partida/Modo";
 import type { Resultado } from "../../dominio/partida/Partida";
 import { FUENTES, HEX, PALETA } from "../arte/theme";
-import { anotarPuntaje, mejorPuntaje } from "../Records";
+import {
+  anotarPuntaje,
+  calificaParaElTop,
+  type EntradaDePuntaje,
+  mejorPuntaje,
+  tablaDePuntajes,
+} from "../Records";
 import { sonido } from "../audio/Sonido";
 
 interface DatosFinal {
@@ -19,8 +25,14 @@ const TITULOS: Record<string, string> = {
   ganada: "AGUANTASTE EL TEMPORAL",
 };
 
+const ALFABETO = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 export class FinalScene extends Phaser.Scene {
   private datos!: DatosFinal;
+  private iniciales: string[] = ["A", "A", "A"];
+  private indiceLetra = 0;
+  private grupoEntrada?: Phaser.GameObjects.Container;
+  private manejarTeclaEntrada?: (evento: KeyboardEvent) => void;
 
   constructor() {
     super("Final");
@@ -28,13 +40,14 @@ export class FinalScene extends Phaser.Scene {
 
   init(datos: DatosFinal) {
     this.datos = datos;
+    this.iniciales = ["A", "A", "A"];
+    this.indiceLetra = 0;
   }
 
   create() {
     const ancho = this.scale.width;
     const alto = this.scale.height;
     const perdio = this.datos.resultado === "perdida";
-    const record = anotarPuntaje(this.datos.modo, this.datos.puntaje);
 
     this.pintarFondo(ancho, alto, perdio);
     this.pintarPresidente(ancho / 2, alto * 0.86, perdio);
@@ -57,26 +70,6 @@ export class FinalScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    if (record) {
-      this.add
-        .text(ancho / 2, alto * 0.32, "RECORD NUEVO", {
-          fontSize: "18px",
-          color: HEX.luz,
-          fontFamily: FUENTES.ui,
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5);
-    }
-
-    this.add
-      .text(ancho / 2, alto - 40, "R: otra vez  ·  Esc: menu", {
-        fontSize: "16px",
-        color: HEX.texto,
-        fontFamily: FUENTES.ui,
-      })
-      .setOrigin(0.5)
-      .setDepth(80);
-
     sonido.intensidadDeLluvia(0);
     if (perdio) {
       sonido.derrota();
@@ -84,8 +77,11 @@ export class FinalScene extends Phaser.Scene {
       sonido.victoria();
     }
 
-    this.input.keyboard?.on("keydown-R", () => this.scene.start("Juego", { modo: this.datos.modo }));
-    this.input.keyboard?.on("keydown-ESC", () => this.scene.start("Menu"));
+    if (calificaParaElTop(this.datos.modo, this.datos.puntaje)) {
+      this.iniciarIngresoDeIniciales(ancho, alto);
+    } else {
+      this.mostrarTabla(ancho, alto);
+    }
   }
 
   private resumen(): string {
@@ -100,6 +96,140 @@ export class FinalScene extends Phaser.Scene {
       lineas.push("salio el sol y el presidente quedo seco. Nadie te lo agradecio.");
     }
     return lineas.join("\n");
+  }
+
+  private iniciarIngresoDeIniciales(ancho: number, alto: number) {
+    const y = alto * 0.36;
+    const grupo = this.add.container(0, 0);
+    this.grupoEntrada = grupo;
+
+    grupo.add(
+      this.add
+        .text(ancho / 2, y - 34, "RECORD NUEVO - INGRESA TUS INICIALES", {
+          fontSize: "18px",
+          color: HEX.luz,
+          fontFamily: FUENTES.ui,
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5),
+    );
+
+    const textosLetras = this.iniciales.map((letra, indice) => {
+      const texto = this.add
+        .text(ancho / 2 + (indice - 1) * 50, y, letra, {
+          fontSize: "40px",
+          color: indice === this.indiceLetra ? HEX.figura : HEX.texto,
+          fontFamily: FUENTES.mono,
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5);
+      grupo.add(texto);
+      return texto;
+    });
+
+    const cursor = this.add
+      .text(ancho / 2 + (this.indiceLetra - 1) * 50, y + 28, "^", {
+        fontSize: "22px",
+        color: HEX.figura,
+        fontFamily: FUENTES.mono,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    grupo.add(cursor);
+    this.tweens.add({ targets: cursor, alpha: 0, duration: 350, yoyo: true, repeat: -1 });
+
+    grupo.add(
+      this.add
+        .text(ancho / 2, y + 56, "ARRIBA/ABAJO: letra   ·   IZQ/DER: posicion   ·   ESPACIO: confirmar", {
+          fontSize: "13px",
+          color: HEX.texto_suave,
+          fontFamily: FUENTES.ui,
+        })
+        .setOrigin(0.5),
+    );
+
+    const redibujar = () => {
+      textosLetras.forEach((texto, indice) => {
+        texto.setText(this.iniciales[indice]);
+        texto.setColor(indice === this.indiceLetra ? HEX.figura : HEX.texto);
+      });
+      cursor.setX(ancho / 2 + (this.indiceLetra - 1) * 50);
+    };
+
+    this.manejarTeclaEntrada = (evento: KeyboardEvent) => {
+      if (evento.code === "ArrowUp" || evento.code === "ArrowDown") {
+        const actual = ALFABETO.indexOf(this.iniciales[this.indiceLetra]);
+        const paso = evento.code === "ArrowUp" ? 1 : -1;
+        this.iniciales[this.indiceLetra] = ALFABETO[(actual + paso + ALFABETO.length) % ALFABETO.length];
+        redibujar();
+        return;
+      }
+      if (evento.code === "ArrowLeft") {
+        this.indiceLetra = Math.max(0, this.indiceLetra - 1);
+        redibujar();
+        return;
+      }
+      if (evento.code === "ArrowRight") {
+        this.indiceLetra = Math.min(2, this.indiceLetra + 1);
+        redibujar();
+        return;
+      }
+      if (evento.code === "Enter" || evento.code === "Space") {
+        this.confirmarIniciales(ancho, alto);
+      }
+    };
+    this.input.keyboard?.on("keydown", this.manejarTeclaEntrada);
+  }
+
+  private confirmarIniciales(ancho: number, alto: number) {
+    if (this.manejarTeclaEntrada) {
+      this.input.keyboard?.off("keydown", this.manejarTeclaEntrada);
+      this.manejarTeclaEntrada = undefined;
+    }
+    this.grupoEntrada?.destroy();
+    this.grupoEntrada = undefined;
+
+    const tabla = anotarPuntaje(this.datos.modo, this.iniciales.join(""), this.datos.puntaje);
+    this.mostrarTabla(ancho, alto, tabla);
+  }
+
+  private mostrarTabla(ancho: number, alto: number, tablaRecienAnotada?: EntradaDePuntaje[]) {
+    const tabla = tablaRecienAnotada ?? tablaDePuntajes(this.datos.modo);
+    const inicialesNuevas = tablaRecienAnotada ? this.iniciales.join("") : null;
+    const y = alto * 0.34;
+
+    this.add
+      .text(ancho / 2, y, "MEJORES PUNTAJES", {
+        fontSize: "18px",
+        color: HEX.linea,
+        fontFamily: FUENTES.ui,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+
+    tabla.forEach((entrada, indice) => {
+      const esNueva = inicialesNuevas === entrada.iniciales && entrada.puntaje === this.datos.puntaje;
+      this.add
+        .text(ancho / 2, y + 26 + indice * 24, `${indice + 1}.  ${entrada.iniciales}   ${entrada.puntaje}`, {
+          fontSize: "16px",
+          color: esNueva ? HEX.luz : HEX.texto,
+          fontFamily: FUENTES.mono,
+          fontStyle: esNueva ? "bold" : "normal",
+        })
+        .setOrigin(0.5);
+    });
+
+    this.add
+      .text(ancho / 2, alto - 40, "R: otra vez  ·  Esc: menu", {
+        fontSize: "16px",
+        color: HEX.texto,
+        fontFamily: FUENTES.ui,
+      })
+      .setOrigin(0.5)
+      .setDepth(80);
+
+    this.input.keyboard?.on("keydown-R", () => this.scene.start("Juego", { modo: this.datos.modo }));
+    this.input.keyboard?.on("keydown-ESC", () => this.scene.start("Menu"));
   }
 
   private pintarFondo(ancho: number, alto: number, perdio: boolean) {

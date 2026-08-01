@@ -11,6 +11,8 @@ export type Resultado = "jugando" | "ganada" | "perdida";
 
 export const DESTAPADO_POR_SEGUNDO = 0.6;
 export const CRECIDA_CERCA_DE_LA_MONEDA = 1.6;
+export const SUCIEDAD_INICIAL = 0.35;
+export const SUMIDEROS_SUCIOS_AL_INICIO = 2;
 
 export class Partida {
   private segundos = 0;
@@ -28,6 +30,9 @@ export class Partida {
 
   static comenzar(modo: Modo): Partida {
     const alameda = Alameda.porDefecto();
+    alameda.sumideros.slice(0, SUMIDEROS_SUCIOS_AL_INICIO).forEach((sumidero) => {
+      sumidero.ensuciar(SUCIEDAD_INICIAL);
+    });
     const curva = modo === MODOS.temporal ? curvaTemporal() : curvaSinFin();
     return new Partida(
       modo,

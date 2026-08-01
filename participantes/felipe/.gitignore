@@ -2,3 +2,6 @@ node_modules/
 dist/
 __pycache__/
 *.pyc
+.playtest/
+test-results/
+playwright-report/

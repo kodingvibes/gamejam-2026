@@ -21,7 +21,14 @@ export const createTapaoGame: PhaserGameFactory = (parent) =>
     pixelArt: true,
     scene: [BootScene, MenuScene, JuegoScene, HudScene, PausaScene, FinalScene],
     scale: {
-      mode: Phaser.Scale.RESIZE,
+      // FIT (not RESIZE): scales the fixed 960x540 composition up to fill
+      // the window — e.g. exactly 2x on a 1920x1080 screen, since both are
+      // 16:9 — instead of exposing more raw world space at the same pixel
+      // size. RESIZE was why the skyline read as sparse/empty on tall
+      // viewports (see the building-scale fix earlier this session).
+      mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: JUEGO.ancho,
+      height: JUEGO.alto,
     },
   });

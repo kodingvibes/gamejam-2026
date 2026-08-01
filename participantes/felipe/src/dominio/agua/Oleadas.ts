@@ -31,16 +31,16 @@ const BASE: readonly Oleada[] = [
   {
     nombre: "chubasco",
     duracionSegundos: 60,
-    caudal: 1.7,
+    caudal: 1.3,
     granizoPorSegundo: 0.4,
-    obstruccionPorSegundo: 0.03,
+    obstruccionPorSegundo: 0.022,
   },
   {
     nombre: "granizo",
     duracionSegundos: 60,
-    caudal: 2.4,
+    caudal: 1.8,
     granizoPorSegundo: 2.2,
-    obstruccionPorSegundo: 0.05,
+    obstruccionPorSegundo: 0.032,
   },
 ];
 

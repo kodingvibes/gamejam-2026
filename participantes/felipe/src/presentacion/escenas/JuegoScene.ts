@@ -4,7 +4,7 @@ import { Azar } from "../../dominio/agua/Azar";
 import { METROS_ENTRE_SUMIDEROS } from "../../dominio/corredor/Alameda";
 import { MODOS, type Modo } from "../../dominio/partida/Modo";
 import { Partida } from "../../dominio/partida/Partida";
-import { gotasDeLluvia, RADIO_DE_TRAGO, tragoDeRejilla } from "../agua/Balance";
+import { gotasDeLluvia, RADIO_DE_PELIGRO_COLUMNAS, RADIO_DE_TRAGO, tragoDeRejilla } from "../agua/Balance";
 import { VentanaDeAgua } from "../agua/VentanaDeAgua";
 import { FUENTES, HEX } from "../arte/theme";
 import { sonido } from "../audio/Sonido";
@@ -78,7 +78,11 @@ export class JuegoScene extends Phaser.Scene {
 
   override update(_tiempo: number, delta: number) {
     const segundos = Math.min(delta / 1000, 0.1);
-    this.partida.avanzar(segundos, this.ventana.nivelDeInundacion());
+    const columnaJugador = Math.floor(metroAPixel(this.partida.jugador.metro) / CELDA_PX);
+    this.partida.avanzar(
+      segundos,
+      this.ventana.nivelDeInundacion(columnaJugador, RADIO_DE_PELIGRO_COLUMNAS),
+    );
     this.mandarAlJugador(segundos);
     this.moverCamara();
     this.encerrarAlJugador();

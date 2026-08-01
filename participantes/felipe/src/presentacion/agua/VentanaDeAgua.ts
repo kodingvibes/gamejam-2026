@@ -8,7 +8,7 @@ import { alturaDelPiso, CAIDA_HACIA_LA_REJILLA } from "./PerfilDeCalle";
 
 const CLAVE = "ventana-de-agua";
 const FRACCION_ANEGADA = 0.3;
-const FILAS_HASTA_AHOGARSE = 22;
+const FILAS_HASTA_AHOGARSE = 40;
 const COLUMNAS_MAXIMAS = 800;
 
 function componentes(color: number): [number, number, number] {
@@ -86,11 +86,18 @@ export class VentanaDeAgua {
     return this.granos.drenar(local, FILAS_DE_AGUA - 2, radio, maximo);
   }
 
-  nivelDeInundacion(): number {
-    const minimo = Math.floor(this.columnas * FRACCION_ANEGADA);
+  nivelDeInundacion(columnaMundoJugador?: number, radioColumnas?: number): number {
+    let desde = 0;
+    let hasta = this.columnas;
+    if (columnaMundoJugador !== undefined && radioColumnas !== undefined) {
+      const local = columnaMundoJugador - this.columnaOrigen;
+      desde = Math.max(0, local - radioColumnas);
+      hasta = Math.min(this.columnas, local + radioColumnas);
+    }
+    const minimo = Math.floor((hasta - desde) * FRACCION_ANEGADA);
     for (let fila = 0; fila < FILAS_DE_AGUA; fila += 1) {
       let mojadas = 0;
-      for (let columna = 0; columna < this.columnas; columna += 1) {
+      for (let columna = desde; columna < hasta; columna += 1) {
         if (this.granos.celdaEn(columna, fila) === CELDA.agua) {
           mojadas += 1;
           if (mojadas >= minimo) {
