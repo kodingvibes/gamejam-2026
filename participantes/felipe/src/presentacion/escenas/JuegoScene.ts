@@ -12,11 +12,13 @@ import {
   tragoDeRejilla,
 } from "../agua/Balance";
 import { VentanaDeAgua } from "../agua/VentanaDeAgua";
-import { FUENTES, HEX } from "../arte/theme";
+import { PALETA } from "../arte/theme";
+import { textoPixel } from "../arte/TextoPixel";
 import { sonido } from "../audio/Sonido";
 import { CELDA_PX, metroAPixel, pixelAMetro } from "../Escala";
 import { Camioneta } from "../mundo/Camioneta";
 import { Escenario } from "../mundo/Escenario";
+import { Recuerdos } from "../mundo/Recuerdos";
 
 interface DatosJuego {
   modo?: Modo;
@@ -31,6 +33,7 @@ export class JuegoScene extends Phaser.Scene {
   private escenario!: Escenario;
   private ventana!: VentanaDeAgua;
   private camioneta!: Camioneta;
+  private recuerdos!: Recuerdos;
   private azar = new Azar(97);
   private acumulado = 0;
   private teclas!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -59,6 +62,7 @@ export class JuegoScene extends Phaser.Scene {
         .map((sumidero) => this.escenario.columnaDe(sumidero, CELDA_PX)),
     );
     this.camioneta = new Camioneta(this);
+    this.recuerdos = new Recuerdos(this, Date.now() >>> 0);
     this.azar = new Azar(97);
     this.acumulado = 0;
 
@@ -77,13 +81,14 @@ export class JuegoScene extends Phaser.Scene {
       this.scene.launch("Pausa");
     });
 
-    this.add
-      .text(
-        16,
-        this.scale.height - 62,
-        "Flechas: manejar  ·  Espacio (mantenido): destapar  ·  R: reiniciar  ·  Esc: menu",
-        { fontSize: "14px", color: HEX.texto_suave, fontFamily: FUENTES.ui },
-      )
+    textoPixel(
+      this,
+      16,
+      this.scale.height - 62,
+      "FLECHAS: MANEJAR  ·  ESPACIO: DESTAPAR  ·  R: REINICIAR  ·  ESC: MENU",
+      8,
+      PALETA.texto_suave,
+    )
       .setScrollFactor(0)
       .setDepth(100);
   }
@@ -108,6 +113,7 @@ export class JuegoScene extends Phaser.Scene {
     this.ventana.seguirCamara(this.cameras.main.scrollX);
     this.ventana.pintar();
     this.escenario.actualizarRejillas();
+    this.recuerdos.actualizar(segundos, this.partida, this.cameras.main.scrollX, this.scale.width);
     this.camioneta.actualizar(this.partida.jugador, this.partida.sumideroAlAlcance());
     sonido.intensidadDeLluvia(this.partida.caudal);
     sonido.talVezGranizo(this.partida.oleada.granizoPorSegundo, segundos);

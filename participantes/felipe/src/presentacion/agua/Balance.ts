@@ -1,5 +1,5 @@
 export const GOTAS_POR_CIEN_COLUMNAS = 4;
-export const TRAGO_POR_DRENAJE = 110;
+export const TRAGO_POR_DRENAJE = 115;
 // Sumideros sit METROS_ENTRE_SUMIDEROS (100m = 50 columns) apart. A radius
 // under 25 columns leaves a dead zone in the middle of every gap that
 // neither neighboring grate's drainage ever reaches, no matter how well

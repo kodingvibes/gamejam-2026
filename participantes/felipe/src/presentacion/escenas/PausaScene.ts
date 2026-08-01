@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
-import { FUENTES, HEX, PALETA } from "../arte/theme";
+import { PALETA } from "../arte/theme";
+import { textoPixel } from "../arte/TextoPixel";
 
 export class PausaScene extends Phaser.Scene {
   constructor() {
@@ -11,23 +12,15 @@ export class PausaScene extends Phaser.Scene {
     const ancho = this.scale.width;
     const alto = this.scale.height;
     this.add.graphics().fillStyle(PALETA.cielo, 0.82).fillRect(0, 0, ancho, alto);
-    this.add
-      .text(ancho / 2, alto / 2 - 20, "PAUSA", {
-        fontSize: "48px",
-        resolution: 2,
-        color: HEX.linea,
-        fontFamily: FUENTES.ui,
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(ancho / 2, alto / 2 + 30, "P para seguir  ·  Esc para volver al menu", {
-        fontSize: "16px",
-        resolution: 2,
-        color: HEX.texto,
-        fontFamily: FUENTES.ui,
-      })
-      .setOrigin(0.5);
+    textoPixel(this, ancho / 2, alto / 2 - 30, "PAUSA", 32, PALETA.linea).setOrigin(0.5);
+    textoPixel(
+      this,
+      ancho / 2,
+      alto / 2 + 30,
+      "P PARA SEGUIR  ·  ESC PARA VOLVER AL MENU",
+      8,
+      PALETA.texto,
+    ).setOrigin(0.5);
 
     this.input.keyboard?.on("keydown-P", () => {
       this.scene.stop();

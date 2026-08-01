@@ -44,11 +44,11 @@ const BASE: readonly Oleada[] = [
   },
 ];
 
-export const CAUDAL_DE_ARRANQUE = 1.5;
-export const SEGUNDOS_PARA_DUPLICAR = 240;
+export const CAUDAL_DE_ARRANQUE = 1.2;
+export const CAUDAL_POR_SEGUNDO = 0.0048;
 
 export function envolventeDeCaudal(segundos: number): number {
-  return CAUDAL_DE_ARRANQUE * Math.pow(2, Math.max(0, segundos) / SEGUNDOS_PARA_DUPLICAR);
+  return CAUDAL_DE_ARRANQUE + CAUDAL_POR_SEGUNDO * Math.max(0, segundos);
 }
 
 const CRECIMIENTO_POR_VUELTA = 0.22;

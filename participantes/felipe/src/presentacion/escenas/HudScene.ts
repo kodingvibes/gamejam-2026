@@ -1,14 +1,16 @@
 import Phaser from "phaser";
 
 import type { Partida } from "../../dominio/partida/Partida";
-import { FUENTES, HEX, PALETA } from "../arte/theme";
+import { normalizar } from "../arte/fuente";
+import { PALETA } from "../arte/theme";
+import { textoPixel } from "../arte/TextoPixel";
 
 const ALTO_BARRA = 10;
 
 export class HudScene extends Phaser.Scene {
   private partida!: Partida;
-  private titulo!: Phaser.GameObjects.Text;
-  private detalle!: Phaser.GameObjects.Text;
+  private titulo!: Phaser.GameObjects.BitmapText;
+  private detalle!: Phaser.GameObjects.BitmapText;
   private barra!: Phaser.GameObjects.Graphics;
 
   constructor() {
@@ -18,19 +20,8 @@ export class HudScene extends Phaser.Scene {
   create() {
     this.partida = this.registry.get("partida") as Partida;
     this.barra = this.add.graphics();
-    this.titulo = this.add.text(16, 12, "", {
-      fontSize: "20px",
-      resolution: 2,
-      color: HEX.linea,
-      fontFamily: FUENTES.ui,
-      fontStyle: "bold",
-    });
-    this.detalle = this.add.text(16, 38, "", {
-      fontSize: "14px",
-      resolution: 2,
-      color: HEX.texto_suave,
-      fontFamily: FUENTES.ui,
-    });
+    this.titulo = textoPixel(this, 16, 12, "", 16, PALETA.linea);
+    this.detalle = textoPixel(this, 16, 42, "", 8, PALETA.texto_suave);
   }
 
   override update() {
@@ -42,10 +33,14 @@ export class HudScene extends Phaser.Scene {
     const agua = Phaser.Math.Clamp(this.partida.inundacion, 0, 1);
 
     this.titulo.setText(
-      `${this.partida.puntaje.total} pts   x${this.partida.puntaje.racha}   ${this.partida.oleada.nombre.toUpperCase()}`,
+      normalizar(
+        `${this.partida.puntaje.total} PTS   X${this.partida.puntaje.racha}   ${this.partida.oleada.nombre}`,
+      ),
     );
     this.detalle.setText(
-      `${Math.round(this.partida.frente.metrosSalvados)} m hasta La Moneda   ·   agua ${Math.round(agua * 100)}%   ·   ${this.partida.alameda.tapados} rejillas tapadas`,
+      normalizar(
+        `${Math.round(this.partida.frente.metrosSalvados)} M HASTA LA MONEDA   ·   AGUA ${Math.round(agua * 100)}%   ·   ${this.partida.alameda.tapados} REJILLAS TAPADAS`,
+      ),
     );
 
     const barraX = 16;

@@ -30,6 +30,12 @@ const Y_DE_REJILLA = SUELO_Y - 6;
 
 const ESCALA_DE_HITOS = 2.5;
 
+const HALOS_DE_VENTANA = [
+  { margen: 9, alfa: 0.05 },
+  { margen: 6, alfa: 0.07 },
+  { margen: 3, alfa: 0.1 },
+];
+
 export class Escenario {
   readonly anchoMundo: number;
   private readonly rejillas: Phaser.GameObjects.Image[] = [];
@@ -74,6 +80,10 @@ export class Escenario {
 
   private pintarFondo() {
     const fondo = this.escena.add.graphics().setDepth(-20);
+    const brillo = this.escena.add
+      .graphics()
+      .setDepth(-19)
+      .setBlendMode(Phaser.BlendModes.ADD);
     const azar = new Azar(13);
     let x = -40;
     while (x < this.anchoMundo + 40) {
@@ -89,10 +99,23 @@ export class Escenario {
         for (let columna = x + 10; columna < x + ancho - 12; columna += 22) {
           if (azar.entre(0, 4) === 0) {
             fondo.fillRect(columna, fila, 5, 10);
+            this.pintarHalo(brillo, columna, fila);
           }
         }
       }
       x += ancho;
+    }
+  }
+
+  private pintarHalo(brillo: Phaser.GameObjects.Graphics, columna: number, fila: number) {
+    for (const capa of HALOS_DE_VENTANA) {
+      brillo.fillStyle(PALETA.ventana, capa.alfa);
+      brillo.fillRect(
+        columna - capa.margen,
+        fila - capa.margen,
+        5 + capa.margen * 2,
+        10 + capa.margen * 2,
+      );
     }
   }
 

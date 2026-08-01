@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
-import { FUENTES, HEX, PALETA } from "../arte/theme";
+import { PALETA } from "../arte/theme";
+import { textoPixel } from "../arte/TextoPixel";
 import { sonido } from "../audio/Sonido";
 import { MODOS, type Modo } from "../../dominio/partida/Modo";
 
@@ -92,89 +93,67 @@ export class MenuScene extends Phaser.Scene {
     const centro = ancho / 2;
 
     this.capa.add(
-      this.add
-        .text(centro, alto * 0.16, "TAPA'O", {
-          fontSize: "72px",
-          resolution: 2,
-          color: HEX.linea,
-          fontFamily: FUENTES.ui,
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5),
+      textoPixel(this, centro, alto * 0.16, "TAPA'O", 48, PALETA.linea).setOrigin(0.5),
     );
 
     this.capa.add(
-      this.add
-        .text(centro, alto * 0.27, "El temporal baja por la Alameda y tú tienes que destapar los sumideros", {
-          fontSize: "17px",
-          resolution: 2,
-          color: HEX.texto_suave,
-          fontFamily: FUENTES.ui,
-        })
-        .setOrigin(0.5),
+      textoPixel(
+        this,
+        centro,
+        alto * 0.27,
+        "EL TEMPORAL BAJA POR LA ALAMEDA Y TIENES QUE DESTAPAR LOS SUMIDEROS",
+        8,
+        PALETA.texto_suave,
+      ).setOrigin(0.5),
     );
 
     OPCIONES.forEach((opcion, indice) => {
       const y = alto * 0.36 + indice * 74;
       const activa = indice === this.seleccion;
       this.capa.add(
-        this.add
-          .text(centro, y, `${activa ? "> " : "  "}${opcion.titulo}`, {
-            fontSize: "34px",
-            resolution: 2,
-            color: activa ? HEX.figura : HEX.texto,
-            fontFamily: FUENTES.ui,
-            fontStyle: "bold",
-          })
-          .setOrigin(0.5),
+        textoPixel(
+          this,
+          centro,
+          y,
+          `${activa ? "> " : "  "}${opcion.titulo}`,
+          24,
+          activa ? PALETA.figura : PALETA.texto,
+        ).setOrigin(0.5),
       );
       this.capa.add(
-        this.add
-          .text(centro, y + 30, opcion.bajada, {
-            fontSize: "15px",
-            resolution: 2,
-            color: activa ? HEX.texto : HEX.texto_suave,
-            fontFamily: FUENTES.ui,
-          })
-          .setOrigin(0.5),
+        textoPixel(
+          this,
+          centro,
+          y + 32,
+          opcion.bajada,
+          8,
+          activa ? PALETA.texto : PALETA.texto_suave,
+        ).setOrigin(0.5),
       );
     });
 
     this.dibujarInstrucciones(centro, alto);
 
     this.capa.add(
-      this.add.text(centro, alto - 34, "Flechas: elegir  ·  Enter: jugar", {
-        fontSize: "14px",
-        resolution: 2,
-        color: HEX.texto_suave,
-        fontFamily: FUENTES.ui,
-      }).setOrigin(0.5),
+      textoPixel(
+        this,
+        centro,
+        alto - 58,
+        "FLECHAS: ELEGIR  ·  ENTER: JUGAR",
+        8,
+        PALETA.texto_suave,
+      ).setOrigin(0.5),
     );
   }
 
   private dibujarInstrucciones(centro: number, alto: number) {
     const y = alto * 0.62;
     this.capa.add(
-      this.add
-        .text(centro, y, "COMO SE JUEGA", {
-          fontSize: "16px",
-          resolution: 2,
-          color: HEX.linea,
-          fontFamily: FUENTES.ui,
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5),
+      textoPixel(this, centro, y, "COMO SE JUEGA", 16, PALETA.linea).setOrigin(0.5),
     );
     INSTRUCCIONES.forEach((linea, indice) => {
       this.capa.add(
-        this.add
-          .text(centro, y + 26 + indice * 20, linea, {
-            fontSize: "15px",
-            resolution: 2,
-            color: HEX.texto,
-            fontFamily: FUENTES.ui,
-          })
-          .setOrigin(0.5),
+        textoPixel(this, centro, y + 26 + indice * 14, linea, 8, PALETA.texto).setOrigin(0.5),
       );
     });
   }

@@ -1,6 +1,9 @@
 import musicaUrl from "../../assets/musica-arcade-de-lluvia.mp3";
 
-const VOLUMEN_DE_MUSICA = 0.08;
+const VOLUMEN_DE_MUSICA = 0.1;
+const LLUVIA_BASE = 0.029;
+const LLUVIA_POR_CAUDAL = 0.048;
+const LLUVIA_MAXIMA = 0.17;
 
 class Sonido {
   private contexto: AudioContext | null = null;
@@ -49,7 +52,7 @@ class Sonido {
     if (!this.contexto || !this.lluvia) {
       return;
     }
-    const objetivo = Math.min(0.35, 0.06 + caudal * 0.09);
+    const objetivo = Math.min(LLUVIA_MAXIMA, LLUVIA_BASE + caudal * LLUVIA_POR_CAUDAL);
     this.lluvia.gain.setTargetAtTime(objetivo, this.contexto.currentTime, 0.6);
   }
 
@@ -109,6 +112,15 @@ class Sonido {
     [523, 659, 784].forEach((nota, indice) => {
       this.golpe(nota, 0.35, 0.22, "triangle", indice * 0.12);
     });
+  }
+
+  recuerdoAtrapado() {
+    this.golpe(880, 0.12, 0.2, "triangle");
+    this.golpe(1320, 0.1, 0.16, "triangle", 0.07);
+  }
+
+  recuerdoPerdido() {
+    this.golpe(150, 0.24, 0.16, "sawtooth");
   }
 
   private async arrancarMusica() {

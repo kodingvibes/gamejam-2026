@@ -26,7 +26,8 @@ export class Sumidero {
   }
 
   get drenaje(): number {
-    return this.capacidad * (1 - this.obstruccionActual);
+    const libre = 1 - this.obstruccionActual;
+    return this.capacidad * libre * libre;
   }
 
   ensuciar(cantidad: number) {
