@@ -1,3 +1,4 @@
+import { DIFICULTAD } from "../../config";
 import { Azar } from "../agua/Azar";
 import { Frente } from "../agua/Frente";
 import type { Curva, Oleada } from "../agua/Oleadas";
@@ -86,7 +87,8 @@ export class Partida {
     return (
       this.oleada.caudal *
       envolventeDeCaudal(this.segundos) *
-      (1 + this.avance * CRECIDA_CERCA_DE_LA_MONEDA)
+      (1 + this.avance * CRECIDA_CERCA_DE_LA_MONEDA) *
+      DIFICULTAD
     );
   }
 
@@ -99,7 +101,7 @@ export class Partida {
     this.puntaje.correrTiempo(segundos);
 
     const oleada = this.curva.oleadaEn(this.segundos);
-    this.alameda.ensuciarTodos(oleada.obstruccionPorSegundo * segundos);
+    this.alameda.ensuciarTodos(oleada.obstruccionPorSegundo * segundos * DIFICULTAD);
     this.frente.avanzar(segundos);
 
     if (this.inundacionActual >= 1) {

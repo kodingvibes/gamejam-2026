@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 
+import { DIFICULTAD } from "../../config";
 import { Azar } from "../../dominio/agua/Azar";
 import { CELDA, Granos } from "../../dominio/agua/Granos";
 import { PALETA } from "../arte/theme";
@@ -8,7 +9,7 @@ import { alturaDelPiso, CAIDA_HACIA_LA_REJILLA } from "./PerfilDeCalle";
 
 const CLAVE = "ventana-de-agua";
 const FRACCION_ANEGADA = 0.3;
-const FILAS_HASTA_AHOGARSE = 56;
+const FILAS_HASTA_AHOGARSE = Math.min(88, Math.round(56 / DIFICULTAD));
 const COLUMNAS_MAXIMAS = 800;
 const FILAS_DE_CHARCO_INICIAL = 1;
 const RADIO_DE_CHARCO_SUCIO = 11;
