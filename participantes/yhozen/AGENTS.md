@@ -5,6 +5,12 @@
 Only create or modify files inside `participantes/yhozen/`. Do not change the
 jam's root files or another participant's work.
 
+## Git workflow
+
+Always use [Conventional Commits](https://www.conventionalcommits.org/) for
+commit messages, such as `feat: add skateboard acceleration` or
+`fix: apply weapon recoil in the correct direction`.
+
 ## Core concept
 
 This game is a multiplayer first-person shooter where every player rides a
