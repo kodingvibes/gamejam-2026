@@ -327,7 +327,7 @@ export class Game {
     // Power-ups
     const { healthGained, bombsGained } = this.powerUpManager.update(dt, this.playerShip.position);
     if (healthGained > 0) this.playerShip.heal(healthGained);
-    if (bombsGained > 0) { /* TODO: add bomb to weapon system */ }
+    if (bombsGained > 0) this.weaponSystem.addBombs(bombsGained);
 
     this.scoreSystem.update(dt);
   }

@@ -36,7 +36,7 @@ export class EnemyProjectileManager {
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    for (let i = 0; i < size; i++) {
+    for (let idx = 0; idx < size; idx++) {
       const mesh = new THREE.Mesh(geo.clone(), mat.clone());
       mesh.visible = false;
       mesh.renderOrder = 999;

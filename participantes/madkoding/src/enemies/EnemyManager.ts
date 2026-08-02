@@ -39,7 +39,7 @@ export class EnemyManager {
     this.patterns.set('CIRCLE', new CirclePattern());
 
     // Pre-create enemy pool
-    for (let i = 0; i < poolSize; i++) {
+    for (let idx = 0; idx < poolSize; idx++) {
       const enemy = new Enemy(ENEMIES.DRONE, 'DRONE', this.scene);
       this.enemies.push(enemy);
       this.scene.add(enemy.mesh);

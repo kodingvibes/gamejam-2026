@@ -40,6 +40,12 @@ export class WeaponSystem {
   get bombs(): number { return this._bombs; }
   get maxBombs(): number { return MAX_BOMBS; }
 
+  addBombs(count: number): void {
+    if (count <= 0) return;
+    this._bombs = Math.min(this._bombs + count, MAX_BOMBS);
+    this.eventBus.emit(GameEvent.BOMB_COUNT_CHANGED, { count: this._bombs });
+  }
+
   // Find an inactive projectile to reuse
   private acquireProj(): Projectile | null {
     return this.projectiles.find(p => !p.active) ?? null;

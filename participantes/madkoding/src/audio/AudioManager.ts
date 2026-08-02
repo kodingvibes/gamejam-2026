@@ -37,8 +37,8 @@ export class AudioManager {
     const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const data = impulse.getChannelData(ch);
-      for (let i = 0; i < length; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+      for (let idx = 0; idx < length; idx++) {
+        data[idx] = (Math.random() * 2 - 1) * Math.pow(1 - idx / length, decay);
       }
     }
     const convolver = ctx.createConvolver();
@@ -149,8 +149,8 @@ export class AudioManager {
     const bufferSize = ctx.sampleRate * rumbleDur;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.5);
+    for (let idx = 0; idx < bufferSize; idx++) {
+      data[idx] = (Math.random() * 2 - 1) * Math.pow(1 - idx / bufferSize, 1.5);
     }
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
@@ -192,8 +192,8 @@ export class AudioManager {
     const bufferSize2 = ctx.sampleRate * shrapnelDur;
     const buffer2 = ctx.createBuffer(1, bufferSize2, ctx.sampleRate);
     const data2 = buffer2.getChannelData(0);
-    for (let i = 0; i < bufferSize2; i++) {
-      data2[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize2, 3);
+    for (let idx = 0; idx < bufferSize2; idx++) {
+      data2[idx] = (Math.random() * 2 - 1) * Math.pow(1 - idx / bufferSize2, 3);
     }
     const noise2 = ctx.createBufferSource();
     noise2.buffer = buffer2;
@@ -236,8 +236,8 @@ export class AudioManager {
     const bufferSize = ctx.sampleRate * rumbleDur;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.2);
+    for (let idx = 0; idx < bufferSize; idx++) {
+      data[idx] = (Math.random() * 2 - 1) * Math.pow(1 - idx / bufferSize, 1.2);
     }
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
@@ -322,8 +322,8 @@ export class AudioManager {
     const bufferSize = ctx.sampleRate * 0.2;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+    for (let idx = 0; idx < bufferSize; idx++) {
+      data[idx] = (Math.random() * 2 - 1) * Math.pow(1 - idx / bufferSize, 2);
     }
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
@@ -383,17 +383,17 @@ export class AudioManager {
     if (!ctx) return;
 
     const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
-    for (let i = 0; i < notes.length; i++) {
+    for (let idx = 0; idx < notes.length; idx++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(notes[i], ctx.currentTime + i * 0.2);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.2);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.2 + 0.4);
+      osc.frequency.setValueAtTime(notes[idx], ctx.currentTime + idx * 0.2);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + idx * 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.2 + 0.4);
       osc.connect(gain);
       gain.connect(this.masterGain!);
-      osc.start(ctx.currentTime + i * 0.2);
-      osc.stop(ctx.currentTime + i * 0.2 + 0.4);
+      osc.start(ctx.currentTime + idx * 0.2);
+      osc.stop(ctx.currentTime + idx * 0.2 + 0.4);
     }
   }
 
@@ -402,17 +402,17 @@ export class AudioManager {
     if (!ctx) return;
 
     const notes = [400, 350, 300, 200];
-    for (let i = 0; i < notes.length; i++) {
+    for (let idx = 0; idx < notes.length; idx++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(notes[i], ctx.currentTime + i * 0.3);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.3);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.3 + 0.5);
+      osc.frequency.setValueAtTime(notes[idx], ctx.currentTime + idx * 0.3);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.3 + 0.5);
       osc.connect(gain);
       gain.connect(this.masterGain!);
-      osc.start(ctx.currentTime + i * 0.3);
-      osc.stop(ctx.currentTime + i * 0.3 + 0.5);
+      osc.start(ctx.currentTime + idx * 0.3);
+      osc.stop(ctx.currentTime + idx * 0.3 + 0.5);
     }
   }
 
