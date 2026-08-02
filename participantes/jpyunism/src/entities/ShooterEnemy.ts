@@ -58,10 +58,14 @@ export class ShooterEnemy extends Enemy {
     // Add to the enemy projectiles group FIRST so the group owns the body.
     // Setting velocity after group.add() ensures the group doesn't reset it.
     const group = this.scene.data.get("enemyProjectiles") as Phaser.Physics.Arcade.Group | undefined;
-    if (group) {
+    if (group && !group.isFull()) {
       group.add(projectile);
     } else {
-      this.scene.physics.add.existing(projectile);
+      // Pool exhausted (or missing): skip the shot. group.add() silently
+      // bails when full and never creates a body, so firing here would
+      // crash on a null body. Dropping the shot is safe game behavior.
+      projectile.destroy();
+      return;
     }
 
     const body = projectile.body as Phaser.Physics.Arcade.Body;
