@@ -34,6 +34,8 @@ class NeonGrid {
       }))
       : [];
 
+    this.sweep = this.motion ? this.createSweep(depth) : null;
+
     if (this.motion) {
       this.onUpdate = (_time, delta) => this.advance(delta);
       scene.events.on('update', this.onUpdate);
@@ -44,18 +46,42 @@ class NeonGrid {
   /** @param {Phaser.GameObjects.Graphics} graphics @param {{cell: number, color: number}} config */
   drawLayer(graphics, config) {
     const { cell, color } = config;
-    graphics.lineStyle(NEON_GRID.lineWidth, color, 1);
-    graphics.beginPath();
-    // Un celda de margen por cada lado: es el recorrido que después se desplaza.
-    for (let x = 0; x <= GAME_WIDTH + cell * 2; x += cell) {
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, GAME_HEIGHT + cell * 2);
-    }
-    for (let y = 0; y <= GAME_HEIGHT + cell * 2; y += cell) {
-      graphics.moveTo(0, y);
-      graphics.lineTo(GAME_WIDTH + cell * 2, y);
-    }
-    graphics.strokePath();
+    // Dos pasadas sobre la misma geometría: halo ancho y tenue, y núcleo fino y pleno.
+    [[NEON_GRID.glowWidth, NEON_GRID.glowAlpha], [NEON_GRID.lineWidth, 1]].forEach(([width, alpha]) => {
+      graphics.lineStyle(width, color, alpha);
+      graphics.beginPath();
+      // Un celda de margen por cada lado: es el recorrido que después se desplaza.
+      for (let x = 0; x <= GAME_WIDTH + cell * 2; x += cell) {
+        graphics.moveTo(x, 0);
+        graphics.lineTo(x, GAME_HEIGHT + cell * 2);
+      }
+      for (let y = 0; y <= GAME_HEIGHT + cell * 2; y += cell) {
+        graphics.moveTo(0, y);
+        graphics.lineTo(GAME_WIDTH + cell * 2, y);
+      }
+      graphics.strokePath();
+    });
+  }
+
+  /**
+   * Barrido de tubo de rayos: banda difusa con una línea brillante dentro. Va en un
+   * contenedor para animar una sola posición en vez de dos rectángulos en paralelo.
+   * @param {number} depth
+   */
+  createSweep(depth) {
+    const band = this.scene.add.rectangle(0, 0, GAME_WIDTH, NEON_GRID.sweepBandHeight, COLORS.playerOne, NEON_GRID.sweepBandAlpha);
+    const line = this.scene.add.rectangle(0, 0, GAME_WIDTH, NEON_GRID.sweepHeight, COLORS.playerOne, NEON_GRID.sweepAlpha);
+    const container = this.scene.add.container(GAME_WIDTH / 2, -NEON_GRID.sweepBandHeight, [band, line]);
+    container.setDepth(depth).setAlpha(this.intensity);
+    this.sweepTween = this.scene.tweens.add({
+      targets: container,
+      y: GAME_HEIGHT + NEON_GRID.sweepBandHeight,
+      duration: NEON_GRID.sweepDuration,
+      repeat: -1,
+      repeatDelay: NEON_GRID.sweepDelay,
+      ease: 'Sine.inOut',
+    });
+    return container;
   }
 
   /** @param {number} delta milisegundos desde el frame anterior */
@@ -78,6 +104,10 @@ class NeonGrid {
     }
     this.pulseTweens.forEach((tween) => tween?.stop?.());
     this.pulseTweens = [];
+    this.sweepTween?.stop?.();
+    this.sweepTween = null;
+    this.sweep?.destroy?.();
+    this.sweep = null;
     this.layers.forEach((layer) => layer.graphics?.destroy?.());
     this.layers = [];
     this.scene = null;

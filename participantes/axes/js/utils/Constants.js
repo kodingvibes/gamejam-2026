@@ -581,7 +581,9 @@ const SAFE_METER = Object.freeze({
   height: responsive(12, 8),
   labelFontSize: responsive('20px', '13px'),
   warnAt: 6, criticalAt: 2,
-  labelIdle: 'TERRENO SEGURO', labelEmpty: 'SIN SALIDA',
+  // "SIN SALIDA" no decía sin salida de qué. La versión vacía reusa las mismas
+  // palabras que la normal, así se lee como el final de esa cuenta y no como otro aviso.
+  labelIdle: 'TERRENO SEGURO', labelEmpty: 'SIN TERRENO SEGURO · TOCA REGALAR CAJA',
 });
 
 // Coreografía del final de partida.
@@ -612,9 +614,20 @@ const MENU_FEEL = Object.freeze({
 // La capa magenta va al contrario para que el cruce no parezca una sola rejilla torcida.
 const NEON_GRID = Object.freeze({
   depth: -1,
+  // Un neón es un tubo brillante rodeado de luz. Con una sola línea plana el fondo se
+  // leía como papel milimetrado gris; el halo ancho por debajo es lo que lo enciende.
   lineWidth: 1,
+  glowWidth: 7,
+  glowAlpha: 0.22,
   pulseDepth: 0.55,
   pulseDuration: 3200,
+  // Barrido CRT: una línea brillante con su banda difusa cruzando de arriba a abajo.
+  sweepHeight: 3,
+  sweepBandHeight: 150,
+  sweepAlpha: 0.5,
+  sweepBandAlpha: 0.09,
+  sweepDuration: 7000,
+  sweepDelay: 4200,
   layers: Object.freeze([
     Object.freeze({ cell: 48, color: COLORS.playerOne, alpha: 0.09, speedX: 4, speedY: 7 }),
     Object.freeze({ cell: 112, color: COLORS.playerTwo, alpha: 0.13, speedX: -9, speedY: 15 }),
