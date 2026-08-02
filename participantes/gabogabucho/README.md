@@ -22,6 +22,8 @@ Abrir:
 - **↑ / ↓ (o W / S)** — navegar el menú de inicio.
 - **Enter** — confirmar el menú e iniciar partida; avanzar al Nivel 2 al completar el Nivel 1.
 - **R** — reiniciar el nivel actual.
+- **P** — pausar y continuar.
+- **M** — encender o apagar el sonido.
 
 ## Campaña
 

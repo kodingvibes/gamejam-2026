@@ -50,7 +50,7 @@
     const remaining = Math.max(0, destination - distance);
     const label = destinationLabel || 'BASURERO MUNICIPAL';
     if (remaining === 0) return 'DESTINO ALCANZADO';
-    if (remaining <= 150) return 'YA SE VE EL BASURERO';
+    if (remaining <= 150) return destinationLabel ? `YA SE VE ${destinationLabel}` : 'YA SE VE EL BASURERO';
     return `${label} ${Math.ceil(remaining / 10)} m`;
   }
 

@@ -229,3 +229,17 @@ test('la ruta usa el rotulo de destino propio del nivel', () => {
   assert.equal(routeMessage(1000, 4750, 'CENTRO DE RECICLAJE'), 'CENTRO DE RECICLAJE 375 m');
   assert.equal(routeMessage(4750, 4750, 'CENTRO DE RECICLAJE'), 'DESTINO ALCANZADO');
 });
+
+test('el aviso de llegada nombra el destino del nivel y no siempre el basurero', () => {
+  assert.equal(routeMessage(4650, 4750, 'CENTRO DE RECICLAJE'), 'YA SE VE CENTRO DE RECICLAJE');
+  assert.equal(routeMessage(10200, 10250, 'BASURERO MUNICIPAL'), 'YA SE VE BASURERO MUNICIPAL');
+  assert.equal(routeMessage(11850, 12000), 'YA SE VE EL BASURERO');
+});
+
+test('el juego importa del modelo la transicion de nivel y el total de campana', () => {
+  const source = require('node:fs').readFileSync(require('node:path').join(__dirname, 'game.js'), 'utf8');
+  const destructured = source.slice(0, source.indexOf('} = LastreModel;'));
+  for (const name of ['nextLevelId', 'campaignTotal', 'freshLevelState']) {
+    assert.ok(destructured.includes(name), `game.js usa ${name} sin importarlo de LastreModel`);
+  }
+});
