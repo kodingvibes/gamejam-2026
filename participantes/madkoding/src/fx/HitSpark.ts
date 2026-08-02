@@ -13,6 +13,7 @@ export class HitSpark {
   private scene: THREE.Scene;
   private sparks: Spark[] = [];
   private particleCount = 8;
+  private static readonly _scratchColor = new THREE.Color();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -24,18 +25,18 @@ export class HitSpark {
     const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
 
-    const baseColor = new THREE.Color(color);
+    const _scratchColor = HitSpark._scratchColor;
+    _scratchColor.setHex(color);
 
     for (let i = 0; i < count; i++) {
       positions[i * 3] = position.x + THREE.MathUtils.randFloat(-0.1, 0.1);
       positions[i * 3 + 1] = position.y + THREE.MathUtils.randFloat(-0.1, 0.1);
       positions[i * 3 + 2] = position.z + THREE.MathUtils.randFloat(-0.1, 0.1);
 
-      const c = baseColor.clone();
-      c.multiplyScalar(THREE.MathUtils.randFloat(0.7, 1));
-      colors[i * 3] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
+      const m = THREE.MathUtils.randFloat(0.7, 1);
+      colors[i * 3]     = _scratchColor.r * m;
+      colors[i * 3 + 1] = _scratchColor.g * m;
+      colors[i * 3 + 2] = _scratchColor.b * m;
 
       sizes[i] = THREE.MathUtils.randFloat(0.1, 0.3);
     }

@@ -12,10 +12,11 @@ const TAIL_WIDTH_END = 1.2;  // bushy wide tip like a fox tail
 const SWAY_FREQ = 4;
 const SWAY_AMP = 0.35;
 
-// Color gradient: hot core → orange → red tip
-const COLOR_HOT = new THREE.Color(0xffffee);   // white-hot
-const COLOR_MID = new THREE.Color(0xff9933);   // orange
-const COLOR_TIP = new THREE.Color(0xff3311);   // red
+// Color gradient: hot core → orange → red tip (same rgb as the former
+// THREE.Color(0xffffee / 0xff9933 / 0xff3311) constants, stored as Float32Array)
+const LUT_HOT = new Float32Array([1, 1, 0.9333333333333333]); // white-hot
+const LUT_MID = new Float32Array([1, 0.6, 0.2]);              // orange
+const LUT_TIP = new Float32Array([1, 0.2, 0.06666666666666667]); // red
 
 export class FoxTail {
   private points: THREE.Points;
@@ -23,6 +24,7 @@ export class FoxTail {
   private colors: Float32Array;
   private ages: Float32Array;
   private phase = 0;
+  private static readonly _c = new THREE.Color();
 
   constructor(parent: THREE.Group) {
     this.positions = new Float32Array(TAIL_PARTICLES * 3);
@@ -82,18 +84,24 @@ export class FoxTail {
       this.positions[i * 3 + 1] = oy + bob;
       this.positions[i * 3 + 2] = z;
 
-      // Color: interpolate hot → mid → tip
-      const c = new THREE.Color();
+      // Color: interpolate hot → mid → tip (continuous, no quantization LUT)
+      const _c = FoxTail._c;
       if (t < 0.4) {
-        c.lerpColors(COLOR_HOT, COLOR_MID, t / 0.4);
+        const k = t / 0.4;
+        _c.r = LUT_HOT[0] + (LUT_MID[0] - LUT_HOT[0]) * k;
+        _c.g = LUT_HOT[1] + (LUT_MID[1] - LUT_HOT[1]) * k;
+        _c.b = LUT_HOT[2] + (LUT_MID[2] - LUT_HOT[2]) * k;
       } else {
-        c.lerpColors(COLOR_MID, COLOR_TIP, (t - 0.4) / 0.6);
+        const k = (t - 0.4) / 0.6;
+        _c.r = LUT_MID[0] + (LUT_TIP[0] - LUT_MID[0]) * k;
+        _c.g = LUT_MID[1] + (LUT_TIP[1] - LUT_MID[1]) * k;
+        _c.b = LUT_MID[2] + (LUT_TIP[2] - LUT_MID[2]) * k;
       }
       // Fade alpha via color brightness at the very tip
       const fade = 1 - t * 0.7;
-      this.colors[i * 3]     = c.r * fade;
-      this.colors[i * 3 + 1] = c.g * fade;
-      this.colors[i * 3 + 2] = c.b * fade;
+      this.colors[i * 3]     = _c.r * fade;
+      this.colors[i * 3 + 1] = _c.g * fade;
+      this.colors[i * 3 + 2] = _c.b * fade;
     }
 
     this.points.geometry.attributes.position.needsUpdate = true;

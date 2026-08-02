@@ -38,15 +38,18 @@ export class Starfield {
 
   update(dt: number, playerPos: THREE.Vector3): void {
     const pos = this.points.geometry.attributes.position;
-    const arr = pos.array as Float32Array;
-    for (let i = 0; i < arr.length / 3; i++) {
-      arr[i * 3 + 2] += dt * 30;
-      const dx = arr[i * 3] - playerPos.x, dy = arr[i * 3 + 1] - playerPos.y;
-      const dz = arr[i * 3 + 2] - playerPos.z;
+    const count = pos.count;
+    const px = playerPos.x, py = playerPos.y, pz = playerPos.z;
+    const step = dt * 30;
+    for (let i = 0; i < count; i++) {
+      pos.setZ(i, pos.getZ(i) + step);
+      const dx = pos.getX(i) - px;
+      const dy = pos.getY(i) - py;
+      const dz = pos.getZ(i) - pz;
       if (dz > 20 || Math.abs(dx) > 300 || Math.abs(dy) > 300) {
-        arr[i * 3] = playerPos.x + THREE.MathUtils.randFloat(-300, 300);
-        arr[i * 3 + 1] = playerPos.y + THREE.MathUtils.randFloat(-300, 300);
-        arr[i * 3 + 2] = playerPos.z - THREE.MathUtils.randFloat(20, FX.STARFIELD_DEPTH);
+        pos.setX(i, px + THREE.MathUtils.randFloat(-300, 300));
+        pos.setY(i, py + THREE.MathUtils.randFloat(-300, 300));
+        pos.setZ(i, pz - THREE.MathUtils.randFloat(20, FX.STARFIELD_DEPTH));
       }
     }
     pos.needsUpdate = true;

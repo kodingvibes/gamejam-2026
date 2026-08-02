@@ -14,10 +14,15 @@ export class BackgroundShips {
   private scene: THREE.Scene;
   private corvettes: Corvette[] = [];
   // Expose positions so WaveManager can spawn enemies behind corvettes
-  private _positions: THREE.Vector3[] = [];
+  private _positions: THREE.Vector3[];
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+    // Pre-allocate a position buffer matching the corvette count (4)
+    this._positions = [
+      new THREE.Vector3(), new THREE.Vector3(),
+      new THREE.Vector3(), new THREE.Vector3(),
+    ];
     for (let i = 0; i < 4; i++) {
       const c = this.createCorvette(i);
       this.corvettes.push(c);
@@ -142,8 +147,8 @@ export class BackgroundShips {
   }
 
   update(dt: number, playerPos: THREE.Vector3): void {
-    this._positions = [];
-    for (const c of this.corvettes) {
+    for (let i = 0; i < this.corvettes.length; i++) {
+      const c = this.corvettes[i];
       // Drift slowly toward +Z (toward and past the player)
       c.group.position.z += c.speed * dt;
 
@@ -154,7 +159,7 @@ export class BackgroundShips {
       }
 
       // Record position for WaveManager to spawn enemies behind
-      this._positions.push(c.group.position.clone());
+      this._positions[i].copy(c.group.position);
 
       // Recycle when it passes the player — keep it off to the sides
       if (c.group.position.z > playerPos.z + 50) {

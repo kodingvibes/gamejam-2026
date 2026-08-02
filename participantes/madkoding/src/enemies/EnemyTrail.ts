@@ -11,7 +11,10 @@ export class EnemyTrail {
   private line: THREE.Line;
   private positions: Float32Array;
   private colors: Float32Array;
-  private history: THREE.Vector3[] = [];
+  private readonly _scratchPositions = new Float32Array(MAX_TRAIL_POINTS * 3);
+  private readonly _scratchColors = new Float32Array(MAX_TRAIL_POINTS * 3);
+  private head = 0;
+  private count = 0;
   private timer = 0;
   private color: THREE.Color;
   private active = false;
@@ -43,18 +46,24 @@ export class EnemyTrail {
   }
 
   start(startPos: THREE.Vector3): void {
-    this.history = [];
     this.active = true;
     this.line.visible = true;
     this.timer = 0;
-    // Pre-fill with the start position so the trail begins immediately
-    for (let idx = 0; idx < 3; idx++) this.history.push(startPos.clone());
+    // Pre-fill the ring with the start position so the trail begins immediately
+    for (let idx = 0; idx < 3; idx++) {
+      this.head = idx;
+      this.count = idx + 1;
+      this.positions[idx * 3] = startPos.x;
+      this.positions[idx * 3 + 1] = startPos.y;
+      this.positions[idx * 3 + 2] = startPos.z;
+    }
   }
 
   stop(): void {
     this.active = false;
     this.line.visible = false;
-    this.history = [];
+    this.head = 0;
+    this.count = 0;
   }
 
   update(dt: number, currentPos: THREE.Vector3): void {
@@ -63,34 +72,47 @@ export class EnemyTrail {
     if (this.timer < TRAIL_INTERVAL) return;
     this.timer = 0;
 
-    this.history.unshift(currentPos.clone());
-    if (this.history.length > MAX_TRAIL_POINTS) this.history.pop();
+    // Push the current position into the ring (in place, no clone)
+    this.head = (this.head + 1) % MAX_TRAIL_POINTS;
+    this.positions[this.head * 3] = currentPos.x;
+    this.positions[this.head * 3 + 1] = currentPos.y;
+    this.positions[this.head * 3 + 2] = currentPos.z;
+    if (this.count < MAX_TRAIL_POINTS) this.count++;
 
-    const count = this.history.length;
+    const scratchPos = this._scratchPositions;
+    const scratchCol = this._scratchColors;
+    const oldestSlot = (this.head - this.count + 1 + MAX_TRAIL_POINTS) % MAX_TRAIL_POINTS;
+
+    // Pass 1: copy ring → scratch in draw order (index 0 = newest)
     for (let idx = 0; idx < MAX_TRAIL_POINTS; idx++) {
-      if (idx < count) {
-        const p = this.history[idx];
-        this.positions[idx * 3] = p.x;
-        this.positions[idx * 3 + 1] = p.y;
-        this.positions[idx * 3 + 2] = p.z;
+      if (idx < this.count) {
+        const ring = (this.head - idx + MAX_TRAIL_POINTS) % MAX_TRAIL_POINTS;
+        scratchPos[idx * 3] = this.positions[ring * 3];
+        scratchPos[idx * 3 + 1] = this.positions[ring * 3 + 1];
+        scratchPos[idx * 3 + 2] = this.positions[ring * 3 + 2];
         // Fade: newest = bright, oldest = transparent
         const fade = 1 - (idx / MAX_TRAIL_POINTS);
         const fade2 = fade * fade; // quadratic fade for nicer tail
-        this.colors[idx * 3] = this.color.r * fade2;
-        this.colors[idx * 3 + 1] = this.color.g * fade2;
-        this.colors[idx * 3 + 2] = this.color.b * fade2;
-      } else if (count > 0) {
-        const p = this.history[count - 1];
-        this.positions[idx * 3] = p.x;
-        this.positions[idx * 3 + 1] = p.y;
-        this.positions[idx * 3 + 2] = p.z;
-        this.colors[idx * 3] = 0; this.colors[idx * 3 + 1] = 0; this.colors[idx * 3 + 2] = 0;
+        scratchCol[idx * 3] = this.color.r * fade2;
+        scratchCol[idx * 3 + 1] = this.color.g * fade2;
+        scratchCol[idx * 3 + 2] = this.color.b * fade2;
+      } else {
+        scratchPos[idx * 3] = this.positions[oldestSlot * 3];
+        scratchPos[idx * 3 + 1] = this.positions[oldestSlot * 3 + 1];
+        scratchPos[idx * 3 + 2] = this.positions[oldestSlot * 3 + 2];
+        scratchCol[idx * 3] = 0;
+        scratchCol[idx * 3 + 1] = 0;
+        scratchCol[idx * 3 + 2] = 0;
       }
     }
 
+    // Pass 2: scratch → positions/colors (avoid read/write aliasing)
+    this.positions.set(scratchPos);
+    this.colors.set(scratchCol);
+
     this.line.geometry.attributes.position.needsUpdate = true;
     this.line.geometry.attributes.color.needsUpdate = true;
-    this.line.geometry.setDrawRange(0, count);
+    this.line.geometry.setDrawRange(0, this.count);
   }
 
   dispose(): void {

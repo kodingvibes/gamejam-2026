@@ -5,6 +5,7 @@ import { WeaponKind } from './WeaponConfig';
 
 export class Projectile {
   private mesh: THREE.Mesh;
+  private static readonly _scratchStep = new THREE.Vector3();
   private _velocity = new THREE.Vector3();
   private _damage = 10;
   private _speed = 60;
@@ -90,7 +91,8 @@ export class Projectile {
       if (this._fuse < 0) this._fuse = 0;
     }
     this._prevPosition.copy(this.mesh.position);
-    this.mesh.position.add(this._velocity.clone().multiplyScalar(dt));
+    Projectile._scratchStep.copy(this._velocity).multiplyScalar(dt);
+    this.mesh.position.add(Projectile._scratchStep);
     if (this._lifetime >= this._maxLifetime) this.deactivate();
   }
 
