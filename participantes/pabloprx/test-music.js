@@ -1250,12 +1250,76 @@ console.log(`flip: ${f1.t.toFixed(3)}s -> techo, ${f2.t.toFixed(3)}s -> piso (${
     }
   }
 
-  // EL GUION: con `script: []` no hay obstaculos, o sea que el solver no corre (solo corre si
-  // hay obstaculos). Se afirma que el guion esta vacio y que el apagon no pide accion.
+  // EL GUION: mismo solver por filas que los otros dos niveles, con SUS carriles y SU
+  // velocidad. El apagon (f56-f63) va vacio y el nivel se puede pasar al piso y de cabeza.
   const c3 = cues(doc3, lv3);
   const ob3 = c3.filter((x) => x.role === "obstacle");
-  assert.equal(ob3.length, 0, "breathe no deberia tener obstaculos todavia (guion sin dictar)");
+  assert(ob3.length > 0, "breathe se quedo sin guion");
   for (const x of c3) assert(x.t >= -1e-6 && x.t <= len3, `cue fuera del corte: ${x.t}`);
+  {
+    // el APAGON no puede pedir accion: el `dark` es negro entero (mismo criterio que los
+    // otros dos niveles).
+    for (const f of lv3.fx.filter((x) => x.kind === "dark")) {
+      const dentro = ob3.filter((c) => c.row >= f.from && c.row <= f.to);
+      assert.equal(dentro.length, 0, `hay ${dentro.length} obstaculos dentro del apagon f${f.from}-f${f.to}`);
+    }
+    // ninguna cue puede caer fuera de la grilla: la ultima fila del nivel es la `ultima3`
+    for (const c of ob3) assert(c.row <= ultima3, `obstaculo en la f${c.row}, pasada la f${ultima3}`);
+    // una zanja de menos de 3 huecos se cruza de un salto y abre la pared que vino a vaciar
+    const at3 = new Map(lv3.script.filter((d) => d.row != null && d.kind).map((d) => [`${d.row},${d.lane}`, d.kind]));
+    for (let lane = 0; lane < lv3.lanes; lane++) {
+      let len = 0;
+      for (let r = 0; r <= ultima3 + 1; r++) {
+        if (at3.get(`${r},${lane}`) === "gap") len++;
+        else { assert(len === 0 || len >= 3, `zanja de ${len} en el carril ${lane} antes de la f${r}`); len = 0; }
+      }
+    }
+    // y el nivel se puede pasar, al piso y de cabeza
+    const clave3 = (s) => `${s.lane},${Math.round(s.y / 8)},${Math.round(s.vy / 80)},${s.sliding > 0 ? 1 : 0}`;
+    const OFF3 = [0, 1, 2, 3, 4].map((i) => (i / 5 - 0.35) * g3.beat);
+    const lanes3 = [...Array(lv3.lanes).keys()];
+    const resolver3 = (gr) => {
+      const paso2 = 1 / 240;
+      let vivos = [{ lane: (lv3.lanes - 1) >> 1, y: 0, vy: 0, sliding: 0, dash: 0 }];
+      let flaco = 1e9;
+      for (let r = 0; r <= ultima3 && vivos.length; r++) {
+        const ini = timeOfRow(r, g3), fin = ini + g3.beat;
+        const cerca = ob3.filter((c) => Math.abs(c.t - ini) < 2 * g3.beat);
+        const nuevos = new Map();
+        for (const s of vivos) for (const lane of lanes3)
+          for (const acc of [null, ...OFF3.flatMap((d) => [["jump", d], ["slide", d]])]) {
+            let p = { ...s, lane }, muerto = false, hecho = !acc;
+            for (let t = ini; t < fin; t += paso2) {
+              if (!hecho && t >= ini + acc[1] + g3.beat / 2) {
+                hecho = true;
+                if (acc[0] === "jump") { if (gr * p.y <= 0) { p.vy = gr * JUMP_V; p.sliding = 0; } }
+                else p.sliding = 0.5;
+              }
+              p = stepPlayer(p, paso2, gr);
+              for (const c of cerca) {
+                if (c.lane !== p.lane) continue;
+                if (hits(c.kind, zOf(c, t, lv3.speed), p.y, p.sliding, gr)) { muerto = true; break; }
+              }
+              if (muerto) break;
+            }
+            if (!muerto) nuevos.set(clave3(p), p);
+          }
+        vivos = [...nuevos.values()];
+        flaco = Math.min(flaco, vivos.length);
+        if (!vivos.length) return { muere: r };
+      }
+      return { muere: null, flaco };
+    };
+    const r1 = resolver3(1), r2 = resolver3(-1);
+    assert.equal(r1.muere, null, `breathe no se puede pasar: en la f${r1.muere} no queda estado vivo`);
+    assert.equal(r2.muere, null, `breathe no se puede pasar de cabeza: en la f${r2.muere} no queda estado vivo`);
+    const k3 = {};
+    for (const c of ob3) k3[c.kind] = (k3[c.kind] ?? 0) + 1;
+    console.log(`breathe guion: ${ob3.length} obstaculos (`
+      + Object.entries(k3).map(([k, n]) => `${n} ${k}`).join(", ")
+      + `) pasable al piso y de cabeza (solver por filas a v=${lv3.speed}, ${lv3.lanes} carriles), `
+      + `fila mas flaca ${Math.min(r1.flaco, r2.flaco)} estados, apagon f56-f63 vacio`);
+  }
 
   // EL NIVEL 1 Y EL 2 NO SE MUEVEN: no heredan nada del nivel 3. El nivel 1 YA tiene su propio
   // eq con modos (14 sectores, 14 modos) y el nivel 2 no declara `layers`. Lo que hay que
@@ -1280,7 +1344,7 @@ console.log(`flip: ${f1.t.toFixed(3)}s -> techo, ${f2.t.toFixed(3)}s -> piso (${
     + `${secs3.length} secciones (${secs3.map((s) => s.label).join("/")}), `
     + `${lv3.sectors.length} sectores f0-f${lv3.sectors.at(-1).to}, decor ${lv3.decor.join("+")}`);
   console.log(`breathe cues: ${c3.length} (`
-    + Object.entries(porRol3).map(([r, n]) => `${n} ${r}`).join(", ") + "), guion vacio (pendiente de dictar)");
+    + Object.entries(porRol3).map(([r, n]) => `${n} ${r}`).join(", ") + ")");
 }
 
 // --- el reactor: misma geometria, dos backends -------------------------------------------
