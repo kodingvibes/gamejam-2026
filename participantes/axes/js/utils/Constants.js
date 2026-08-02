@@ -13,11 +13,33 @@ const stageAspect = stageRect && stageRect.width > 0 ? stageRect.height / stageR
 // no dan alto suficiente para el bloque de menú vertical.
 const IS_PORTRAIT = stageAspect > 1.4;
 // Tope 2.2: más estirado el HUD se despega tanto del tablero que dejan de leerse juntos.
-const GAME_HEIGHT = IS_PORTRAIT ? Math.round(GAME_WIDTH * Math.min(2.2, stageAspect)) : 800;
+const stageHeightFor = (aspect) => (aspect > 1.4 ? Math.round(GAME_WIDTH * Math.min(2.2, aspect)) : 800);
+const GAME_HEIGHT = stageHeightFor(stageAspect);
+
+// El mundo se mide una vez, al cargar. Si después cambia la forma del hueco (girar el
+// móvil, activar la emulación del navegador, redimensionar la ventana) el mundo se queda
+// con la proporción vieja y Scale.FIT vuelve a dejar barras negras. Recolocar todas las
+// escenas en caliente cuesta mucho más que recargar, así que se recarga; el récord vive
+// en localStorage y sobrevive. Se compara la altura resultante y no la orientación: dentro
+// del vertical el alto sigue al aspecto, y un cambio grande ahí también rompe el encaje.
+if (stageElement) {
+  let stageResizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(stageResizeTimer);
+    // Antirebote: al arrastrar la ventana llegan cientos de eventos, solo importa el final.
+    stageResizeTimer = setTimeout(() => {
+      const rect = stageElement.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const height = stageHeightFor(rect.height / rect.width);
+      // 5% de margen: por debajo de eso el letterbox no se nota y no compensa recargar.
+      if (Math.abs(height - GAME_HEIGHT) > GAME_HEIGHT * 0.05) window.location.reload();
+    }, 250);
+  });
+}
 
 /**
- * Elige valor según la orientación medida al cargar. Girar el móvil no reordena el
- * layout: hace falta recargar. Es un jam, no una app que viva rotando.
+ * Elige valor según la orientación medida al cargar. Al girar el móvil el listener de
+ * arriba recarga la página, que es lo que reordena el layout.
  * @param {*} portrait @param {*} landscape @returns {*}
  */
 const responsive = (portrait, landscape) => (IS_PORTRAIT ? portrait : landscape);
