@@ -51,8 +51,8 @@ export class EnemyMeshFactory {
     g.add(new THREE.Mesh(new THREE.OctahedronGeometry(size * 0.8), m));
 
     // 3 prongs sticking out
-    for (let i = 0; i < 3; i++) {
-      const angle = (i / 3) * Math.PI * 2;
+    for (let idx = 0; idx < 3; idx++) {
+      const angle = (idx / 3) * Math.PI * 2;
       const prong = new THREE.Mesh(new THREE.ConeGeometry(size * 0.15, size * 0.8, 4), dark);
       prong.position.set(Math.cos(angle) * size * 0.7, Math.sin(angle) * size * 0.7, 0);
       prong.rotation.z = angle - Math.PI / 2;
@@ -125,8 +125,8 @@ export class EnemyMeshFactory {
 
     // 4 wings in X pattern
     const wingGeo = new THREE.BoxGeometry(size * 1.2, 0.06, size * 0.6);
-    for (let i = 0; i < 4; i++) {
-      const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    for (let idx = 0; idx < 4; idx++) {
+      const angle = (idx / 4) * Math.PI * 2 + Math.PI / 4;
       const w = new THREE.Mesh(wingGeo, dark);
       w.position.set(Math.cos(angle) * size * 0.6, Math.sin(angle) * size * 0.6, size * 0.1);
       w.rotation.z = angle;

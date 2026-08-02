@@ -48,7 +48,7 @@ export class EnemyTrail {
     this.line.visible = true;
     this.timer = 0;
     // Pre-fill with the start position so the trail begins immediately
-    for (let i = 0; i < 3; i++) this.history.push(startPos.clone());
+    for (let idx = 0; idx < 3; idx++) this.history.push(startPos.clone());
   }
 
   stop(): void {
@@ -67,24 +67,24 @@ export class EnemyTrail {
     if (this.history.length > MAX_TRAIL_POINTS) this.history.pop();
 
     const count = this.history.length;
-    for (let i = 0; i < MAX_TRAIL_POINTS; i++) {
-      if (i < count) {
-        const p = this.history[i];
-        this.positions[i * 3] = p.x;
-        this.positions[i * 3 + 1] = p.y;
-        this.positions[i * 3 + 2] = p.z;
+    for (let idx = 0; idx < MAX_TRAIL_POINTS; idx++) {
+      if (idx < count) {
+        const p = this.history[idx];
+        this.positions[idx * 3] = p.x;
+        this.positions[idx * 3 + 1] = p.y;
+        this.positions[idx * 3 + 2] = p.z;
         // Fade: newest = bright, oldest = transparent
-        const fade = 1 - (i / MAX_TRAIL_POINTS);
+        const fade = 1 - (idx / MAX_TRAIL_POINTS);
         const fade2 = fade * fade; // quadratic fade for nicer tail
-        this.colors[i * 3] = this.color.r * fade2;
-        this.colors[i * 3 + 1] = this.color.g * fade2;
-        this.colors[i * 3 + 2] = this.color.b * fade2;
+        this.colors[idx * 3] = this.color.r * fade2;
+        this.colors[idx * 3 + 1] = this.color.g * fade2;
+        this.colors[idx * 3 + 2] = this.color.b * fade2;
       } else if (count > 0) {
         const p = this.history[count - 1];
-        this.positions[i * 3] = p.x;
-        this.positions[i * 3 + 1] = p.y;
-        this.positions[i * 3 + 2] = p.z;
-        this.colors[i * 3] = 0; this.colors[i * 3 + 1] = 0; this.colors[i * 3 + 2] = 0;
+        this.positions[idx * 3] = p.x;
+        this.positions[idx * 3 + 1] = p.y;
+        this.positions[idx * 3 + 2] = p.z;
+        this.colors[idx * 3] = 0; this.colors[idx * 3 + 1] = 0; this.colors[idx * 3 + 2] = 0;
       }
     }
 

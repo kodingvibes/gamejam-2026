@@ -57,8 +57,8 @@ export class BossMothership extends BossBase {
       emissive: 0x221100,
       emissiveIntensity: 0.1,
     });
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
+    for (let idx = 0; idx < 6; idx++) {
+      const angle = (idx / 6) * Math.PI * 2;
       const panelGeo = new THREE.BoxGeometry(0.8, 0.1, 1.5);
       const panel = new THREE.Mesh(panelGeo, panelMat);
       panel.position.set(
@@ -174,10 +174,10 @@ export class BossMothership extends BossBase {
       transparent: true,
       opacity: 0.5,
     });
-    for (let i = -2; i <= 2; i += 1.5) {
+    for (let idx = -2; idx <= 2; idx += 1.5) {
       const glowGeo = new THREE.CircleGeometry(0.4, 8);
       const glow = new THREE.Mesh(glowGeo, glowMat);
-      glow.position.set(i, 0, -this._size * 0.8);
+      glow.position.set(idx, 0, -this._size * 0.8);
       glow.rotation.x = Math.PI / 2;
       this.group.add(glow);
       this.engineGlows.push(glow);
@@ -286,11 +286,11 @@ export class BossMothership extends BossBase {
     this.volleyEven = !this.volleyEven;
     const shots: { position: THREE.Vector3; dir: THREE.Vector3 }[] = [];
     const turrets = this.getTurretPositions();
-    for (let i = 0; i < turrets.length; i++) {
-      if ((i % 2 === 0) !== this.volleyEven) continue;
+    for (let idx = 0; idx < turrets.length; idx++) {
+      if ((idx % 2 === 0) !== this.volleyEven) continue;
       shots.push({
-        position: turrets[i],
-        dir: playerPos.clone().sub(turrets[i]).normalize(),
+        position: turrets[idx],
+        dir: playerPos.clone().sub(turrets[idx]).normalize(),
       });
     }
     return shots;
