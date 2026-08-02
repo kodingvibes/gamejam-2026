@@ -23,6 +23,7 @@ class MenuScene extends Phaser.Scene {
       ? saved.difficulty
       : AI_CONFIG.defaultDifficulty;
     this.selectedBoardSize = [3, 4, 5, 6].includes(saved?.size) ? saved.size : 5;
+    this.grid = new NeonGrid(this);
     this.title = new GlitchText(this, GAME_WIDTH / 2, MENU_LAYOUT.titleY, 'TIMBIRICHE', {
       color: SVG_COLORS.textPrimary,
       fontFamily: FONTS.TITLE,
@@ -65,23 +66,26 @@ class MenuScene extends Phaser.Scene {
       MENU_LAYOUT.hotSeatHeight,
       'HOT-SEAT',
       () => this.selectMode(GAME_MODES.LOCAL),
-      { fontSize: MENU_LAYOUT.hotSeatFontSize },
+      { fontSize: MENU_LAYOUT.hotSeatFontSize, icon: (g) => this.drawSeatsIcon(g) },
     );
 
     const aiButtonCenters = this.getRowCenters(3, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonGap);
+    // El prefijo "VS IA ·" se repetía tres veces bajo un título que ya dice qué es esto.
+    // Quitarlo deja sitio al icono, y las barras dicen la dificultad antes que la palabra.
     this.easyModeButton = this.createMenuButton(
       aiButtonCenters[0], MENU_LAYOUT.aiRowY, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonHeight,
-      'VS IA · EASY', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.EASY), { fontSize: MENU_LAYOUT.aiFontSize },
+      'IA · EASY', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.EASY),
+      { fontSize: MENU_LAYOUT.aiFontSize, icon: (g) => this.drawDifficultyIcon(g, 1) },
     );
     this.mediumModeButton = this.createMenuButton(
       aiButtonCenters[1], MENU_LAYOUT.aiRowY, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonHeight,
-      'VS IA · MEDIUM', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.MEDIUM), { fontSize: MENU_LAYOUT.aiFontSizeLong },
+      'IA · MEDIUM', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.MEDIUM),
+      { fontSize: MENU_LAYOUT.aiFontSizeLong, icon: (g) => this.drawDifficultyIcon(g, 2) },
     );
     this.hardModeButton = this.createMenuButton(
       aiButtonCenters[2], MENU_LAYOUT.aiRowY, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonHeight,
-      'VS IA · HARD', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.HARD), {
-        fontSize: MENU_LAYOUT.aiFontSize,
-      },
+      'IA · HARD', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.HARD),
+      { fontSize: MENU_LAYOUT.aiFontSize, icon: (g) => this.drawDifficultyIcon(g, 3) },
     );
 
     this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.boardTitleY, 'SELECCIONA EL TABLERO', {
@@ -110,18 +114,36 @@ class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.boardButtonHeight,
         `${gridSize}x${gridSize}`,
         () => this.selectBoardSize(gridSize),
-        { fontSize: MENU_LAYOUT.boardFontSize, selected: gridSize === this.selectedBoardSize },
+        {
+          fontSize: MENU_LAYOUT.boardFontSize,
+          selected: gridSize === this.selectedBoardSize,
+          icon: (g) => this.drawBoardIcon(g, gridSize),
+        },
       );
       this.boardButtons ??= {};
       this.boardButtons[gridSize] = button;
     });
 
-    this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.helpY, MENU_LAYOUT.helpText, {
-      color: SVG_COLORS.textMuted,
-      fontFamily: FONTS.GAME,
-      fontSize: MENU_LAYOUT.helpSize,
-      letterSpacing: 1,
-    }).setOrigin(0.5);
+    this.startButton = this.createMenuButton(
+      GAME_WIDTH / 2,
+      MENU_LAYOUT.startY,
+      MENU_LAYOUT.startWidth,
+      MENU_LAYOUT.startHeight,
+      'EMPEZAR',
+      () => this.startGame(),
+      {
+        fontSize: MENU_LAYOUT.startFontSize,
+        baseColor: COLORS.playerOne,
+        hoverColor: COLORS.buttonPrimaryHover,
+        pressedColor: COLORS.buttonPrimaryPressed,
+        activeColor: COLORS.playerOne,
+        textColor: SVG_COLORS.buttonActiveText,
+        icon: (g) => this.drawPlayIcon(g),
+      },
+    );
+    // Teclado: si ya está todo elegido, ENTER o espacio no deberían obligar a apuntar.
+    this.input.keyboard?.on('keydown-ENTER', () => this.startGame());
+    this.input.keyboard?.on('keydown-SPACE', () => this.startGame());
 
     // La banda inferior estaba vacía: el récord solo tira si se recuerda antes de jugar.
     this.recordText = this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.recordY, '', {
@@ -215,6 +237,8 @@ class MenuScene extends Phaser.Scene {
     this.idleTween = null;
     this.breathTweens.forEach((tween) => tween?.stop?.());
     this.breathTweens = [];
+    // El latido deja el botón a media escala si se corta a mitad de ciclo.
+    this.startButton?.container?.setScale(1);
   }
 
   /** Latido suave en lo seleccionado. Va sobre el contenedor: GlitchButton no lo toca. */
@@ -237,6 +261,19 @@ class MenuScene extends Phaser.Scene {
         ease: 'Sine.inOut',
       }));
     });
+    // EMPEZAR late en escala, no en opacidad: entre botones que parpadean, el que
+    // crece es el que se lee como "pulsa aquí" y no como "esto está seleccionado".
+    if (this.startButton?.container) {
+      this.startButton.container.setScale(1);
+      this.breathTweens.push(this.tweens.add({
+        targets: this.startButton.container,
+        scale: MENU_FEEL.startPulseScale,
+        duration: MENU_FEEL.startPulseDuration,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.inOut',
+      }));
+    }
   }
 
   currentModeButton() {
@@ -296,8 +333,48 @@ class MenuScene extends Phaser.Scene {
     this.syncSelectionButtons();
     this.refreshRecord();
     this.applyBreathing();
-    // Se conserva el flujo existente: elegir tamaño inicia la partida.
-    this.startGame(gridSize);
+    // Elegir tamaño ya no arranca la partida: eso lo hace EMPEZAR, que sí se ve.
+    this.audio.playTurnChange(0);
+  }
+
+  /** Dos asientos enfrentados: el modo por turnos en la misma pantalla. */
+  drawSeatsIcon(graphics) {
+    const k = MENU_LAYOUT.iconScale;
+    [[-5, COLORS.playerOne], [5, COLORS.playerTwo]].forEach(([side, color]) => {
+      graphics.fillStyle(color, 1);
+      graphics.fillCircle(side * k, -4 * k, 3 * k);
+      graphics.fillRect((side - 3.5) * k, 0, 7 * k, 5 * k);
+    });
+  }
+
+  /** Barras de señal: una llena por nivel. Se lee antes que la palabra. */
+  drawDifficultyIcon(graphics, level) {
+    const k = MENU_LAYOUT.iconScale;
+    for (let index = 0; index < 3; index += 1) {
+      const height = (4 + index * 3.5) * k;
+      graphics.fillStyle(index < level ? COLORS.playerOne : COLORS.textDim, index < level ? 1 : 0.45);
+      graphics.fillRect((index * 4 - 6) * k, height / -2 + 5 * k, 2.6 * k, height);
+    }
+  }
+
+  /** Retícula de puntos del tamaño real del tablero: el botón enseña lo que da. */
+  drawBoardIcon(graphics, gridSize) {
+    const k = MENU_LAYOUT.iconScale;
+    const step = 4.5 * k;
+    const origin = -((gridSize - 1) * step) / 2;
+    graphics.fillStyle(COLORS.playerOne, 0.85);
+    for (let row = 0; row < gridSize; row += 1) {
+      for (let column = 0; column < gridSize; column += 1) {
+        graphics.fillCircle(origin + column * step, origin + row * step, 1.1 * k);
+      }
+    }
+  }
+
+  /** Triángulo de play. Es el icono que nadie tiene que aprender. */
+  drawPlayIcon(graphics) {
+    const k = MENU_LAYOUT.iconScale;
+    graphics.fillStyle(COLORS.background, 1);
+    graphics.fillTriangle(-4 * k, -7 * k, -4 * k, 7 * k, 7 * k, 0);
   }
 
   /** Récord de la combinación seleccionada, con la misma clave que escribe el panel final. */

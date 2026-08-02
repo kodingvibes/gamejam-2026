@@ -53,8 +53,17 @@ class GlitchButton {
       fontStyle: 'bold',
       letterSpacing: 1,
     }).setOrigin(0.5);
+    // Icono opcional: se dibuja a la izquierda y el texto cede la mitad de ese hueco,
+    // así el conjunto sigue pareciendo centrado sin recolocar cada botón a mano.
+    this.icon = null;
+    if (options.icon) {
+      const inset = options.iconInset ?? Math.min(30, width * 0.2);
+      this.icon = scene.add.graphics().setPosition(-width / 2 + inset, 0);
+      options.icon(this.icon, this);
+      this.label.setX(inset / 2);
+    }
     this.corners = this.createChromaticCorners();
-    this.container.add([this.background, ...Object.values(this.corners), this.label]);
+    this.container.add([this.background, ...Object.values(this.corners), ...(this.icon ? [this.icon] : []), this.label]);
     if (options.depth !== undefined) this.container.setDepth(options.depth);
 
     this.bindInput();
@@ -195,6 +204,7 @@ class GlitchButton {
     this.background.setStrokeStyle(borderWidth, borderColor, 1);
     this.background.setAlpha(state === 'disabled' ? BUTTON_STYLE.disabledAlpha : 1);
     this.label.setColor(state === 'disabled' ? this.disabledTextColor : this.textColor);
+    this.icon?.setAlpha(state === 'disabled' ? BUTTON_STYLE.disabledAlpha : 1);
     this.container.setScale(state === 'pressed' ? BUTTON_STYLE.pressScale : 1);
     if (this.background.input) {
       this.background.input.enabled = this.enabled && this.visible;
@@ -353,6 +363,7 @@ class GlitchButton {
 
     this.background = null;
     this.label = null;
+    this.icon = null;
     this.corners = null;
     this.container = null;
     this.scene = null;

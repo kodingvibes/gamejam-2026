@@ -58,6 +58,9 @@ class GameScene extends Phaser.Scene {
     // Con movimiento reducido el tablero se queda en los valores base, sin latido.
     this.reactiveEnabled = !(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
+    // La misma rejilla del menú, a media intensidad: aquí compite con el tablero.
+    this.grid = new NeonGrid(this, { intensity: 0.5 });
+
     // Crear la UI antes del tablero evita callbacks con referencias incompletas.
     this.hud = new HUD(this, () => this.openRestartConfirmation());
     this.gameOverPanel = new GameOverPanel(

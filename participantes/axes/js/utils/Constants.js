@@ -411,10 +411,14 @@ const MENU_LAYOUT = Object.freeze({
   boardFirstRowY: responsive(menuY(70), 435),
   boardSecondRowY: responsive(menuY(190), 499),
   boardFontSize: responsive('30px', '16px'),
-  helpY: responsive(menuY(310), 560),
-  helpSize: responsive('18px', '14px'),
-  // En un móvil no hay ratón que mover ni clic izquierdo que distinguir.
-  helpText: responsive('TOCA PARA ELEGIR  ·  TOCA OTRA VEZ PARA JUGAR', '(mouse) NAVEGA   ·   (left click) CONFIRMA'),
+  // Antes elegir tablero arrancaba la partida y no lo decía en ninguna parte. El botón
+  // ocupa el hueco donde estaba ese texto de ayuda, que ya no hace falta explicar.
+  startY: responsive(menuY(302), 558),
+  startWidth: responsive(560, 300),
+  startHeight: responsive(104, 52),
+  startFontSize: responsive('34px', '20px'),
+  // Los iconos se dibujan en unidades base y se escalan con el resto del layout.
+  iconScale: responsive(1.6, 1),
   recordY: responsive(menuY(420), 660),
   recordSize: responsive('18px', '14px'),
 });
@@ -599,6 +603,23 @@ const MENU_FEEL = Object.freeze({
   buttonDelay: 300, buttonStagger: 45, buttonDuration: 180,
   idleScale: 1.015, idleDuration: 2400,
   fadeOutDuration: 200,
+  // El botón de empezar respira más fuerte que el resto: es la única salida del menú.
+  startPulseScale: 1.05, startPulseDuration: 900,
+});
+
+// Rejilla de fondo. Tres capas con celda, color y velocidad distintas: la grande y
+// rápida se lee como cercana, la fina y lenta como lejana, y eso es el parallax.
+// La capa magenta va al contrario para que el cruce no parezca una sola rejilla torcida.
+const NEON_GRID = Object.freeze({
+  depth: -1,
+  lineWidth: 1,
+  pulseDepth: 0.55,
+  pulseDuration: 3200,
+  layers: Object.freeze([
+    Object.freeze({ cell: 48, color: COLORS.playerOne, alpha: 0.09, speedX: 4, speedY: 7 }),
+    Object.freeze({ cell: 112, color: COLORS.playerTwo, alpha: 0.13, speedX: -9, speedY: 15 }),
+    Object.freeze({ cell: 180, color: COLORS.playerOne, alpha: 0.2, speedX: 14, speedY: 24 }),
+  ]),
 });
 
 // Personalidad de la IA en su compás de pensar. Se rota por índice, no al azar por frame.
