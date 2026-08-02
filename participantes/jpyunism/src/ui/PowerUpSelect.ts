@@ -209,13 +209,23 @@ export class PowerUpSelect {
         }
       };
 
-      const onPointerMove = (
-        pointer: Phaser.Input.Pointer,
-        _gameObjects: Phaser.GameObjects.GameObject[],
-      ) => {
-        void _gameObjects;
-        const px = pointer.x;
-        const py = pointer.y;
+      // NOTE: The scene is paused while the panel is visible, which disables
+      // Phaser's scene InputPlugin (scene.input.on(...) never fires). We
+      // therefore listen on `window` and convert client coords to game coords
+      // via the canvas bounding rect so both mouse clicks and touch taps work.
+      const toGameCoords = (clientX: number, clientY: number) => {
+        const canvas = scene.sys.game.canvas;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = scene.scale.gameSize.width / rect.width;
+        const scaleY = scene.scale.gameSize.height / rect.height;
+        return {
+          x: (clientX - rect.left) * scaleX,
+          y: (clientY - rect.top) * scaleY,
+        };
+      };
+
+      const onPointerMove = (event: PointerEvent) => {
+        const { x: px, y: py } = toGameCoords(event.clientX, event.clientY);
         let found: number | null = null;
         for (let i = 0; i < choices.length; i++) {
           const y = top + i * (cardH + cardGap);
@@ -227,19 +237,21 @@ export class PowerUpSelect {
         highlight(found);
       };
 
-      const onPointerDown = (
-        pointer: Phaser.Input.Pointer,
-        gameObjects: Phaser.GameObjects.GameObject[],
-      ) => {
+      const onPointerDown = (event: PointerEvent) => {
+        // Ignore events that don't originate from this game's canvas so the
+        // panel doesn't react to clicks elsewhere on the page.
+        if (event.target !== scene.sys.game.canvas) {
+          return;
+        }
+        const { x: px, y: py } = toGameCoords(event.clientX, event.clientY);
         for (let i = 0; i < choices.length; i++) {
           const y = top + i * (cardH + cardGap);
           if (
-            pointer.x >= left &&
-            pointer.x <= left + cardW &&
-            pointer.y >= y &&
-            pointer.y <= y + cardH
+            px >= left &&
+            px <= left + cardW &&
+            py >= y &&
+            py <= y + cardH
           ) {
-            void gameObjects;
             pick(i);
             return;
           }
@@ -251,16 +263,16 @@ export class PowerUpSelect {
 
       const cleanup = () => {
         window.removeEventListener("keydown", onKeyDown);
-        scene.input.off("pointermove", onPointerMove);
-        scene.input.off("pointerdown", onPointerDown);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerdown", onPointerDown);
         if (container.active) {
           container.destroy();
         }
       };
 
       window.addEventListener("keydown", onKeyDown);
-      scene.input.on("pointermove", onPointerMove);
-      scene.input.on("pointerdown", onPointerDown);
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerdown", onPointerDown);
     });
   }
 }

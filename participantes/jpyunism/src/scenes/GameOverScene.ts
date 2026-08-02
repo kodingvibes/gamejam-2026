@@ -65,10 +65,8 @@ export class GameOverScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
-    // Hard-stop any music still playing on entry — spec mandates silence
-    // on the game-over screen. No fade; battle audio disappears the
-    // moment this scene comes up.
-    this.sound.stopAll();
+    // Keep the battle music playing in the background — it fades back to the
+    // menu theme when the player returns to the menu (see MenuScene).
 
     this.buildLayout(width, height);
     this.bindInput();

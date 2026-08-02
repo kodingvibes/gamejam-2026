@@ -15,6 +15,7 @@ import { HUD } from "../ui/HUD";
 import { AudioManager } from "../audio/AudioManager";
 import { SettingsPanel } from "../ui/SettingsPanel";
 import { EventBus, SPECTACLE_ENTRANCE, SPECTACLE_ACTION, SPECTACLE_HIT } from "../core/EventBus";
+import { GAME } from "../core/Constants";
 import { VirtualJoystick } from "../systems/VirtualJoystick";
 import { FireButton } from "../systems/FireButton";
 import { MobileBootstrap } from "../systems/MobileBootstrap";
@@ -79,6 +80,20 @@ export class GameScene extends Phaser.Scene {
   /** Resize handler reference for cleanup. */
   private resizeHandler: ((gameSize: Phaser.Structs.Size) => void) | null = null;
 
+  /**
+   * Current arena dimensions (world bounds). Grown dynamically to fill the
+   * viewport on wide screens so the play area never leaves empty margins.
+   * Rebuilt on every resize.
+   */
+  private arenaWidth: number = GAME.WIDTH;
+  private arenaHeight: number = GAME.HEIGHT;
+
+  /** Colliders tied to the current obstacles group, recreated on rebuild. */
+  private obstacleColliders: Phaser.Physics.Arcade.Collider[] = [];
+
+  /** Screen-space background grid, redrawn when the viewport resizes. */
+  private bgGrid: Phaser.GameObjects.Graphics | null = null;
+
   constructor() {
     super("GameScene");
   }
@@ -130,9 +145,12 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
-    // World bounds: 1280x960 play area
-    this.physics.world.setBounds(0, 0, 1280, 960);
-    this.cameras.main.setBounds(0, 0, 1280, 960);
+    // World bounds: grow beyond the 1280x960 baseline so the play area
+    // fills the viewport (no empty side margins on wide screens).
+    this.arenaWidth = Math.max(GAME.WIDTH, Math.ceil(width));
+    this.arenaHeight = Math.max(GAME.HEIGHT, Math.ceil(height));
+    this.physics.world.setBounds(0, 0, this.arenaWidth, this.arenaHeight);
+    this.cameras.main.setBounds(0, 0, this.arenaWidth, this.arenaHeight);
 
     // Generate textures before creating any sprite that needs them
     this.generatePlayerTexture();
@@ -141,7 +159,7 @@ export class GameScene extends Phaser.Scene {
 
     // Map (border walls + pillars) — must exist before we spawn anything
     // that needs to collide with it.
-    this.obstacles = MapGenerator.generate(this, 1280, 960);
+    this.obstacles = MapGenerator.generate(this, this.arenaWidth, this.arenaHeight);
 
     // Subtle background grid (drawn first so everything else sits on top).
     this.drawBackgroundGrid();
@@ -227,8 +245,10 @@ export class GameScene extends Phaser.Scene {
     );
 
     // Static world collision: player & enemies bounce off walls and pillars
-    this.physics.add.collider(this.player, this.obstacles);
-    this.physics.add.collider(this.enemies, this.obstacles);
+    this.obstacleColliders.push(
+      this.physics.add.collider(this.player, this.obstacles),
+      this.physics.add.collider(this.enemies, this.obstacles),
+    );
 
     // Listen for enemy deaths so we can drive wave/level progress and drop
     // loot. We attach a listener to the scene so it fires regardless of
@@ -299,6 +319,33 @@ export class GameScene extends Phaser.Scene {
     this.moveJoystick?.setPosition(120, h - 120);
     this.aimJoystick?.setPosition(w - 120, h - 120);
     this.fireButton?.setPosition(w - 60, h - 200);
+
+    // Rebuild the arena when the viewport grows beyond the current world so
+    // the play area keeps filling the whole window (no empty margins).
+    const nextW = Math.max(GAME.WIDTH, Math.ceil(w));
+    const nextH = Math.max(GAME.HEIGHT, Math.ceil(h));
+    if (nextW === this.arenaWidth && nextH === this.arenaHeight) {
+      return;
+    }
+    this.arenaWidth = nextW;
+    this.arenaHeight = nextH;
+    this.physics.world.setBounds(0, 0, this.arenaWidth, this.arenaHeight);
+    this.cameras.main.setBounds(0, 0, this.arenaWidth, this.arenaHeight);
+
+    // Rebuild walls + pillars and rewire the colliders.
+    for (const c of this.obstacleColliders) {
+      c.destroy();
+    }
+    this.obstacleColliders = [];
+    this.obstacles?.destroy(true);
+    this.obstacles = MapGenerator.generate(this, this.arenaWidth, this.arenaHeight);
+    this.obstacleColliders.push(
+      this.physics.add.collider(this.player, this.obstacles),
+      this.physics.add.collider(this.enemies, this.obstacles),
+    );
+
+    // Redraw the fixed background grid to span the new viewport.
+    this.drawBackgroundGrid();
   }
 
   shutdown(): void {
@@ -341,7 +388,15 @@ export class GameScene extends Phaser.Scene {
    * pinned to the camera while the world scrolls underneath.
    */
   private drawBackgroundGrid(): void {
+    // Tear down the previous grid (if any) before drawing a fresh one so a
+    // resize doesn't leave stale lines behind.
+    if (this.bgGrid) {
+      this.bgGrid.destroy();
+      this.bgGrid = null;
+    }
+
     const grid = this.add.graphics();
+    this.bgGrid = grid;
     grid.setScrollFactor(0);
     grid.setDepth(-10);
     grid.lineStyle(1, 0x00ffff, 0.03);
@@ -545,6 +600,11 @@ export class GameScene extends Phaser.Scene {
     if (this.runCoins > 0) {
       MetaProgress.addCoins(this.runCoins);
     }
+
+    // Let the battle music keep playing in the background on the game-over
+    // screen — detach instead of destroying it. MenuScene's cross-fade will
+    // fade it out when the player returns to the menu.
+    this.audio?.detach();
 
     this.scene.start("GameOverScene", {
       runCoins: this.runCoins,

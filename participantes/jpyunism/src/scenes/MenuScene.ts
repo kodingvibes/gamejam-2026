@@ -106,12 +106,11 @@ export class MenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     // Background music — starts on first user interaction (gated by
-    // `this.sound.locked` inside AudioManager). When the player returns to
-    // the menu from GameOverScene, battle music was already hard-stopped,
-    // so a 1000 ms fade-in here gives a smooth re-entry without needing a
-    // full cross-fade.
+    // `this.sound.locked` inside AudioManager). Cross-fades from whatever
+    // was playing (e.g. battle music when returning from GameOverScene),
+    // fading it out and fading the menu theme in over 1000 ms.
     this.audio = new AudioManager(this);
-    this.audio.play("menu-music", { loop: true, fadeInMs: 1000 });
+    this.audio.crossFadeTo("menu-music", { loop: true, fadeInMs: 1000 });
 
     this.buildLayout(width, height);
     this.bindInput();

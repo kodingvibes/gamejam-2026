@@ -232,6 +232,16 @@ export class AudioManager {
   public destroy(): void {
     this.stop();
   }
+
+  /**
+   * Release ownership of the current track WITHOUT stopping it, so it keeps
+   * playing on the shared SoundManager after this scene shuts down (e.g.
+   * battle music continuing into the game-over screen). The sound will be
+   * faded out and destroyed later by the next scene's cross-fade.
+   */
+  public detach(): void {
+    this.current = undefined;
+  }
 }
 
 function clamp01(v: number): number {

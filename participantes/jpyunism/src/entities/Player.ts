@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { Weapon } from "../weapons/Weapon";
+import { playWeaponSfx } from "../audio/WeaponSfx";
 
 export interface MovementKeys {
   up: boolean;
@@ -152,6 +153,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
     weapon.fire(this.scene, this.x, this.y, this.aimAngle);
     weapon.lastFiredAt = time;
+    playWeaponSfx(this.scene, weapon.name);
   }
 
   public get hpPercent(): number {

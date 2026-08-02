@@ -22,8 +22,6 @@ export class WaveManager {
   public hordeTimer: Phaser.Time.TimerEvent | null = null;
   public hordeActiveTimer: Phaser.Time.TimerEvent | null = null;
 
-  private readonly arenaWidth: number = 1280;
-  private readonly arenaHeight: number = 960;
   private readonly spawnMargin: number = 100;
   private readonly hordeDurationMs: number = 10_000;
   private readonly hordeIntervalMs: number = 25_000; // first horde at 25s
@@ -185,8 +183,10 @@ export class WaveManager {
         break;
     }
 
-    spawnX = Phaser.Math.Clamp(spawnX, 0, this.arenaWidth);
-    spawnY = Phaser.Math.Clamp(spawnY, 0, this.arenaHeight);
+    const arenaWidth = this.scene.physics.world.bounds.width;
+    const arenaHeight = this.scene.physics.world.bounds.height;
+    spawnX = Phaser.Math.Clamp(spawnX, 0, arenaWidth);
+    spawnY = Phaser.Math.Clamp(spawnY, 0, arenaHeight);
     return { x: spawnX, y: spawnY };
   }
 }
