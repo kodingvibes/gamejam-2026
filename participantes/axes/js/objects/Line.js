@@ -47,8 +47,13 @@ class Line {
     this.group.append(this.visible, this.hitbox);
     svg.appendChild(this.group);
 
-    this.hitbox.addEventListener('pointerover', () => {
-      if (this.owner === null) this.setHovered(true);
+    this.hitbox.addEventListener('pointerover', (event) => {
+      if (this.owner !== null) return;
+      this.setHovered(true);
+      // En táctil el pointerover llega junto al pointerdown: sonarían dos notas.
+      if (event.pointerType === 'touch') return;
+      // playHover solo suena si el audio ya está activo y se limita por sí mismo.
+      AudioManager.instance?.playHover();
     });
     this.hitbox.addEventListener('pointerout', () => {
       if (this.owner === null) this.setHovered(false);

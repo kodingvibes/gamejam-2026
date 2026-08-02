@@ -162,6 +162,68 @@ const BOX_CLAIM_GLITCH = Object.freeze({
   magenta: SVG_COLORS.glitchMagenta,
 });
 
+// Estallido neón al reclamar una caja. Se escala con la posición en la cadena.
+const CLAIM_BURST = Object.freeze({
+  baseCount: 6,
+  countPerChain: 2,
+  maxCount: 14,
+  radius: 34,
+  radiusPerChain: 8,
+  particleRadius: 3,
+  duration: 420,
+  durationJitter: 160,
+});
+
+// Reactividad al audio. Los valores "floor" son los que se ven sin audio disponible.
+const AUDIO_REACTIVE = Object.freeze({
+  smoothing: 0.18,
+  glowFloor: 5,
+  glowRange: 16,
+  glowAlpha: '55',
+  gridOpacityFloor: 0.18,
+  gridOpacityRange: 0.1,
+  boxOpacityFloor: BOARD_STYLE.ownerOpacity,
+  boxOpacityRange: 0.07,
+});
+
+// Sacudidas, pop de marcador y aviso de cadena. Todo breve: el juego es por turnos.
+// Las intensidades son fracción del ancho base: en píxeles son intensidad * GAME_WIDTH.
+const GAME_FEEL = Object.freeze({
+  shakeDuration: 140,
+  shakeIntensity: 0.0016,
+  shakePerChain: 0.0012,
+  invalidShakeDuration: 90,
+  invalidShakeIntensity: 0.0012,
+  // Mismo margen que el guardián de playHover: un click repetido no acumula feedback.
+  invalidCooldown: 140,
+  scorePopScale: 1.3,
+  scorePopDuration: 170,
+  chainPopDuration: 160,
+  chainHoldDuration: 900,
+  chainFadeDuration: 220,
+});
+
+// Vibración móvil. navigator.vibrate arranca vibrando: los índices pares son duración.
+const HAPTICS = Object.freeze({
+  move: 12,
+  box: 18,
+  boxPerChain: 8,
+  invalid: 10,
+  victory: Object.freeze([40, 60, 40, 60, 120]),
+});
+
+// Botón de sonido: mismo formato que REINICIAR, en la esquina opuesta.
+const AUDIO_TOGGLE = Object.freeze({
+  x: 120,
+  y: 750,
+  width: 150,
+  height: 42,
+  fontSize: '15px',
+  labelOn: 'SONIDO: ON',
+  labelOff: 'SONIDO: OFF',
+  storageKey: 'timbiriche:muted',
+});
+
 // Medidas y opacidades comunes de la interfaz Phaser.
 const UI_STYLE = Object.freeze({
   panelRadius: 0,

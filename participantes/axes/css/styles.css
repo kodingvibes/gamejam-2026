@@ -29,7 +29,8 @@ body::before {
   z-index: var(--layer-background, 0);
   pointer-events: none;
   content: '';
-  opacity: 0.18;
+  /* La escena escribe --grid-opacity por frame; sin audio queda el valor base. */
+  opacity: var(--grid-opacity, 0.18);
   background-image: linear-gradient(var(--grid-border, rgba(0, 245, 255, 0.08)) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-border, rgba(0, 245, 255, 0.08)) 1px, transparent 1px);
   background-size: 42px 42px;
@@ -90,6 +91,11 @@ body::before {
   filter: drop-shadow(0 0 5px currentColor);
 }
 
+/* Las cajas reclamadas respiran con la música. Única fuente de su opacidad. */
+#board-svg .board-box-fill[data-owner] {
+  fill-opacity: var(--box-owner-opacity, 0.28);
+}
+
 #board-svg .box-filled {
   animation: box-filled var(--box-reveal-duration, 220ms) cubic-bezier(0.22, 0.8, 0.3, 1) both;
   transform-box: fill-box;
@@ -141,7 +147,9 @@ body::before {
 }
 
 @media (max-width: 600px) {
-  body { gap: 4px; }
+  /* #game ocupa el ancho completo: la sacudida lo desplaza fuera y aparecerían
+     barras de scroll, empujando la página unos píxeles a cada caja reclamada. */
+  body { gap: 4px; overflow-x: clip; }
   #game { width: 100vw; height: calc(100svh - 28px); }
   #game canvas { border: 0; border-radius: 0; }
   .site-footer { font-size: 10px; }

@@ -35,8 +35,9 @@ class Box {
     const wasEmpty = this.element.dataset.owner === undefined;
     const color = owner === 0 ? SVG_COLORS.playerOne : SVG_COLORS.playerTwo;
     this.element.setAttribute('fill', owner === null ? this.baseColor : color);
-    this.element.setAttribute('fill-opacity', owner === null ? BOARD_STYLE.cellOpacity : BOARD_STYLE.ownerOpacity);
     if (owner === null) {
+      // La opacidad de las cajas reclamadas la manda la regla CSS, no el atributo.
+      this.element.setAttribute('fill-opacity', BOARD_STYLE.cellOpacity);
       this.activeGlitch?.cancel();
       this.activeGlitch = null;
       this.element.classList.remove('box-filled');

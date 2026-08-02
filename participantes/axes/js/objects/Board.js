@@ -107,12 +107,17 @@ class Board {
   /**
    * Entrada única para movimientos humanos y de IA.
    * @param {string} lineId
-   * @returns {{state: object, accepted: boolean, completedBoxIds: string[]}}
+   * @returns {{state: object, accepted: boolean, completedBoxIds: string[], lineId: string}}
    */
   playMove(lineId) {
-    if (!this.moveEnabled) return { state: this.state, accepted: false, completedBoxIds: [] };
+    if (!this.moveEnabled) return { state: this.state, accepted: false, completedBoxIds: [], lineId };
     const result = drawLine(this.state, lineId, this.state.currentPlayer);
-    if (!result.accepted) return result;
+    result.lineId = lineId;
+    // Un rechazo también se notifica: la escena responde el click con feedback.
+    if (!result.accepted) {
+      this.onMove?.(result);
+      return result;
+    }
     this.state = result.state;
     this.activePlayer = result.state.currentPlayer;
     this.renderState();

@@ -4,6 +4,7 @@ class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    this.audio = new AudioManager();
     this.selectedMode = GAME_MODES.LOCAL;
     this.selectedDifficulty = AI_CONFIG.defaultDifficulty;
     this.selectedBoardSize = 5;
@@ -111,7 +112,11 @@ class MenuScene extends Phaser.Scene {
   }
 
   createMenuButton(x, y, width, height, label, onClick, options = {}) {
-    return new GlitchButton(this, x, y, width, height, label, onClick, options);
+    // Único momento en que el navegador permite crear el AudioContext: un click real.
+    return new GlitchButton(this, x, y, width, height, label, () => {
+      this.audio.unlock();
+      onClick();
+    }, options);
   }
 
   getRowCenters(count, width, gap) {
@@ -123,10 +128,11 @@ class MenuScene extends Phaser.Scene {
   selectMode(mode, difficulty = this.selectedDifficulty) {
     this.selectedMode = mode;
     this.selectedDifficulty = difficulty;
-    this.localModeButton.setSelected(mode === GAME_MODES.LOCAL);
-    this.easyModeButton.setSelected(mode === GAME_MODES.VS_AI && difficulty === AI_DIFFICULTY.EASY);
-    this.mediumModeButton.setSelected(mode === GAME_MODES.VS_AI && difficulty === AI_DIFFICULTY.MEDIUM);
-    this.hardModeButton.setSelected(false);
+    const versusAi = mode === GAME_MODES.VS_AI;
+    this.localModeButton.setSelected(!versusAi);
+    this.easyModeButton.setSelected(versusAi && difficulty === AI_DIFFICULTY.EASY);
+    this.mediumModeButton.setSelected(versusAi && difficulty === AI_DIFFICULTY.MEDIUM);
+    this.hardModeButton.setSelected(versusAi && difficulty === AI_DIFFICULTY.HARD);
   }
 
   selectBoardSize(gridSize) {
