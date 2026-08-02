@@ -1,0 +1,7 @@
+# Configuración de despliegue en Netlify.
+# El juego vive en una subcarpeta del repo, así que en Netlify hay que fijar
+# "Base directory" en participantes/abomdev para que lea este archivo.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
