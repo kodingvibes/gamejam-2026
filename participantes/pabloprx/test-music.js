@@ -5,11 +5,11 @@ import { validate, beatAt } from "./beatmapper/schema.js";
 import {
   LEVELS, cues, zOf, leadOf, spawnAt, bgAt, layerAt, fxAt, flipAt, mix,
   grid, rowAt, timeOfRow, tileOf, rowOfTile, laneOfTile,  sectionAt, enterOf, enterDz,
-  chaseAt, CHASE, markWin, markN, flashIdx, GHOST_ROW, gridAt, hatAt, hypeAt, gateAt, fxOfRow, HAT_K,
+  chaseAt, CHASE, markWin, flashIdx, GHOST_ROW, gridAt, hatAt, hypeAt, gateAt, HAT_K,
   hueAt, rotHue,
 } from "./music.js";
 import {
-  KINDS, PLAYER_Z, PLAYER_D, PLAYER_H, SPAWN_Z, JUMP_V, GRAVITY, hits, stepPlayer, SPEED_MULS,
+  KINDS, PLAYER_Z, PLAYER_D, PLAYER_H, SPAWN_Z, JUMP_V, hits, stepPlayer, SPEED_MULS,
   lanesX, LANE_X,
 } from "./physics.js";
 import { LEAD, CHAIN, chains, toScript, simulate, fmt } from "./record.js";

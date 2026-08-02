@@ -2,7 +2,7 @@
 import * as Phaser from "https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.esm.js";
 import { PALETTE, HEX, FONTS } from "./theme.js";
 import {
-  KINDS, LANE_X, lanesX, PLAYER_H, SLIDE_H, PLAYER_Z, SPAWN_Z, JUMP_V, SLIDE_T, DASH_T, hits,
+  KINDS, LANE_X, lanesX, PLAYER_H, PLAYER_Z, SPAWN_Z, JUMP_V, SLIDE_T, DASH_T, hits,
   stepPlayer, ride, SPEED_MULS,
 } from "./physics.js";
 import { pose, drawAvatar } from "./avatar.js";
@@ -1557,6 +1557,16 @@ class RunnerScene extends Phaser.Scene {
       + rip * Math.sin(x * MESH_KR - t * 1.9)) / (2.15 + rip);
   }
 
+  // La rampa de color de la malla, en UN solo sitio: la habia copiada en `drawMesh` y en
+  // `drawMeshFlat` y ya se desincronizo una vez (el nivel 1 se quedo en cyan de perfil porque
+  // se parcheo una sola de las dos). `f` es la niebla y solo la mete la camara de atras; de
+  // perfil llega 0, y `mix(c, fog, 0)` devuelve `c` exacto (redondeo por canal de `a+(b-a)*0`),
+  // o sea que unificarlas es byte a byte lo mismo que estaba.
+  meshTone(v, f) {
+    const c = mix(this.lv?.mesh?.lo ?? MESH_LO, this.lv?.mesh?.hi ?? MESH_HI, ((v + 1) / 2) ** 0.55);
+    return f ? mix(c, this.fog, f * 0.75) : c;
+  }
+
   drawMesh() {
     if (this.cam.flat) return this.drawMeshFlat();
     const g = this.g, t = this.songT;
@@ -1676,7 +1686,7 @@ class RunnerScene extends Phaser.Scene {
         // Los dos colores los puede declarar el NIVEL (`mesh` en LEVELS): la misma malla es agua
         // cyan en el nivel 2 y una cordillera dorada en el 1. El respaldo son las constantes de
         // arriba, o sea lo de siempre.
-        const tono = (v) => mix(mix(this.lv?.mesh?.lo ?? MESH_LO, this.lv?.mesh?.hi ?? MESH_HI, ((v + 1) / 2) ** 0.55), this.fog, f * 0.75);
+        const tono = (v) => this.meshTone(v, f);
         // halo ancho: UNA pasada de toda la fila con el tono medio (es difuso, no necesita
         // resolucion de color) y el nucleo fino va segmento a segmento. Con las dos pasadas
         // por segmento el coste se duplicaba sin que se note nada.
@@ -1807,7 +1817,7 @@ class RunnerScene extends Phaser.Scene {
       }
       // copia #2 de la rampa de color (aca sin la niebla: de perfil no hay z que se aleje).
       // El nivel manda igual que en `drawMesh`, o si no la camara de lado se quedaba en cyan.
-      const tono = (v) => mix(this.lv?.mesh?.lo ?? MESH_LO, this.lv?.mesh?.hi ?? MESH_HI, ((v + 1) / 2) ** 0.55);
+      const tono = (v) => this.meshTone(v, 0);
       const alto = (v, p) => Math.min(1, a * (0.5 + 0.85 * ((v + 1) / 2))) * tapa(p);
       for (let n = 1; n < row.length; n++) {
         const v = (hs[n] + hs[n - 1]) / 2;

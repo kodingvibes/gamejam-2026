@@ -1477,10 +1477,14 @@ el suyo.
   Cuantos rayos salen va **forzado** (`nOver`) y no por `hype`: en la f66 `hype` vale 0.41, o sea
   `1 + round(3*0.41)` = **2 rayos**, y un fogonazo de dos rayos no es un fogonazo.
   **Y es lo mas GRANDE del nivel, no un detalle**: `SNAP_ARCS` = **8** rayos con `big` = 1 (x1.6
-  de largo, x1.8 de grosor), `REACTOR_SNAP` = **0.35** sobre el radio y el reactor a **alpha 1**
+  de largo, x1.8 de grosor), `REACTOR_SNAP` = **0.25** sobre el radio y el reactor a **alpha 1**
   en vez de su 0.5 de siempre. Medido aislando las dos capas en el pico (t=28.97): el reactor
   pasa de **10191px y 31.7% del alto de pantalla a 17190px y 41.5%**, o sea **mas grande que en
   el drop** (37.0%), y los rayos de **12414px / 30.5% a 52184px / 66.5%**, o sea x4.2 en pixeles.
+  **El 0.25 es 0.35 re-medido cuando `REACTOR_R` subio de 0.148 a 0.160**, y no un recorte: el
+  techo para que el borde de arriba no se salga del canto escala con el radio, o sea que el 0.35
+  de entonces pasa a `S <= 0.287` y se saldria del cuadro. En pantalla el fogonazo mide LO MISMO
+  (`1.898*0.160*1.1394*1.25` = **43.25%** contra `1.898*0.148*1.1394*1.35` = 43.20%).
   **En el fogonazo los rayos caen hacia ABAJO** aunque salgan del reactor: hacia arriba el
   reactor esta a 130px del canto y los 8 se iban de cuadro enseguida (medido: caja de **247x88**,
   mas chica que la del rayo suelto de antes). Abajo tienen la pantalla entera, sigue siendo una
