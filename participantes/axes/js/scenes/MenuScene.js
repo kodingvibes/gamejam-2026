@@ -96,13 +96,6 @@ class MenuScene extends Phaser.Scene {
       letterSpacing: 2,
     }).setOrigin(0.5);
 
-    // this.add.text(GAME_WIDTH / 2, 282, 'CADA LÍNEA CAMBIA EL CONTROL', {
-    //   color: SVG_COLORS.textMuted,
-    //   fontFamily: FONTS.BODY,
-    //   fontSize: '11px',
-    //   letterSpacing: 1,
-    // }).setOrigin(0.5);
-
     const boardColumnCenters = this.getRowCenters(2, MENU_LAYOUT.boardButtonWidth, MENU_LAYOUT.boardColumnGap);
     [3, 4, 5, 6].forEach((gridSize, index) => {
       const rowY = index < 2 ? MENU_LAYOUT.boardFirstRowY : MENU_LAYOUT.boardSecondRowY;
