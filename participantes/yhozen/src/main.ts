@@ -20,4 +20,6 @@ const config: Phaser.Types.Core.GameConfig = {
   ...Canvas({ parent: 'game-shell', canvasId: 'enable3d-phaser-canvas', antialias: false }),
 };
 
-enable3d(() => new Phaser.Game(config)).withPhysics('/lib');
+// Keep Ammo relative to the game entry point. GitHub Pages hosts this game at
+// /participantes/yhozen/, whereas the local Vite server hosts it at /.
+enable3d(() => new Phaser.Game(config)).withPhysics('lib');

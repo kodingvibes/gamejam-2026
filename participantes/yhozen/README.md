@@ -54,8 +54,9 @@ shot counters, and timed advancement. It is never exposed in normal play.
 - `src/network/` and `src/shared/`: browser transport and typed wire protocol.
 - `server/`: same-port Vite/static server plus authoritative room combat rules.
 - `dist/lib/`: pinned Ammo runtime files emitted from npm dependencies at build
-  time for `.withPhysics('/lib')`; development serves the same dependency files
-  at `/lib` without checking generated vendor code into Git.
+  time for `.withPhysics('lib')`; development serves the same dependency files
+  at `/lib` without checking generated vendor code into Git. The relative loader
+  also resolves under GitHub Pages’ `/participantes/yhozen/` path.
 - `public/assets/`: generated atmosphere and material images; gameplay geometry,
   reticles, particles, trails, and collision remain code-native.
 - `PLAYTEST.md`: measured browser evidence, tuning, ratings, and verdict.
