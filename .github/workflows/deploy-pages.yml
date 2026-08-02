@@ -1,0 +1,60 @@
+name: Deploy participants to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch gh-pages
+        run: git fetch origin gh-pages
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install jq + rsync
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq rsync
+
+      - name: Build every participant
+        run: bash scripts/deploy-participants.sh
+
+      - name: Update gh-pages branch
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/gh-pages
+          git worktree add /tmp/gh-pages origin/gh-pages
+
+          # Replace each staged participant folder in gh-pages.
+          for src in .gh-pages-staging/participantes/*/; do
+            name="$(basename "$src")"
+            dest="/tmp/gh-pages/participantes/$name"
+            rm -rf "$dest"
+            cp -r "$src" "$dest"
+          done
+
+          cd /tmp/gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet HEAD -- participantes/; then
+            echo "No participant changes."
+          else
+            git add -A participantes/
+            git commit -m "ci: rebuild Pages from participantes/* (${GITHUB_SHA::7})"
+            git push origin HEAD:gh-pages
+          fi
