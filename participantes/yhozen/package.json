@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@enable3d/phaser-extension": "0.26.1",
+    "ammojs-typed": "1.0.6",
     "phaser": "3.90.0",
     "three": "0.171.0",
     "ws": "8.21.1"

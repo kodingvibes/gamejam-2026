@@ -3,7 +3,6 @@ import { Canvas, enable3d } from '@enable3d/phaser-extension';
 import { ArenaScene } from './scenes/ArenaScene';
 import { LobbyScene } from './scenes/LobbyScene';
 import { PreloadScene } from './scenes/PreloadScene';
-import './styles.css';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
