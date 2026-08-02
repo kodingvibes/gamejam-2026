@@ -259,7 +259,7 @@ assert.equal(bed.bar, 0, 'la frase no cierra en PHRASE_BARS');
 bed.playing = false;
 bed.context = null;
 
-// El cambio de marcha del 80% espera al downbeat en lugar de entrar a media nota.
+// El cambio de marcha del 62% espera al downbeat en lugar de entrar a media nota.
 bed.gear = false;
 bed.bar = 0;
 bed.progress = 0.9;

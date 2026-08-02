@@ -495,7 +495,7 @@ class AudioManager {
       // Tríada por cuartas rotada con el acorde: consonante sobre los cuatro grados.
       [0, 2, 4].forEach((offset) => {
         const frequency = AudioManager.frequency(this.root() + 12 + scale[(chord + offset) % scale.length]);
-        // El lead entra en 0.85 y el cambio de instrumento en 0.8: aquí gear ya es siempre true.
+        // El lead entra en 0.75 y el cambio de instrumento en 0.62: aquí gear ya es siempre true.
         this.sustained(frequency, time, stepDuration * 14, 0.04, 3200, this.musicBus, 'square');
       });
     }

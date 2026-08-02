@@ -19,7 +19,7 @@ La mecánica no se tocó: el que cierra caja puntúa y repite turno, igual que s
   de verdad, no es decoración.
 - El arreglo crece por capas según el progreso de la partida, con variación de bombo
   y hats por compás, relleno al cerrar cada frase de 4, y cambio de instrumento al
-  80% anunciado con un riser. Tonalidad sorteada por partida.
+  62% anunciado con un riser. Tonalidad sorteada por partida.
 - Swing del 10% en las semicorcheas impares, sin arrastre de reloj.
 - Verificado por estructura, no de oído: capturando el stream de notas programadas,
   los compases distintos por frase pasan de 1 a 5.
@@ -55,6 +55,10 @@ La mecánica no se tocó: el que cierra caja puntúa y repite turno, igual que s
   que escritorio no cambia.
 - Si cambia la forma de la ventana (girar, emulación del navegador) la página se
   recarga para rehacer el layout.
+- El layout vertical entra a partir de un aspecto de 1.7. Por debajo de ahí el mundo
+  sale tan corto que el tablero centrado se come el HUD de arriba y el medidor cae
+  sobre los botones, así que tablets y ventanas medio altas usan el de escritorio.
+  `Constants.test.js` barre aspectos y falla si alguna pareja vuelve a solaparse.
 
 ### Claridad
 - El modal de reinicio decía `SÍ` / `NO` sin decir a qué. Ahora las etiquetas llevan

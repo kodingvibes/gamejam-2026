@@ -9,11 +9,13 @@ const GAME_WIDTH = 800;
 const stageElement = typeof document === 'undefined' ? null : document.getElementById('game');
 const stageRect = stageElement ? stageElement.getBoundingClientRect() : null;
 const stageAspect = stageRect && stageRect.width > 0 ? stageRect.height / stageRect.width : 1;
-// 1.4 deja fuera tablets 4:3, que se leen mejor con el layout de escritorio y que además
-// no dan alto suficiente para el bloque de menú vertical.
-const IS_PORTRAIT = stageAspect > 1.4;
+// 1.7 deja fuera tablets y ventanas medio altas. No es estética: por debajo de ahí el
+// mundo vertical sale tan corto que el tablero centrado sube hasta tapar el aviso de
+// PENSANDO y el banner de cadena, y el medidor de terreno cae sobre los botones. Ese
+// rango se lee mejor con el layout de escritorio. Lo comprueba Constants.test.js.
+const IS_PORTRAIT = stageAspect > 1.7;
 // Tope 2.2: más estirado el HUD se despega tanto del tablero que dejan de leerse juntos.
-const stageHeightFor = (aspect) => (aspect > 1.4 ? Math.round(GAME_WIDTH * Math.min(2.2, aspect)) : 800);
+const stageHeightFor = (aspect) => (aspect > 1.7 ? Math.round(GAME_WIDTH * Math.min(2.2, aspect)) : 800);
 const GAME_HEIGHT = stageHeightFor(stageAspect);
 
 // El mundo se mide una vez, al cargar. Si después cambia la forma del hueco (girar el
@@ -378,8 +380,7 @@ const UI_STYLE = Object.freeze({
 // Layout del menú: dos bloques verticales, con medidas compartidas.
 // En vertical el bloque entero se cuelga del centro del mundo alto: así crece con la
 // pantalla en vez de quedar pegado a un 400 pensado para un lienzo cuadrado.
-// El suelo de 620 protege el caso justo (aspecto 1.4): sin él el título saldría por arriba.
-const MENU_CENTER_Y = responsive(Math.max(620, Math.round(GAME_HEIGHT / 2)), 400);
+const MENU_CENTER_Y = responsive(Math.round(GAME_HEIGHT / 2), 400);
 /** @param {number} offset distancia al centro del bloque @returns {number} */
 const menuY = (offset) => MENU_CENTER_Y + offset;
 
