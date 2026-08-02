@@ -29,6 +29,8 @@ class GameScene extends Phaser.Scene {
     this.audioManager = new AudioManager();
     this.audioManager.setDifficulty(this.matchConfig.players[1]?.difficulty);
     this.audioManager.setProgress(0);
+    // Tonalidad sorteada por partida: silenciar y volver no vuelve a sortearla.
+    this.audioManager.newMatch();
     this.reactivePulse = 0;
     this.reactiveMid = 0;
     // Con movimiento reducido el tablero se queda en los valores base, sin latido.
