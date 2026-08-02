@@ -26,18 +26,18 @@ export class HitSpark {
 
     const baseColor = new THREE.Color(color);
 
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = position.x + THREE.MathUtils.randFloat(-0.1, 0.1);
-      positions[i * 3 + 1] = position.y + THREE.MathUtils.randFloat(-0.1, 0.1);
-      positions[i * 3 + 2] = position.z + THREE.MathUtils.randFloat(-0.1, 0.1);
+    for (let idx = 0; idx < count; idx++) {
+      positions[idx * 3] = position.x + THREE.MathUtils.randFloat(-0.1, 0.1);
+      positions[idx * 3 + 1] = position.y + THREE.MathUtils.randFloat(-0.1, 0.1);
+      positions[idx * 3 + 2] = position.z + THREE.MathUtils.randFloat(-0.1, 0.1);
 
       const c = baseColor.clone();
       c.multiplyScalar(THREE.MathUtils.randFloat(0.7, 1));
-      colors[i * 3] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
+      colors[idx * 3] = c.r;
+      colors[idx * 3 + 1] = c.g;
+      colors[idx * 3 + 2] = c.b;
 
-      sizes[i] = THREE.MathUtils.randFloat(0.1, 0.3);
+      sizes[idx] = THREE.MathUtils.randFloat(0.1, 0.3);
     }
 
     const geo = new THREE.BufferGeometry();
@@ -66,8 +66,8 @@ export class HitSpark {
   }
 
   update(dt: number): void {
-    for (let i = this.sparks.length - 1; i >= 0; i--) {
-      const spark = this.sparks[i];
+    for (let idx = this.sparks.length - 1; idx >= 0; idx--) {
+      const spark = this.sparks[idx];
       if (!spark.active) continue;
 
       spark.timer += dt;
@@ -77,7 +77,7 @@ export class HitSpark {
         this.scene.remove(spark.points);
         spark.points.geometry.dispose();
         (spark.points.material as THREE.Material).dispose();
-        this.sparks.splice(i, 1);
+        this.sparks.splice(idx, 1);
         continue;
       }
 

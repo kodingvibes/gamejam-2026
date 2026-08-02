@@ -18,8 +18,8 @@ export class BackgroundShips {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    for (let i = 0; i < 4; i++) {
-      const c = this.createCorvette(i);
+    for (let idx = 0; idx < 4; idx++) {
+      const c = this.createCorvette(idx);
       this.corvettes.push(c);
       this.scene.add(c.group);
     }
@@ -95,12 +95,12 @@ export class BackgroundShips {
     // ── Running lights (row of small glowing dots along the hull) ──
     const lightGeo = new THREE.SphereGeometry(0.15, 6, 6);
     const lightColors = [0x00ffff, 0xff4400, 0x00ff00, 0xffaa00];
-    for (let i = 0; i < 8; i++) {
-      const t = i / 7;
+    for (let idx = 0; idx < 8; idx++) {
+      const t = idx / 7;
       const z = -6 + t * 12;
       const x = 2.5 * Math.cos(t * Math.PI) * (1 - Math.abs(t - 0.5) * 0.3);
       for (const dir of [-1, 1]) {
-        const c = lightColors[i % lightColors.length];
+        const c = lightColors[idx % lightColors.length];
         const light = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({
           color: c, transparent: true, opacity: 0.9,
           blending: THREE.AdditiveBlending, depthWrite: false,
@@ -168,12 +168,12 @@ export class BackgroundShips {
   }
 
   reset(): void {
-    for (let i = 0; i < this.corvettes.length; i++) {
-      const c = this.corvettes[i];
+    for (let idx = 0; idx < this.corvettes.length; idx++) {
+      const c = this.corvettes[idx];
       c.group.position.set(
         c.side * THREE.MathUtils.randFloat(50, 90),
         THREE.MathUtils.randFloat(-20, 30),
-        -THREE.MathUtils.randFloat(80, 250) - i * 40
+        -THREE.MathUtils.randFloat(80, 250) - idx * 40
       );
     }
   }

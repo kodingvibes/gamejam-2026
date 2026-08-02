@@ -61,12 +61,12 @@ export class ExplosionSystem {
     const baseColor = new THREE.Color(color);
     const velocities: THREE.Vector3[] = [];
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    for (let idx = 0; idx < PARTICLE_COUNT; idx++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      positions[i * 3]     = pos.x;
-      positions[i * 3 + 1] = pos.y;
-      positions[i * 3 + 2] = pos.z;
+      positions[idx * 3]     = pos.x;
+      positions[idx * 3 + 1] = pos.y;
+      positions[idx * 3 + 2] = pos.z;
 
       const t = Math.random();
       const c = new THREE.Color();
@@ -77,7 +77,7 @@ export class ExplosionSystem {
       } else {
         c.lerpColors(baseColor, new THREE.Color(0x330011), (t - 0.7) / 0.3);
       }
-      colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+      colors[idx * 3] = c.r; colors[idx * 3 + 1] = c.g; colors[idx * 3 + 2] = c.b;
 
       const pSpeed = THREE.MathUtils.randFloat(10, size * 8);
       velocities.push(new THREE.Vector3(
@@ -98,8 +98,8 @@ export class ExplosionSystem {
 
   update(dt: number): void {
     // Particles only (no shockwaves/flashes to avoid GC pressure)
-    for (let i = this.explosions.length - 1; i >= 0; i--) {
-      const exp = this.explosions[i];
+    for (let idx = this.explosions.length - 1; idx >= 0; idx--) {
+      const exp = this.explosions[idx];
       if (!exp.active) continue;
       exp.timer += dt;
       const progress = exp.timer / exp.duration;
@@ -107,7 +107,7 @@ export class ExplosionSystem {
       if (progress >= 1) {
         exp.active = false; exp.points.visible = false;
         this.pool.release(exp.points);
-        this.explosions.splice(i, 1);
+        this.explosions.splice(idx, 1);
         continue;
       }
 
