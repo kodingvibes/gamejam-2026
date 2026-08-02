@@ -57,7 +57,18 @@ export class LobbyScene extends Phaser.Scene {
       padding: { x: 18, y: 10 },
     }).setOrigin(0.5);
 
-    const start = this.add.text(width / 2, height * 0.64, 'CLICK TO DROP IN', {
+    const copyInvite = this.add.text(width / 2, height * 0.565, 'COPY ROOM INVITE', {
+      fontFamily: 'monospace',
+      fontSize: '14px',
+      color: '#9adfff',
+      backgroundColor: '#07101acc',
+      padding: { x: 14, y: 9 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    copyInvite.on('pointerover', () => copyInvite.setColor('#effff8'));
+    copyInvite.on('pointerout', () => copyInvite.setColor('#9adfff'));
+    copyInvite.on('pointerdown', () => void this.copyInvite(copyInvite));
+
+    const start = this.add.text(width / 2, height * 0.66, 'CLICK TO DROP IN', {
       fontFamily: 'system-ui, sans-serif',
       fontSize: '24px',
       fontStyle: 'bold',
@@ -69,8 +80,8 @@ export class LobbyScene extends Phaser.Scene {
     start.on('pointerout', () => start.setScale(1));
     start.on('pointerdown', () => this.launchArena());
 
-    this.add.text(width / 2, height * 0.77,
-      'W PUSH  ·  S BRAKE  ·  A/D STEER  ·  SPACE OLLIE\nMOUSE AIM  ·  CLICK FIRE  ·  C RECENTER  ·  F3 TUNE', {
+    this.add.text(width / 2, height * 0.80,
+      'W PUSH  ·  S BRAKE  ·  A/D STEER  ·  SPACE OLLIE\nMOUSE AIM  ·  CLICK FIRE  ·  C RECENTER  ·  F3 TUNE\nSHOOT BACKWARD TO BOOST  ·  FORWARD TO BRAKE  ·  DOWN TO POP', {
         align: 'center',
         fontFamily: 'monospace',
         fontSize: '14px',
@@ -94,5 +105,33 @@ export class LobbyScene extends Phaser.Scene {
 
   private launchArena(): void {
     this.scene.start('ArenaScene', { room: this.room, name: this.playerName });
+  }
+
+  private async copyInvite(button: Phaser.GameObjects.Text): Promise<void> {
+    const invite = new URL(location.href);
+    invite.searchParams.delete('testMode');
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(invite.toString());
+      } else {
+        const field = document.createElement('textarea');
+        field.value = invite.toString();
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+        const copied = document.execCommand('copy');
+        field.remove();
+        if (!copied) throw new Error('Clipboard unavailable.');
+      }
+      if (!button.active) return;
+      button.setText('INVITE COPIED ✓').setColor('#83ffc3');
+      this.time.delayedCall(1_800, () => {
+        if (button.active) button.setText('COPY ROOM INVITE').setColor('#9adfff');
+      });
+    } catch {
+      if (!button.active) return;
+      button.setText('COPY URL FROM ADDRESS BAR').setColor('#fff06a');
+    }
   }
 }

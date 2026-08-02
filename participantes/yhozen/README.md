@@ -19,6 +19,7 @@ npm run dev -- --host 0.0.0.0 --port 3000
 
 Open `http://localhost:3000/?room=ABCD&name=Player`. Share that URL with up to
 three other players. The WebSocket endpoint is `/multiplayer` on the same host.
+Use the lobby's **COPY ROOM INVITE** action to share a clean non-test URL.
 
 Controls:
 
@@ -52,15 +53,24 @@ shot counters, and timed advancement. It is never exposed in normal play.
 - `src/physics/`: raw Ammo `btRaycastVehicle` skateboard controller.
 - `src/network/` and `src/shared/`: browser transport and typed wire protocol.
 - `server/`: same-port Vite/static server plus authoritative room combat rules.
-- `public/lib/`: Ammo runtime files required by `.withPhysics('/lib')`.
+- `dist/lib/`: pinned Ammo runtime files emitted from npm dependencies at build
+  time for `.withPhysics('/lib')`; development serves the same dependency files
+  at `/lib` without checking generated vendor code into Git.
 - `public/assets/`: generated atmosphere and material images; gameplay geometry,
   reticles, particles, trails, and collision remain code-native.
 - `PLAYTEST.md`: measured browser evidence, tuning, ratings, and verdict.
+- `DEPLOYMENT.md`: current Vercel WebSocket constraints and the recommended
+  single-process or split frontend/game-server deployment paths.
 
 The server owns rooms, health, shot cadence, scoring, and respawns. Local physics
 remains client-authoritative for immediate controls; production anti-cheat,
 authoritative server physics, matchmaking, accounts, and persistence are
-intentionally deferred.
+intentionally deferred. The client sends heartbeats, shows latency, and rejoins
+after transient or duration-driven disconnects with bounded exponential backoff.
+
+For a separately hosted multiplayer server, copy `.env.example` and set
+`VITE_MULTIPLAYER_URL` before building. See `DEPLOYMENT.md` before attempting to
+move the in-memory room server into a multi-instance Function environment.
 
 ## Conductor Cloud
 

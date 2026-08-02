@@ -12,7 +12,7 @@ import {
   TUNING_DEFAULTS,
   type TuningValues,
 } from '../game/config';
-import { GameSocket } from '../network/GameSocket';
+import { GameSocket, type NetworkState, type NetworkStatus } from '../network/GameSocket';
 import { isOutOfBounds } from '../game/movement';
 import { SkateboardController, type SkateInput } from '../physics/SkateboardController';
 import type { PlayerSnapshot, ServerMessage, Vec3 } from '../shared/protocol';
@@ -98,15 +98,16 @@ export class ArenaScene extends Scene3D {
   private tuningPanel!: Phaser.GameObjects.Rectangle;
   private crosshair!: Phaser.GameObjects.Graphics;
   private hitMarker!: Phaser.GameObjects.Graphics;
+  private tutorialText!: Phaser.GameObjects.Text;
   private testSnapshots: PlayerSnapshot[] = [];
   private wasGrounded = false;
   private lastVerticalVelocity = 0;
   private cameraKick = 0;
-  private networkWasConnected = false;
-  private returningToLobby = false;
   private speedLines!: Phaser.GameObjects.Graphics;
   private speedLinesDrawn = false;
   private receivedRemoteShots = 0;
+  private networkState: NetworkState = 'connecting';
+  private networkLatencyMs: number | undefined;
   private readonly remoteRotationScratch = new THREE.Euler(0, 0, 0, 'YXZ');
 
   constructor() {
@@ -203,9 +204,10 @@ export class ArenaScene extends Scene3D {
     this.third.renderer.setPixelRatio(Math.min(devicePixelRatio, 0.32));
     this.third.renderer.setClearColor(0x03060c);
     this.third.scene.background = new THREE.Color(0x03060c);
-    this.third.scene.fog = new THREE.FogExp2(0x07101a, 0.018);
-    this.third.scene.add(new THREE.HemisphereLight(0x9adfff, 0x081017, 1.5));
-    const sun = new THREE.DirectionalLight(0x83ffc3, 2.2);
+    this.third.scene.fog = new THREE.FogExp2(0x07101a, 0.012);
+    this.third.scene.add(new THREE.HemisphereLight(0xbdeeff, 0x18343c, 2.35));
+    this.third.scene.add(new THREE.AmbientLight(0x6fcfc2, 0.52));
+    const sun = new THREE.DirectionalLight(0x83ffc3, 3.2);
     sun.position.set(-12, 22, 8);
     this.third.scene.add(sun);
 
@@ -276,7 +278,13 @@ export class ArenaScene extends Scene3D {
 
   private flushStaticVisuals(): void {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 25, vertexColors: true });
+    const material = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      emissive: 0x071b20,
+      emissiveIntensity: 1.1,
+      shininess: 25,
+      vertexColors: true,
+    });
     const instances = new THREE.InstancedMesh(geometry, material, this.staticVisuals.length);
     const matrix = new THREE.Matrix4();
     this.staticVisuals.forEach((visual, index) => {
@@ -369,6 +377,16 @@ export class ArenaScene extends Scene3D {
       fontFamily: 'monospace', fontSize: '14px', color: '#9adfff',
       backgroundColor: '#03060caa', padding: { x: 10, y: 7 },
     }).setOrigin(1, 0).setDepth(20);
+    this.tutorialText = this.add.text(this.scale.width / 2, this.scale.height * 0.72,
+      'RECOIL IS YOUR SECOND PUSH\nSHOOT BACKWARD: BOOST  ·  FORWARD: BRAKE  ·  DOWN: POP', {
+        align: 'center',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        color: '#d9fff0',
+        backgroundColor: '#03060ccc',
+        padding: { x: 14, y: 10 },
+        lineSpacing: 6,
+      }).setOrigin(0.5).setDepth(20);
     this.crosshair = this.add.graphics().setDepth(20);
     this.hitMarker = this.add.graphics().setDepth(21).setAlpha(0);
     this.speedLines = this.add.graphics().setDepth(19);
@@ -380,7 +398,13 @@ export class ArenaScene extends Scene3D {
     this.drawReticle();
     this.scale.on(Phaser.Scale.Events.RESIZE, () => {
       this.statusText.setPosition(this.scale.width - 22, 20);
+      this.tutorialText.setPosition(this.scale.width / 2, this.scale.height * 0.72);
       this.drawReticle();
+    });
+    this.time.delayedCall(7_500, () => {
+      if (!this.tutorialText.active) return;
+      if (this.reducedMotion) this.tutorialText.setVisible(false);
+      else this.tweens.add({ targets: this.tutorialText, alpha: 0, duration: 700 });
     });
   }
 
@@ -402,7 +426,7 @@ export class ArenaScene extends Scene3D {
       `HP ${String(this.health).padStart(3, '0')}   SCORE ${this.score}/5`,
       `SPEED ${this.controller.speed.toFixed(1)} m/s`,
       `VECTOR ${velocity.map((value) => value.toFixed(1)).join(' · ')}`,
-      `ROOM ${this.room}`,
+      `ROOM ${this.room}   RIDERS ${Math.min(4, this.remotes.size + 1)}/4`,
     ]);
   }
 
@@ -467,19 +491,7 @@ export class ArenaScene extends Scene3D {
 
   private setupNetwork(): void {
     this.socket.onStatus((status) => {
-      this.statusText.setText(status.toUpperCase());
-      if (status === 'connected') this.networkWasConnected = true;
-      if (
-        status === 'disconnected'
-        && this.networkWasConnected
-        && !this.returningToLobby
-        && !this.testMode
-      ) {
-        this.returningToLobby = true;
-        this.time.delayedCall(1_000, () => {
-          if (this.scene.isActive()) this.scene.start('LobbyScene', { notice: 'Server connection lost. Rejoin when ready.' });
-        });
-      }
+      this.renderNetworkStatus(status);
     });
     this.socket.onMessage((message) => this.handleNetworkMessage(message));
     this.socket.connect(this.room, this.playerName);
@@ -488,8 +500,17 @@ export class ArenaScene extends Scene3D {
   private handleNetworkMessage(message: ServerMessage): void {
     switch (message.type) {
       case 'welcome':
+        if (this.playerId && this.playerId !== message.playerId) {
+          [...this.remotes.keys()].forEach((id) => this.removeRemote(id));
+        }
         this.playerId = message.playerId;
-        message.players.filter((player) => player.id !== this.playerId).forEach((player) => this.upsertRemote(player));
+        {
+          const localPlayer = message.players.find((player) => player.id === this.playerId);
+          this.health = localPlayer?.health ?? 100;
+          this.score = localPlayer?.score ?? 0;
+          this.testSnapshots = message.players.filter((player) => player.id !== this.playerId);
+          this.testSnapshots.forEach((player) => this.upsertRemote(player));
+        }
         break;
       case 'snapshot':
         this.testSnapshots = message.players.filter((player) => player.id !== this.playerId);
@@ -531,11 +552,33 @@ export class ArenaScene extends Scene3D {
         }
         break;
       case 'error':
-        this.statusText.setText(message.code);
+        this.statusText.setText(message.code).setColor('#fff06a');
         break;
       default:
         break;
     }
+  }
+
+  private renderNetworkStatus(status: NetworkStatus): void {
+    this.networkState = status.state;
+    this.networkLatencyMs = status.latencyMs;
+    let label = status.state.toUpperCase();
+    let color = '#9adfff';
+    if (status.state === 'connected') {
+      label = status.latencyMs === undefined ? 'ONLINE' : `ONLINE · ${status.latencyMs}ms`;
+      color = '#83ffc3';
+    } else if (status.state === 'reconnecting') {
+      const seconds = Math.max(1, Math.ceil((status.retryInMs ?? 1_000) / 1_000));
+      label = `RECONNECTING · ${seconds}s`;
+      color = '#fff06a';
+    } else if (status.state === 'error') {
+      label = 'NETWORK ERROR';
+      color = '#ff8bb9';
+    } else if (status.state === 'disconnected') {
+      label = 'OFFLINE';
+      color = '#ff8bb9';
+    }
+    this.statusText.setText(label).setColor(color);
   }
 
   private upsertRemote(snapshot: PlayerSnapshot): void {
@@ -734,7 +777,14 @@ export class ArenaScene extends Scene3D {
         };
       },
       get remotePlayers() { return scene.testSnapshots; },
-      get events() { return { remoteShots: scene.receivedRemoteShots, tuningVisible: scene.tuningVisible }; },
+      get events() {
+        return {
+          remoteShots: scene.receivedRemoteShots,
+          tuningVisible: scene.tuningVisible,
+          networkState: scene.networkState,
+          latencyMs: scene.networkLatencyMs,
+        };
+      },
       setInput(input: TestInput) {
         scene.overrideInput = { ...input };
         if (Number.isFinite(input.yaw)) scene.yaw = input.yaw!;

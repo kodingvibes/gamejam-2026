@@ -95,9 +95,40 @@ braking, favicon 404, remote resource hitches, and static draw-call overhead.
 
 ## Visual evidence
 
-- [Generated lobby art in context](playtest/evidence/lobby.png)
+- [Lobby invite UX over generated art](playtest/evidence/lobby.png)
+- [In-arena recoil coaching and readability pass](playtest/evidence/recoil-coaching.png)
 - [Arena with three remote riders](playtest/evidence/four-player-arena.png)
 - [Concrete texture in a 2×2 tiled preview](playtest/evidence/concrete-2x2.png)
 
 The concrete preview has no edge seams. Repetition is visible at this deliberately
 small test scale, but at the arena's 8×8 UV repeat it reads as an even surface.
+
+## 2026-08-02 review and networking follow-up
+
+The mandatory post-push review identified generated Ammo loader code as project
+code. The follow-up removes all three checked-in Emscripten artifacts. Vite now
+serves and emits a matched loader/WASM set from exact locked npm dependencies;
+development and production returned HTTP 200 for `ammo.js`, `ammo.wasm.js`, and
+`ammo.wasm.wasm`, and both reached `window.__gameTest.ready` with live physics.
+
+The same pass brought one deferred production concern forward without pretending
+the in-memory server is globally durable:
+
+- Heartbeat/pong latency appears in the HUD, with a 15-second stale-connection
+  timeout.
+- Disconnects use jittered exponential backoff capped at 30 seconds and rejoin
+  the current room instead of ejecting the rider to the lobby.
+- A real server stop showed `reconnecting`; restart restored `connected`, state
+  snapshots, and a measured heartbeat without a page reload.
+- A separate `VITE_MULTIPLAYER_URL` supports a static frontend plus long-lived
+  game server, while `DEPLOYMENT.md` records the Redis requirement for a future
+  multi-instance Vercel Functions port.
+- The lobby now copies a clean room invite, the arena teaches the three core
+  recoil directions, rider count is visible, and brighter fill/fog improves ramp
+  silhouettes without adding shadows or geometry.
+
+The deterministic suite now passes 14/14 tests. A fresh two-browser run confirmed
+join, 20 Hz movement propagation, remote fire, 34 damage, recoil velocity, and
+heartbeat latency for both players. After the lighting change, a continuous
+five-second `requestAnimationFrame` sample measured 60.18 FPS with Phaser at
+60.08 FPS in the single-renderer audit.
