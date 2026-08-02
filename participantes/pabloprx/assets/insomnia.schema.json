@@ -1,0 +1,3624 @@
+{
+  "version": 1,
+  "track": {
+    "name": "Space 92, Popof - Insomnia.m4a",
+    "duration": 373.144671,
+    "trim": {
+      "start": 162.669231,
+      "end": 264.207693
+    }
+  },
+  "tempo": {
+    "bpm": 130.0,
+    "offset": 0.207693,
+    "beatsPerBar": 4
+  },
+  "sections": [
+    {
+      "id": "s1",
+      "label": "buildup",
+      "start": 162.669231,
+      "end": 190.361539
+    },
+    {
+      "id": "s2",
+      "label": "break",
+      "start": 190.361539,
+      "end": 192.207693
+    },
+    {
+      "id": "s3",
+      "label": "drop",
+      "start": 192.207693,
+      "end": 221.746154
+    },
+    {
+      "id": "s4",
+      "label": "drop2",
+      "start": 221.746154,
+      "end": 250.361539
+    },
+    {
+      "id": "s5",
+      "label": "outro",
+      "start": 250.361539,
+      "end": 264.207693
+    }
+  ],
+  "tags": [
+    {
+      "id": "kick",
+      "key": "1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "accent",
+      "key": "2",
+      "color": "#eab308"
+    },
+    {
+      "id": "voice",
+      "key": "3",
+      "color": "#22c55e"
+    },
+    {
+      "id": "kicks",
+      "key": "1",
+      "color": "#eab308"
+    },
+    {
+      "id": "acidbass",
+      "key": "2",
+      "color": "#44e708"
+    },
+    {
+      "id": "response",
+      "key": "3",
+      "color": "#dd0e18"
+    },
+    {
+      "id": "snare",
+      "key": "4",
+      "color": "#ffffff"
+    }
+  ],
+  "events": [
+    {
+      "t": 162.784616,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 352.25,
+      "section": "s1"
+    },
+    {
+      "t": 163.015385,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 352.75,
+      "section": "s1"
+    },
+    {
+      "t": 163.246154,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 353.25,
+      "section": "s1"
+    },
+    {
+      "t": 163.707693,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 354.25,
+      "section": "s1"
+    },
+    {
+      "t": 163.938462,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 354.75,
+      "section": "s1"
+    },
+    {
+      "t": 164.169231,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 355.25,
+      "section": "s1"
+    },
+    {
+      "t": 164.284616,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 355.5,
+      "section": "s1"
+    },
+    {
+      "t": 164.4,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 355.75,
+      "section": "s1"
+    },
+    {
+      "t": 164.63077,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 356.25,
+      "section": "s1"
+    },
+    {
+      "t": 164.861539,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 356.75,
+      "section": "s1"
+    },
+    {
+      "t": 165.092308,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 357.25,
+      "section": "s1"
+    },
+    {
+      "t": 165.553847,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 358.25,
+      "section": "s1"
+    },
+    {
+      "t": 165.784616,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 358.75,
+      "section": "s1"
+    },
+    {
+      "t": 166.015385,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 359.25,
+      "section": "s1"
+    },
+    {
+      "t": 166.13077,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 359.5,
+      "section": "s1"
+    },
+    {
+      "t": 166.246154,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 359.75,
+      "section": "s1"
+    },
+    {
+      "t": 166.476923,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 360.25,
+      "section": "s1"
+    },
+    {
+      "t": 166.707693,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 360.75,
+      "section": "s1"
+    },
+    {
+      "t": 166.938462,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 361.25,
+      "section": "s1"
+    },
+    {
+      "t": 167.4,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 362.25,
+      "section": "s1"
+    },
+    {
+      "t": 167.63077,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 362.75,
+      "section": "s1"
+    },
+    {
+      "t": 167.861539,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 363.25,
+      "section": "s1"
+    },
+    {
+      "t": 167.976923,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 363.5,
+      "section": "s1"
+    },
+    {
+      "t": 168.092308,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 363.75,
+      "section": "s1"
+    },
+    {
+      "t": 168.323077,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 364.25,
+      "section": "s1"
+    },
+    {
+      "t": 168.553847,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 364.75,
+      "section": "s1"
+    },
+    {
+      "t": 168.784616,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 365.25,
+      "section": "s1"
+    },
+    {
+      "t": 169.246154,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 366.25,
+      "section": "s1"
+    },
+    {
+      "t": 169.476923,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 366.75,
+      "section": "s1"
+    },
+    {
+      "t": 169.707693,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 367.25,
+      "section": "s1"
+    },
+    {
+      "t": 169.823077,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 367.5,
+      "section": "s1"
+    },
+    {
+      "t": 169.938462,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 367.75,
+      "section": "s1"
+    },
+    {
+      "t": 170.169231,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 368.25,
+      "section": "s1"
+    },
+    {
+      "t": 170.4,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 368.75,
+      "section": "s1"
+    },
+    {
+      "t": 170.63077,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 369.25,
+      "section": "s1"
+    },
+    {
+      "t": 171.092308,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 370.25,
+      "section": "s1"
+    },
+    {
+      "t": 171.323077,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 370.75,
+      "section": "s1"
+    },
+    {
+      "t": 171.553847,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 371.25,
+      "section": "s1"
+    },
+    {
+      "t": 171.669231,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 371.5,
+      "section": "s1"
+    },
+    {
+      "t": 171.784616,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 371.75,
+      "section": "s1"
+    },
+    {
+      "t": 172.015385,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 372.25,
+      "section": "s1"
+    },
+    {
+      "t": 172.246154,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 372.75,
+      "section": "s1"
+    },
+    {
+      "t": 172.476923,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 373.25,
+      "section": "s1"
+    },
+    {
+      "t": 172.938462,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 374.25,
+      "section": "s1"
+    },
+    {
+      "t": 173.169231,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 374.75,
+      "section": "s1"
+    },
+    {
+      "t": 173.4,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 375.25,
+      "section": "s1"
+    },
+    {
+      "t": 173.515385,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 375.5,
+      "section": "s1"
+    },
+    {
+      "t": 173.63077,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 375.75,
+      "section": "s1"
+    },
+    {
+      "t": 173.861539,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 376.25,
+      "section": "s1"
+    },
+    {
+      "t": 174.092308,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 376.75,
+      "section": "s1"
+    },
+    {
+      "t": 174.323077,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 377.25,
+      "section": "s1"
+    },
+    {
+      "t": 174.784616,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 378.25,
+      "section": "s1"
+    },
+    {
+      "t": 175.015385,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 378.75,
+      "section": "s1"
+    },
+    {
+      "t": 175.246154,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 379.25,
+      "section": "s1"
+    },
+    {
+      "t": 175.361539,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 379.5,
+      "section": "s1"
+    },
+    {
+      "t": 175.476923,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 379.75,
+      "section": "s1"
+    },
+    {
+      "t": 175.707693,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 380.25,
+      "section": "s1"
+    },
+    {
+      "t": 175.938462,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 380.75,
+      "section": "s1"
+    },
+    {
+      "t": 176.169231,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 381.25,
+      "section": "s1"
+    },
+    {
+      "t": 176.63077,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 382.25,
+      "section": "s1"
+    },
+    {
+      "t": 176.861539,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 382.75,
+      "section": "s1"
+    },
+    {
+      "t": 177.092308,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 383.25,
+      "section": "s1"
+    },
+    {
+      "t": 177.207693,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 383.5,
+      "section": "s1"
+    },
+    {
+      "t": 177.323077,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 383.75,
+      "section": "s1"
+    },
+    {
+      "t": 177.553847,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 384.25,
+      "section": "s1"
+    },
+    {
+      "t": 177.784616,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 384.75,
+      "section": "s1"
+    },
+    {
+      "t": 178.015385,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 385.25,
+      "section": "s1"
+    },
+    {
+      "t": 178.476923,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 386.25,
+      "section": "s1"
+    },
+    {
+      "t": 178.707693,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 386.75,
+      "section": "s1"
+    },
+    {
+      "t": 178.938462,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 387.25,
+      "section": "s1"
+    },
+    {
+      "t": 179.053847,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 387.5,
+      "section": "s1"
+    },
+    {
+      "t": 179.169231,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 387.75,
+      "section": "s1"
+    },
+    {
+      "t": 179.4,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 388.25,
+      "section": "s1"
+    },
+    {
+      "t": 179.63077,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 388.75,
+      "section": "s1"
+    },
+    {
+      "t": 179.861539,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 389.25,
+      "section": "s1"
+    },
+    {
+      "t": 180.323077,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 390.25,
+      "section": "s1"
+    },
+    {
+      "t": 180.553847,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 390.75,
+      "section": "s1"
+    },
+    {
+      "t": 180.784616,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 391.25,
+      "section": "s1"
+    },
+    {
+      "t": 180.9,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 391.5,
+      "section": "s1"
+    },
+    {
+      "t": 181.015385,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 391.75,
+      "section": "s1"
+    },
+    {
+      "t": 181.246154,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 392.25,
+      "section": "s1"
+    },
+    {
+      "t": 181.476923,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 392.75,
+      "section": "s1"
+    },
+    {
+      "t": 181.707693,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 393.25,
+      "section": "s1"
+    },
+    {
+      "t": 182.169231,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 394.25,
+      "section": "s1"
+    },
+    {
+      "t": 182.4,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 394.75,
+      "section": "s1"
+    },
+    {
+      "t": 182.63077,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 395.25,
+      "section": "s1"
+    },
+    {
+      "t": 182.746154,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 395.5,
+      "section": "s1"
+    },
+    {
+      "t": 182.861539,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 395.75,
+      "section": "s1"
+    },
+    {
+      "t": 183.092308,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 396.25,
+      "section": "s1"
+    },
+    {
+      "t": 183.323077,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 396.75,
+      "section": "s1"
+    },
+    {
+      "t": 183.553847,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 397.25,
+      "section": "s1"
+    },
+    {
+      "t": 184.015385,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 398.25,
+      "section": "s1"
+    },
+    {
+      "t": 184.246154,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 398.75,
+      "section": "s1"
+    },
+    {
+      "t": 184.476923,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 399.25,
+      "section": "s1"
+    },
+    {
+      "t": 184.592308,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 399.5,
+      "section": "s1"
+    },
+    {
+      "t": 184.707693,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 399.75,
+      "section": "s1"
+    },
+    {
+      "t": 184.938462,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 400.25,
+      "section": "s1"
+    },
+    {
+      "t": 185.169231,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 400.75,
+      "section": "s1"
+    },
+    {
+      "t": 185.4,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 401.25,
+      "section": "s1"
+    },
+    {
+      "t": 185.861539,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 402.25,
+      "section": "s1"
+    },
+    {
+      "t": 186.092308,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 402.75,
+      "section": "s1"
+    },
+    {
+      "t": 186.323077,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 403.25,
+      "section": "s1"
+    },
+    {
+      "t": 186.438462,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 403.5,
+      "section": "s1"
+    },
+    {
+      "t": 186.553847,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 403.75,
+      "section": "s1"
+    },
+    {
+      "t": 186.784616,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 404.25,
+      "section": "s1"
+    },
+    {
+      "t": 187.015385,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 404.75,
+      "section": "s1"
+    },
+    {
+      "t": 187.246154,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 405.25,
+      "section": "s1"
+    },
+    {
+      "t": 187.707693,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 406.25,
+      "section": "s1"
+    },
+    {
+      "t": 187.938462,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 406.75,
+      "section": "s1"
+    },
+    {
+      "t": 188.169231,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 407.25,
+      "section": "s1"
+    },
+    {
+      "t": 188.284616,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 407.5,
+      "section": "s1"
+    },
+    {
+      "t": 188.4,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 407.75,
+      "section": "s1"
+    },
+    {
+      "t": 188.63077,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 408.25,
+      "section": "s1"
+    },
+    {
+      "t": 188.861539,
+      "tag": "accent",
+      "v": 0.537,
+      "src": "audio",
+      "beat": 408.75,
+      "section": "s1"
+    },
+    {
+      "t": 189.092308,
+      "tag": "accent",
+      "v": 0.754,
+      "src": "audio",
+      "beat": 409.25,
+      "section": "s1"
+    },
+    {
+      "t": 189.553847,
+      "tag": "accent",
+      "v": 0.783,
+      "src": "audio",
+      "beat": 410.25,
+      "section": "s1"
+    },
+    {
+      "t": 189.784616,
+      "tag": "kick",
+      "v": 0.538,
+      "src": "audio",
+      "beat": 410.75,
+      "section": "s1"
+    },
+    {
+      "t": 190.015385,
+      "tag": "accent",
+      "v": 0.871,
+      "src": "audio",
+      "beat": 411.25,
+      "section": "s1"
+    },
+    {
+      "t": 190.13077,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 411.5,
+      "section": "s1"
+    },
+    {
+      "t": 190.246154,
+      "tag": "accent",
+      "v": 0.675,
+      "src": "audio",
+      "beat": 411.75,
+      "section": "s1"
+    },
+    {
+      "t": 190.342,
+      "tag": "voice",
+      "v": 1.0,
+      "src": "manual",
+      "dur": 0.8959999999999866,
+      "beat": 411.9577,
+      "section": "s1"
+    },
+    {
+      "t": 190.938462,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 413.25,
+      "section": "s2"
+    },
+    {
+      "t": 192.092308,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 415.75,
+      "section": "s2"
+    },
+    {
+      "t": 192.207693,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 416.0,
+      "section": "s3"
+    },
+    {
+      "t": 192.323077,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 416.25,
+      "section": "s3"
+    },
+    {
+      "t": 192.553847,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 416.75,
+      "section": "s3"
+    },
+    {
+      "t": 192.669231,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 417.0,
+      "section": "s3"
+    },
+    {
+      "t": 192.784616,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 417.25,
+      "section": "s3"
+    },
+    {
+      "t": 193.015385,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 417.75,
+      "section": "s3"
+    },
+    {
+      "t": 193.13077,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 418.0,
+      "section": "s3"
+    },
+    {
+      "t": 193.246154,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 418.25,
+      "section": "s3"
+    },
+    {
+      "t": 193.476923,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 418.75,
+      "section": "s3"
+    },
+    {
+      "t": 193.592308,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 419.0,
+      "section": "s3"
+    },
+    {
+      "t": 193.707693,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 419.25,
+      "section": "s3"
+    },
+    {
+      "t": 193.938462,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 419.75,
+      "section": "s3"
+    },
+    {
+      "t": 194.053847,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 420.0,
+      "section": "s3"
+    },
+    {
+      "t": 194.169231,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 420.25,
+      "section": "s3"
+    },
+    {
+      "t": 194.4,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 420.75,
+      "section": "s3"
+    },
+    {
+      "t": 194.515385,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 421.0,
+      "section": "s3"
+    },
+    {
+      "t": 194.63077,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 421.25,
+      "section": "s3"
+    },
+    {
+      "t": 194.861539,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 421.75,
+      "section": "s3"
+    },
+    {
+      "t": 194.976923,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 422.0,
+      "section": "s3"
+    },
+    {
+      "t": 195.092308,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 422.25,
+      "section": "s3"
+    },
+    {
+      "t": 195.323077,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 422.75,
+      "section": "s3"
+    },
+    {
+      "t": 195.438462,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 423.0,
+      "section": "s3"
+    },
+    {
+      "t": 195.553847,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 423.25,
+      "section": "s3"
+    },
+    {
+      "t": 195.784616,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 423.75,
+      "section": "s3"
+    },
+    {
+      "t": 195.9,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 424.0,
+      "section": "s3"
+    },
+    {
+      "t": 196.015385,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 424.25,
+      "section": "s3"
+    },
+    {
+      "t": 196.246154,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 424.75,
+      "section": "s3"
+    },
+    {
+      "t": 196.361539,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 425.0,
+      "section": "s3"
+    },
+    {
+      "t": 196.476923,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 425.25,
+      "section": "s3"
+    },
+    {
+      "t": 196.707693,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 425.75,
+      "section": "s3"
+    },
+    {
+      "t": 196.823077,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 426.0,
+      "section": "s3"
+    },
+    {
+      "t": 196.938462,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 426.25,
+      "section": "s3"
+    },
+    {
+      "t": 197.169231,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 426.75,
+      "section": "s3"
+    },
+    {
+      "t": 197.284616,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 427.0,
+      "section": "s3"
+    },
+    {
+      "t": 197.4,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 427.25,
+      "section": "s3"
+    },
+    {
+      "t": 197.63077,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 427.75,
+      "section": "s3"
+    },
+    {
+      "t": 197.746154,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 428.0,
+      "section": "s3"
+    },
+    {
+      "t": 197.861539,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 428.25,
+      "section": "s3"
+    },
+    {
+      "t": 198.092308,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 428.75,
+      "section": "s3"
+    },
+    {
+      "t": 198.207693,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 429.0,
+      "section": "s3"
+    },
+    {
+      "t": 198.323077,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 429.25,
+      "section": "s3"
+    },
+    {
+      "t": 198.553847,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 429.75,
+      "section": "s3"
+    },
+    {
+      "t": 198.669231,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 430.0,
+      "section": "s3"
+    },
+    {
+      "t": 198.784616,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 430.25,
+      "section": "s3"
+    },
+    {
+      "t": 199.015385,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 430.75,
+      "section": "s3"
+    },
+    {
+      "t": 199.13077,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 431.0,
+      "section": "s3"
+    },
+    {
+      "t": 199.246154,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 431.25,
+      "section": "s3"
+    },
+    {
+      "t": 199.476923,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 431.75,
+      "section": "s3"
+    },
+    {
+      "t": 199.592308,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 432.0,
+      "section": "s3"
+    },
+    {
+      "t": 199.707693,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 432.25,
+      "section": "s3"
+    },
+    {
+      "t": 199.938462,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 432.75,
+      "section": "s3"
+    },
+    {
+      "t": 200.053847,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 433.0,
+      "section": "s3"
+    },
+    {
+      "t": 200.169231,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 433.25,
+      "section": "s3"
+    },
+    {
+      "t": 200.4,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 433.75,
+      "section": "s3"
+    },
+    {
+      "t": 200.515385,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 434.0,
+      "section": "s3"
+    },
+    {
+      "t": 200.63077,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 434.25,
+      "section": "s3"
+    },
+    {
+      "t": 200.861539,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 434.75,
+      "section": "s3"
+    },
+    {
+      "t": 200.976923,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 435.0,
+      "section": "s3"
+    },
+    {
+      "t": 201.092308,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 435.25,
+      "section": "s3"
+    },
+    {
+      "t": 201.323077,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 435.75,
+      "section": "s3"
+    },
+    {
+      "t": 201.438462,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 436.0,
+      "section": "s3"
+    },
+    {
+      "t": 201.553847,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 436.25,
+      "section": "s3"
+    },
+    {
+      "t": 201.784616,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 436.75,
+      "section": "s3"
+    },
+    {
+      "t": 201.9,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 437.0,
+      "section": "s3"
+    },
+    {
+      "t": 202.015385,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 437.25,
+      "section": "s3"
+    },
+    {
+      "t": 202.246154,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 437.75,
+      "section": "s3"
+    },
+    {
+      "t": 202.361539,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 438.0,
+      "section": "s3"
+    },
+    {
+      "t": 202.476923,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 438.25,
+      "section": "s3"
+    },
+    {
+      "t": 202.707693,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 438.75,
+      "section": "s3"
+    },
+    {
+      "t": 202.823077,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 439.0,
+      "section": "s3"
+    },
+    {
+      "t": 202.938462,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 439.25,
+      "section": "s3"
+    },
+    {
+      "t": 203.169231,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 439.75,
+      "section": "s3"
+    },
+    {
+      "t": 203.284616,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 440.0,
+      "section": "s3"
+    },
+    {
+      "t": 203.4,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 440.25,
+      "section": "s3"
+    },
+    {
+      "t": 203.63077,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 440.75,
+      "section": "s3"
+    },
+    {
+      "t": 203.746154,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 441.0,
+      "section": "s3"
+    },
+    {
+      "t": 203.861539,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 441.25,
+      "section": "s3"
+    },
+    {
+      "t": 204.092308,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 441.75,
+      "section": "s3"
+    },
+    {
+      "t": 204.207693,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 442.0,
+      "section": "s3"
+    },
+    {
+      "t": 204.323077,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 442.25,
+      "section": "s3"
+    },
+    {
+      "t": 204.553847,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 442.75,
+      "section": "s3"
+    },
+    {
+      "t": 204.669231,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 443.0,
+      "section": "s3"
+    },
+    {
+      "t": 204.784616,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 443.25,
+      "section": "s3"
+    },
+    {
+      "t": 205.015385,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 443.75,
+      "section": "s3"
+    },
+    {
+      "t": 205.13077,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 444.0,
+      "section": "s3"
+    },
+    {
+      "t": 205.246154,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 444.25,
+      "section": "s3"
+    },
+    {
+      "t": 205.476923,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 444.75,
+      "section": "s3"
+    },
+    {
+      "t": 205.592308,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 445.0,
+      "section": "s3"
+    },
+    {
+      "t": 205.707693,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 445.25,
+      "section": "s3"
+    },
+    {
+      "t": 205.938462,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 445.75,
+      "section": "s3"
+    },
+    {
+      "t": 206.053847,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 446.0,
+      "section": "s3"
+    },
+    {
+      "t": 206.169231,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 446.25,
+      "section": "s3"
+    },
+    {
+      "t": 206.4,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 446.75,
+      "section": "s3"
+    },
+    {
+      "t": 206.515385,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 447.0,
+      "section": "s3"
+    },
+    {
+      "t": 206.63077,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 447.25,
+      "section": "s3"
+    },
+    {
+      "t": 206.861539,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 447.75,
+      "section": "s3"
+    },
+    {
+      "t": 206.976923,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 448.0,
+      "section": "s3"
+    },
+    {
+      "t": 207.092308,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 448.25,
+      "section": "s3"
+    },
+    {
+      "t": 207.323077,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 448.75,
+      "section": "s3"
+    },
+    {
+      "t": 207.438462,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 449.0,
+      "section": "s3"
+    },
+    {
+      "t": 207.553847,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 449.25,
+      "section": "s3"
+    },
+    {
+      "t": 207.784616,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 449.75,
+      "section": "s3"
+    },
+    {
+      "t": 207.9,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 450.0,
+      "section": "s3"
+    },
+    {
+      "t": 208.015385,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 450.25,
+      "section": "s3"
+    },
+    {
+      "t": 208.246154,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 450.75,
+      "section": "s3"
+    },
+    {
+      "t": 208.361539,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 451.0,
+      "section": "s3"
+    },
+    {
+      "t": 208.476923,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 451.25,
+      "section": "s3"
+    },
+    {
+      "t": 208.707693,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 451.75,
+      "section": "s3"
+    },
+    {
+      "t": 208.823077,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 452.0,
+      "section": "s3"
+    },
+    {
+      "t": 208.938462,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 452.25,
+      "section": "s3"
+    },
+    {
+      "t": 209.169231,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 452.75,
+      "section": "s3"
+    },
+    {
+      "t": 209.284616,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 453.0,
+      "section": "s3"
+    },
+    {
+      "t": 209.4,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 453.25,
+      "section": "s3"
+    },
+    {
+      "t": 209.63077,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 453.75,
+      "section": "s3"
+    },
+    {
+      "t": 209.746154,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 454.0,
+      "section": "s3"
+    },
+    {
+      "t": 209.861539,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 454.25,
+      "section": "s3"
+    },
+    {
+      "t": 210.092308,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 454.75,
+      "section": "s3"
+    },
+    {
+      "t": 210.207693,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 455.0,
+      "section": "s3"
+    },
+    {
+      "t": 210.323077,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 455.25,
+      "section": "s3"
+    },
+    {
+      "t": 210.553847,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 455.75,
+      "section": "s3"
+    },
+    {
+      "t": 210.669231,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 456.0,
+      "section": "s3"
+    },
+    {
+      "t": 210.784616,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 456.25,
+      "section": "s3"
+    },
+    {
+      "t": 211.015385,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 456.75,
+      "section": "s3"
+    },
+    {
+      "t": 211.13077,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 457.0,
+      "section": "s3"
+    },
+    {
+      "t": 211.246154,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 457.25,
+      "section": "s3"
+    },
+    {
+      "t": 211.476923,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 457.75,
+      "section": "s3"
+    },
+    {
+      "t": 211.592308,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 458.0,
+      "section": "s3"
+    },
+    {
+      "t": 211.707693,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 458.25,
+      "section": "s3"
+    },
+    {
+      "t": 211.938462,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 458.75,
+      "section": "s3"
+    },
+    {
+      "t": 212.053847,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 459.0,
+      "section": "s3"
+    },
+    {
+      "t": 212.169231,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 459.25,
+      "section": "s3"
+    },
+    {
+      "t": 212.4,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 459.75,
+      "section": "s3"
+    },
+    {
+      "t": 212.515385,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 460.0,
+      "section": "s3"
+    },
+    {
+      "t": 212.63077,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 460.25,
+      "section": "s3"
+    },
+    {
+      "t": 212.861539,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 460.75,
+      "section": "s3"
+    },
+    {
+      "t": 212.976923,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 461.0,
+      "section": "s3"
+    },
+    {
+      "t": 213.092308,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 461.25,
+      "section": "s3"
+    },
+    {
+      "t": 213.323077,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 461.75,
+      "section": "s3"
+    },
+    {
+      "t": 213.438462,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 462.0,
+      "section": "s3"
+    },
+    {
+      "t": 213.553847,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 462.25,
+      "section": "s3"
+    },
+    {
+      "t": 213.784616,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 462.75,
+      "section": "s3"
+    },
+    {
+      "t": 213.9,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 463.0,
+      "section": "s3"
+    },
+    {
+      "t": 214.015385,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 463.25,
+      "section": "s3"
+    },
+    {
+      "t": 214.246154,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 463.75,
+      "section": "s3"
+    },
+    {
+      "t": 214.361539,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 464.0,
+      "section": "s3"
+    },
+    {
+      "t": 214.476923,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 464.25,
+      "section": "s3"
+    },
+    {
+      "t": 214.707693,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 464.75,
+      "section": "s3"
+    },
+    {
+      "t": 214.823077,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 465.0,
+      "section": "s3"
+    },
+    {
+      "t": 214.938462,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 465.25,
+      "section": "s3"
+    },
+    {
+      "t": 215.169231,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 465.75,
+      "section": "s3"
+    },
+    {
+      "t": 215.284616,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 466.0,
+      "section": "s3"
+    },
+    {
+      "t": 215.4,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 466.25,
+      "section": "s3"
+    },
+    {
+      "t": 215.63077,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 466.75,
+      "section": "s3"
+    },
+    {
+      "t": 215.746154,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 467.0,
+      "section": "s3"
+    },
+    {
+      "t": 215.861539,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 467.25,
+      "section": "s3"
+    },
+    {
+      "t": 216.092308,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 467.75,
+      "section": "s3"
+    },
+    {
+      "t": 216.207693,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 468.0,
+      "section": "s3"
+    },
+    {
+      "t": 216.323077,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 468.25,
+      "section": "s3"
+    },
+    {
+      "t": 216.553847,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 468.75,
+      "section": "s3"
+    },
+    {
+      "t": 216.669231,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 469.0,
+      "section": "s3"
+    },
+    {
+      "t": 216.784616,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 469.25,
+      "section": "s3"
+    },
+    {
+      "t": 217.015385,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 469.75,
+      "section": "s3"
+    },
+    {
+      "t": 217.13077,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 470.0,
+      "section": "s3"
+    },
+    {
+      "t": 217.246154,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 470.25,
+      "section": "s3"
+    },
+    {
+      "t": 217.476923,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 470.75,
+      "section": "s3"
+    },
+    {
+      "t": 217.592308,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 471.0,
+      "section": "s3"
+    },
+    {
+      "t": 217.707693,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 471.25,
+      "section": "s3"
+    },
+    {
+      "t": 217.938462,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 471.75,
+      "section": "s3"
+    },
+    {
+      "t": 218.053847,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 472.0,
+      "section": "s3"
+    },
+    {
+      "t": 218.169231,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 472.25,
+      "section": "s3"
+    },
+    {
+      "t": 218.4,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 472.75,
+      "section": "s3"
+    },
+    {
+      "t": 218.515385,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 473.0,
+      "section": "s3"
+    },
+    {
+      "t": 218.63077,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 473.25,
+      "section": "s3"
+    },
+    {
+      "t": 218.861539,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 473.75,
+      "section": "s3"
+    },
+    {
+      "t": 218.976923,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 474.0,
+      "section": "s3"
+    },
+    {
+      "t": 219.092308,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 474.25,
+      "section": "s3"
+    },
+    {
+      "t": 219.323077,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 474.75,
+      "section": "s3"
+    },
+    {
+      "t": 219.438462,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 475.0,
+      "section": "s3"
+    },
+    {
+      "t": 219.553847,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 475.25,
+      "section": "s3"
+    },
+    {
+      "t": 219.784616,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 475.75,
+      "section": "s3"
+    },
+    {
+      "t": 219.9,
+      "tag": "kick",
+      "v": 0.934,
+      "src": "audio",
+      "beat": 476.0,
+      "section": "s3"
+    },
+    {
+      "t": 220.015385,
+      "tag": "accent",
+      "v": 0.914,
+      "src": "audio",
+      "beat": 476.25,
+      "section": "s3"
+    },
+    {
+      "t": 220.246154,
+      "tag": "accent",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 476.75,
+      "section": "s3"
+    },
+    {
+      "t": 220.361539,
+      "tag": "kick",
+      "v": 1.0,
+      "src": "audio",
+      "beat": 477.0,
+      "section": "s3"
+    },
+    {
+      "t": 220.476923,
+      "tag": "accent",
+      "v": 0.667,
+      "src": "audio",
+      "beat": 477.25,
+      "section": "s3"
+    },
+    {
+      "t": 220.707693,
+      "tag": "accent",
+      "v": 0.968,
+      "src": "audio",
+      "beat": 477.75,
+      "section": "s3"
+    },
+    {
+      "t": 220.823077,
+      "tag": "kick",
+      "v": 0.993,
+      "src": "audio",
+      "beat": 478.0,
+      "section": "s3"
+    },
+    {
+      "t": 220.938462,
+      "tag": "accent",
+      "v": 0.689,
+      "src": "audio",
+      "beat": 478.25,
+      "section": "s3"
+    },
+    {
+      "t": 221.169231,
+      "tag": "accent",
+      "v": 0.653,
+      "src": "audio",
+      "beat": 478.75,
+      "section": "s3"
+    },
+    {
+      "t": 221.284616,
+      "tag": "kick",
+      "v": 0.87,
+      "src": "audio",
+      "beat": 479.0,
+      "section": "s3"
+    },
+    {
+      "t": 221.4,
+      "tag": "accent",
+      "v": 0.676,
+      "src": "audio",
+      "beat": 479.25,
+      "section": "s3"
+    },
+    {
+      "t": 221.63077,
+      "tag": "accent",
+      "v": 0.935,
+      "src": "audio",
+      "beat": 479.75,
+      "section": "s3"
+    },
+    {
+      "t": 221.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 480.0,
+      "section": "s4"
+    },
+    {
+      "t": 222.207693,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 481.0,
+      "section": "s4"
+    },
+    {
+      "t": 222.669231,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 482.0,
+      "section": "s4"
+    },
+    {
+      "t": 223.015385,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 482.75,
+      "section": "s4"
+    },
+    {
+      "t": 223.130769,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 483.0,
+      "section": "s4"
+    },
+    {
+      "t": 223.246154,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 483.25,
+      "section": "s4"
+    },
+    {
+      "t": 223.592308,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 484.0,
+      "section": "s4"
+    },
+    {
+      "t": 223.592308,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 484.0,
+      "section": "s4"
+    },
+    {
+      "t": 224.053846,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 485.0,
+      "section": "s4"
+    },
+    {
+      "t": 224.515385,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 486.0,
+      "section": "s4"
+    },
+    {
+      "t": 224.976923,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 487.0,
+      "section": "s4"
+    },
+    {
+      "t": 225.438462,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 488.0,
+      "section": "s4"
+    },
+    {
+      "t": 225.438462,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 488.0,
+      "section": "s4"
+    },
+    {
+      "t": 225.9,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 489.0,
+      "section": "s4"
+    },
+    {
+      "t": 226.361539,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 490.0,
+      "section": "s4"
+    },
+    {
+      "t": 226.707693,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 490.75,
+      "section": "s4"
+    },
+    {
+      "t": 226.823077,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 491.0,
+      "section": "s4"
+    },
+    {
+      "t": 227.053846,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 491.5,
+      "section": "s4"
+    },
+    {
+      "t": 227.284616,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 492.0,
+      "section": "s4"
+    },
+    {
+      "t": 227.284616,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 492.0,
+      "section": "s4"
+    },
+    {
+      "t": 227.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 493.0,
+      "section": "s4"
+    },
+    {
+      "t": 228.207693,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 494.0,
+      "section": "s4"
+    },
+    {
+      "t": 228.669231,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 495.0,
+      "section": "s4"
+    },
+    {
+      "t": 228.669231,
+      "tag": "snare",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 495.0,
+      "section": "s4"
+    },
+    {
+      "t": 229.130769,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 496.0,
+      "section": "s4"
+    },
+    {
+      "t": 229.130769,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 496.0,
+      "section": "s4"
+    },
+    {
+      "t": 229.592308,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 497.0,
+      "section": "s4"
+    },
+    {
+      "t": 230.053846,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 498.0,
+      "section": "s4"
+    },
+    {
+      "t": 230.515385,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 499.0,
+      "section": "s4"
+    },
+    {
+      "t": 230.515385,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 499.0,
+      "section": "s4"
+    },
+    {
+      "t": 230.746154,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 499.5,
+      "section": "s4"
+    },
+    {
+      "t": 230.976923,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 500.0,
+      "section": "s4"
+    },
+    {
+      "t": 230.976923,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 500.0,
+      "section": "s4"
+    },
+    {
+      "t": 231.438462,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 501.0,
+      "section": "s4"
+    },
+    {
+      "t": 231.9,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 502.0,
+      "section": "s4"
+    },
+    {
+      "t": 232.361539,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 503.0,
+      "section": "s4"
+    },
+    {
+      "t": 232.823077,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 504.0,
+      "section": "s4"
+    },
+    {
+      "t": 232.823077,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 504.0,
+      "section": "s4"
+    },
+    {
+      "t": 233.284616,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 505.0,
+      "section": "s4"
+    },
+    {
+      "t": 233.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 506.0,
+      "section": "s4"
+    },
+    {
+      "t": 234.092308,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 506.75,
+      "section": "s4"
+    },
+    {
+      "t": 234.207693,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 507.0,
+      "section": "s4"
+    },
+    {
+      "t": 234.323077,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 507.25,
+      "section": "s4"
+    },
+    {
+      "t": 234.669231,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 508.0,
+      "section": "s4"
+    },
+    {
+      "t": 234.669231,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 508.0,
+      "section": "s4"
+    },
+    {
+      "t": 235.130769,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 509.0,
+      "section": "s4"
+    },
+    {
+      "t": 235.592308,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 510.0,
+      "section": "s4"
+    },
+    {
+      "t": 236.053846,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 511.0,
+      "section": "s4"
+    },
+    {
+      "t": 236.053846,
+      "tag": "snare",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 511.0,
+      "section": "s4"
+    },
+    {
+      "t": 236.515385,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 512.0,
+      "section": "s4"
+    },
+    {
+      "t": 236.515385,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 512.0,
+      "section": "s4"
+    },
+    {
+      "t": 236.976923,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 513.0,
+      "section": "s4"
+    },
+    {
+      "t": 237.438462,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 514.0,
+      "section": "s4"
+    },
+    {
+      "t": 237.784616,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 514.75,
+      "section": "s4"
+    },
+    {
+      "t": 237.9,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 515.0,
+      "section": "s4"
+    },
+    {
+      "t": 238.130769,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 515.5,
+      "section": "s4"
+    },
+    {
+      "t": 238.361539,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 516.0,
+      "section": "s4"
+    },
+    {
+      "t": 238.361539,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 516.0,
+      "section": "s4"
+    },
+    {
+      "t": 238.823077,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 517.0,
+      "section": "s4"
+    },
+    {
+      "t": 239.284616,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 518.0,
+      "section": "s4"
+    },
+    {
+      "t": 239.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 519.0,
+      "section": "s4"
+    },
+    {
+      "t": 240.207693,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 520.0,
+      "section": "s4"
+    },
+    {
+      "t": 240.207693,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 520.0,
+      "section": "s4"
+    },
+    {
+      "t": 240.669231,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 521.0,
+      "section": "s4"
+    },
+    {
+      "t": 241.130769,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 522.0,
+      "section": "s4"
+    },
+    {
+      "t": 241.476923,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 522.75,
+      "section": "s4"
+    },
+    {
+      "t": 241.592308,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 523.0,
+      "section": "s4"
+    },
+    {
+      "t": 241.823077,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 523.5,
+      "section": "s4"
+    },
+    {
+      "t": 242.053846,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 524.0,
+      "section": "s4"
+    },
+    {
+      "t": 242.053846,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 524.0,
+      "section": "s4"
+    },
+    {
+      "t": 242.515385,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 525.0,
+      "section": "s4"
+    },
+    {
+      "t": 242.976923,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 526.0,
+      "section": "s4"
+    },
+    {
+      "t": 243.438462,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 527.0,
+      "section": "s4"
+    },
+    {
+      "t": 243.438462,
+      "tag": "snare",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 527.0,
+      "section": "s4"
+    },
+    {
+      "t": 243.9,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 528.0,
+      "section": "s4"
+    },
+    {
+      "t": 243.9,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 528.0,
+      "section": "s4"
+    },
+    {
+      "t": 244.361539,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 529.0,
+      "section": "s4"
+    },
+    {
+      "t": 244.823077,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 530.0,
+      "section": "s4"
+    },
+    {
+      "t": 245.284616,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 531.0,
+      "section": "s4"
+    },
+    {
+      "t": 245.4,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 531.25,
+      "section": "s4"
+    },
+    {
+      "t": 245.630769,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 531.75,
+      "section": "s4"
+    },
+    {
+      "t": 245.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 532.0,
+      "section": "s4"
+    },
+    {
+      "t": 245.746154,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 532.0,
+      "section": "s4"
+    },
+    {
+      "t": 246.207693,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 533.0,
+      "section": "s4"
+    },
+    {
+      "t": 246.669231,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 534.0,
+      "section": "s4"
+    },
+    {
+      "t": 247.130769,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 535.0,
+      "section": "s4"
+    },
+    {
+      "t": 247.592308,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 536.0,
+      "section": "s4"
+    },
+    {
+      "t": 247.592308,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 536.0,
+      "section": "s4"
+    },
+    {
+      "t": 248.053846,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 537.0,
+      "section": "s4"
+    },
+    {
+      "t": 248.515385,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 538.0,
+      "section": "s4"
+    },
+    {
+      "t": 248.861539,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 538.75,
+      "section": "s4"
+    },
+    {
+      "t": 248.976923,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 539.0,
+      "section": "s4"
+    },
+    {
+      "t": 249.092308,
+      "tag": "acidbass",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 539.25,
+      "section": "s4"
+    },
+    {
+      "t": 249.438462,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 540.0,
+      "section": "s4"
+    },
+    {
+      "t": 249.438462,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 540.0,
+      "section": "s4"
+    },
+    {
+      "t": 249.9,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 541.0,
+      "section": "s4"
+    },
+    {
+      "t": 250.361539,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 542.0,
+      "section": "s5"
+    },
+    {
+      "t": 250.823077,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 543.0,
+      "section": "s5"
+    },
+    {
+      "t": 251.284616,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 544.0,
+      "section": "s5"
+    },
+    {
+      "t": 251.284616,
+      "tag": "response",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 544.0,
+      "section": "s5"
+    },
+    {
+      "t": 251.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 545.0,
+      "section": "s5"
+    },
+    {
+      "t": 252.207693,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 546.0,
+      "section": "s5"
+    },
+    {
+      "t": 252.669231,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 547.0,
+      "section": "s5"
+    },
+    {
+      "t": 253.130769,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 548.0,
+      "section": "s5"
+    },
+    {
+      "t": 253.592308,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 549.0,
+      "section": "s5"
+    },
+    {
+      "t": 254.053846,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 550.0,
+      "section": "s5"
+    },
+    {
+      "t": 254.515385,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 551.0,
+      "section": "s5"
+    },
+    {
+      "t": 254.976923,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 552.0,
+      "section": "s5"
+    },
+    {
+      "t": 255.438462,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 553.0,
+      "section": "s5"
+    },
+    {
+      "t": 255.9,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 554.0,
+      "section": "s5"
+    },
+    {
+      "t": 256.361539,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 555.0,
+      "section": "s5"
+    },
+    {
+      "t": 256.823077,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 556.0,
+      "section": "s5"
+    },
+    {
+      "t": 257.284616,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 557.0,
+      "section": "s5"
+    },
+    {
+      "t": 257.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 558.0,
+      "section": "s5"
+    },
+    {
+      "t": 258.207693,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 559.0,
+      "section": "s5"
+    },
+    {
+      "t": 258.669231,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 560.0,
+      "section": "s5"
+    },
+    {
+      "t": 259.130769,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 561.0,
+      "section": "s5"
+    },
+    {
+      "t": 259.592308,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 562.0,
+      "section": "s5"
+    },
+    {
+      "t": 260.053846,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 563.0,
+      "section": "s5"
+    },
+    {
+      "t": 260.515385,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 564.0,
+      "section": "s5"
+    },
+    {
+      "t": 260.976923,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 565.0,
+      "section": "s5"
+    },
+    {
+      "t": 261.438462,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 566.0,
+      "section": "s5"
+    },
+    {
+      "t": 261.9,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 567.0,
+      "section": "s5"
+    },
+    {
+      "t": 262.361539,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 568.0,
+      "section": "s5"
+    },
+    {
+      "t": 262.823077,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 569.0,
+      "section": "s5"
+    },
+    {
+      "t": 263.284616,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 570.0,
+      "section": "s5"
+    },
+    {
+      "t": 263.746154,
+      "tag": "kicks",
+      "v": 1.0,
+      "src": "mano",
+      "beat": 571.0,
+      "section": "s5"
+    }
+  ]
+}

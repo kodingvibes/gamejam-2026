@@ -1,0 +1,778 @@
+{
+ "version": 1,
+ "track": {
+  "name": "orbit-cut.m4a",
+  "duration": 311.170612,
+  "trim": {
+   "start": 168.817486,
+   "end": 241.1279562043796
+  }
+ },
+ "tempo": {
+  "bpm": 137,
+  "offset": 0.69,
+  "beatsPerBar": 4
+ },
+ "sections": [
+  {
+   "id": "s1",
+   "label": "buildup",
+   "start": 168.817486,
+   "end": 195.991846
+  },
+  {
+   "id": "s2",
+   "label": "break",
+   "start": 195.991846,
+   "end": 198.458989
+  },
+  {
+   "id": "s3",
+   "label": "drop2",
+   "start": 198.458989,
+   "end": 212.554808
+  },
+  {
+   "id": "s4",
+   "label": "outro",
+   "start": 212.554808,
+   "end": 241.1279562043796
+  }
+ ],
+ "tags": [
+  {
+   "id": "response1",
+   "key": "1",
+   "color": "#eab308"
+  },
+  {
+   "id": "response2",
+   "key": "2",
+   "color": "#eab308"
+  },
+  {
+   "id": "acid",
+   "key": "3",
+   "color": "#4be708"
+  },
+  {
+   "id": "bass",
+   "key": "4",
+   "color": "#0097f5"
+  },
+  {
+   "id": "snare",
+   "key": "5",
+   "color": "#fdfdfc"
+  },
+  {
+   "id": "let the bass quick down",
+   "key": "6",
+   "color": "#eab308"
+  }
+ ],
+ "events": [
+  {
+   "t": 169.07011,
+   "tag": "bass",
+   "beat": 384.4679,
+   "section": "s1"
+  },
+  {
+   "t": 169.714463,
+   "tag": "bass",
+   "beat": 385.9392,
+   "section": "s1"
+  },
+  {
+   "t": 170.538772,
+   "tag": "bass",
+   "beat": 387.8214,
+   "section": "s1"
+  },
+  {
+   "t": 171.36308,
+   "tag": "bass",
+   "beat": 389.7035,
+   "section": "s1"
+  },
+  {
+   "t": 172.233829,
+   "tag": "bass",
+   "beat": 391.6917,
+   "section": "s1"
+  },
+  {
+   "t": 173.087162,
+   "tag": "bass",
+   "beat": 393.6402,
+   "section": "s1"
+  },
+  {
+   "t": 173.27748,
+   "tag": "response1",
+   "beat": 394.0747,
+   "section": "s1"
+  },
+  {
+   "t": 173.486878,
+   "tag": "response1",
+   "beat": 394.5529,
+   "section": "s1"
+  },
+  {
+   "t": 173.662022,
+   "tag": "response1",
+   "beat": 394.9528,
+   "section": "s1"
+  },
+  {
+   "t": 173.745447,
+   "tag": "response1",
+   "beat": 395.1433,
+   "section": "s1"
+  },
+  {
+   "t": 173.891571,
+   "tag": "response1",
+   "beat": 395.4769,
+   "section": "s1"
+  },
+  {
+   "t": 173.9463,
+   "tag": "bass",
+   "beat": 395.6019,
+   "section": "s1"
+  },
+  {
+   "t": 174.904123,
+   "tag": "bass",
+   "beat": 397.7889,
+   "section": "s1"
+  },
+  {
+   "t": 175.821312,
+   "tag": "bass",
+   "beat": 399.8832,
+   "section": "s1"
+  },
+  {
+   "t": 176.663035,
+   "tag": "bass",
+   "beat": 401.8051,
+   "section": "s1"
+  },
+  {
+   "t": 177.189227,
+   "tag": "response2",
+   "beat": 403.0066,
+   "section": "s1"
+  },
+  {
+   "t": 177.438841,
+   "tag": "response2",
+   "beat": 403.5765,
+   "section": "s1"
+  },
+  {
+   "t": 177.603443,
+   "tag": "bass",
+   "beat": 403.9524,
+   "section": "s1"
+  },
+  {
+   "t": 177.618796,
+   "tag": "response2",
+   "beat": 403.9874,
+   "section": "s1"
+  },
+  {
+   "t": 177.965463,
+   "tag": "acid",
+   "beat": 404.779,
+   "section": "s1"
+  },
+  {
+   "t": 178.290543,
+   "tag": "acid",
+   "beat": 405.5212,
+   "section": "s1"
+  },
+  {
+   "t": 178.491606,
+   "tag": "bass",
+   "beat": 405.9803,
+   "section": "s1"
+  },
+  {
+   "t": 178.743332,
+   "tag": "acid",
+   "beat": 406.5551,
+   "section": "s1"
+  },
+  {
+   "t": 179.120656,
+   "tag": "acid",
+   "beat": 407.4167,
+   "section": "s1"
+  },
+  {
+   "t": 179.327525,
+   "tag": "bass",
+   "beat": 407.889,
+   "section": "s1"
+  },
+  {
+   "t": 180.227298,
+   "tag": "bass",
+   "beat": 409.9435,
+   "section": "s1"
+  },
+  {
+   "t": 181.069021,
+   "tag": "bass",
+   "beat": 411.8654,
+   "section": "s1"
+  },
+  {
+   "t": 181.93977,
+   "tag": "bass",
+   "beat": 413.8536,
+   "section": "s1"
+  },
+  {
+   "t": 182.839543,
+   "tag": "bass",
+   "beat": 415.9081,
+   "section": "s1"
+  },
+  {
+   "t": 182.940291,
+   "tag": "snare",
+   "beat": 416.1382,
+   "section": "s1"
+  },
+  {
+   "t": 183.16088,
+   "tag": "snare",
+   "beat": 416.6418,
+   "section": "s1"
+  },
+  {
+   "t": 183.340835,
+   "tag": "snare",
+   "beat": 417.0527,
+   "section": "s1"
+  },
+  {
+   "t": 183.663851,
+   "tag": "bass",
+   "beat": 417.7903,
+   "section": "s1"
+  },
+  {
+   "t": 183.718159,
+   "tag": "snare",
+   "beat": 417.9143,
+   "section": "s1"
+  },
+  {
+   "t": 184.043239,
+   "tag": "snare",
+   "beat": 418.6566,
+   "section": "s1"
+  },
+  {
+   "t": 184.493965,
+   "tag": "bass",
+   "beat": 419.6857,
+   "section": "s1"
+  },
+  {
+   "t": 184.621589,
+   "tag": "acid",
+   "beat": 419.9771,
+   "section": "s1"
+  },
+  {
+   "t": 184.993108,
+   "tag": "acid",
+   "beat": 420.8254,
+   "section": "s1"
+  },
+  {
+   "t": 185.277552,
+   "tag": "acid",
+   "beat": 421.4749,
+   "section": "s1"
+  },
+  {
+   "t": 185.451788,
+   "tag": "bass",
+   "beat": 421.8727,
+   "section": "s1"
+  },
+  {
+   "t": 185.846441,
+   "tag": "acid",
+   "beat": 422.7739,
+   "section": "s1"
+  },
+  {
+   "t": 186.038006,
+   "tag": "acid",
+   "beat": 423.2113,
+   "section": "s1"
+  },
+  {
+   "t": 186.334146,
+   "tag": "bass",
+   "beat": 423.8875,
+   "section": "s1"
+  },
+  {
+   "t": 186.67075,
+   "tag": "acid",
+   "beat": 424.656,
+   "section": "s1"
+  },
+  {
+   "t": 186.897144,
+   "tag": "acid",
+   "beat": 425.173,
+   "section": "s1"
+  },
+  {
+   "t": 187.233919,
+   "tag": "bass",
+   "beat": 425.9419,
+   "section": "s1"
+  },
+  {
+   "t": 187.645988,
+   "tag": "acid",
+   "beat": 426.8828,
+   "section": "s1"
+  },
+  {
+   "t": 188.017593,
+   "tag": "bass",
+   "beat": 427.7313,
+   "section": "s1"
+  },
+  {
+   "t": 188.470296,
+   "tag": "acid",
+   "beat": 428.765,
+   "section": "s1"
+  },
+  {
+   "t": 188.737326,
+   "tag": "acid",
+   "beat": 429.3747,
+   "section": "s1"
+  },
+  {
+   "t": 188.992831,
+   "tag": "bass",
+   "beat": 429.9581,
+   "section": "s1"
+  },
+  {
+   "t": 189.329434,
+   "tag": "acid",
+   "beat": 430.7267,
+   "section": "s1"
+  },
+  {
+   "t": 189.579049,
+   "tag": "acid",
+   "beat": 431.2967,
+   "section": "s1"
+  },
+  {
+   "t": 189.817139,
+   "tag": "bass",
+   "beat": 431.8403,
+   "section": "s1"
+  },
+  {
+   "t": 190.194378,
+   "tag": "acid",
+   "beat": 432.7017,
+   "section": "s1"
+  },
+  {
+   "t": 190.438187,
+   "tag": "acid",
+   "beat": 433.2584,
+   "section": "s1"
+  },
+  {
+   "t": 190.699498,
+   "tag": "bass",
+   "beat": 433.855,
+   "section": "s1"
+  },
+  {
+   "t": 191.082541,
+   "tag": "acid",
+   "beat": 434.7296,
+   "section": "s1"
+  },
+  {
+   "t": 191.308936,
+   "tag": "acid",
+   "beat": 435.2466,
+   "section": "s1"
+  },
+  {
+   "t": 191.587661,
+   "tag": "bass",
+   "beat": 435.883,
+   "section": "s1"
+  },
+  {
+   "t": 191.964899,
+   "tag": "acid",
+   "beat": 436.7444,
+   "section": "s1"
+  },
+  {
+   "t": 192.208709,
+   "tag": "acid",
+   "beat": 437.3011,
+   "section": "s1"
+  },
+  {
+   "t": 192.423579,
+   "tag": "bass",
+   "beat": 437.7917,
+   "section": "s1"
+  },
+  {
+   "t": 192.853063,
+   "tag": "acid",
+   "beat": 438.7723,
+   "section": "s1"
+  },
+  {
+   "t": 193.120092,
+   "tag": "acid",
+   "beat": 439.382,
+   "section": "s1"
+  },
+  {
+   "t": 193.358182,
+   "tag": "bass",
+   "beat": 439.9257,
+   "section": "s1"
+  },
+  {
+   "t": 193.747031,
+   "tag": "acid",
+   "beat": 440.8136,
+   "section": "s1"
+  },
+  {
+   "t": 194.066305,
+   "tag": "acid",
+   "beat": 441.5426,
+   "section": "s1"
+  },
+  {
+   "t": 194.29859,
+   "tag": "bass",
+   "beat": 442.0729,
+   "section": "s1"
+  },
+  {
+   "t": 194.670024,
+   "tag": "acid",
+   "beat": 442.9211,
+   "section": "s1"
+  },
+  {
+   "t": 194.937053,
+   "tag": "acid",
+   "beat": 443.5308,
+   "section": "s1"
+  },
+  {
+   "t": 195.140314,
+   "tag": "bass",
+   "beat": 443.9949,
+   "section": "s1"
+  },
+  {
+   "t": 195.488527,
+   "tag": "acid",
+   "beat": 444.79,
+   "section": "s1"
+  },
+  {
+   "t": 195.778777,
+   "tag": "acid",
+   "beat": 445.4527,
+   "section": "s1"
+  },
+  {
+   "t": 196.069112,
+   "tag": "bass",
+   "beat": 446.1156,
+   "section": "s2"
+  },
+  {
+   "t": 196.359276,
+   "tag": "acid",
+   "beat": 446.7782,
+   "section": "s2"
+  },
+  {
+   "t": 196.52314,
+   "tag": "let the bass quick down",
+   "beat": 447.1523,
+   "section": "s2"
+  },
+  {
+   "t": 196.649525,
+   "tag": "acid",
+   "beat": 447.4409,
+   "section": "s2"
+  },
+  {
+   "t": 198.15103,
+   "tag": "let the bass quick down",
+   "beat": 450.8694,
+   "section": "s2"
+  },
+  {
+   "t": 198.200034,
+   "tag": "snare",
+   "beat": 450.9812,
+   "section": "s2"
+  },
+  {
+   "t": 198.954378,
+   "tag": "acid",
+   "beat": 452.7037,
+   "section": "s3"
+  },
+  {
+   "t": 199.227212,
+   "tag": "acid",
+   "beat": 453.3266,
+   "section": "s3"
+  },
+  {
+   "t": 199.854151,
+   "tag": "acid",
+   "beat": 454.7581,
+   "section": "s3"
+  },
+  {
+   "t": 200.097961,
+   "tag": "acid",
+   "beat": 455.3148,
+   "section": "s3"
+  },
+  {
+   "t": 200.753925,
+   "tag": "acid",
+   "beat": 456.8126,
+   "section": "s3"
+  },
+  {
+   "t": 201.026759,
+   "tag": "acid",
+   "beat": 457.4356,
+   "section": "s3"
+  },
+  {
+   "t": 201.717553,
+   "tag": "acid",
+   "beat": 459.0129,
+   "section": "s3"
+  },
+  {
+   "t": 201.871497,
+   "tag": "response2",
+   "beat": 459.3644,
+   "section": "s3"
+  },
+  {
+   "t": 202.064496,
+   "tag": "response2",
+   "beat": 459.8051,
+   "section": "s3"
+  },
+  {
+   "t": 202.480299,
+   "tag": "acid",
+   "beat": 460.7545,
+   "section": "s3"
+  },
+  {
+   "t": 202.776353,
+   "tag": "acid",
+   "beat": 461.4305,
+   "section": "s3"
+  },
+  {
+   "t": 203.345242,
+   "tag": "acid",
+   "beat": 462.7295,
+   "section": "s3"
+  },
+  {
+   "t": 203.606466,
+   "tag": "acid",
+   "beat": 463.3259,
+   "section": "s3"
+  },
+  {
+   "t": 204.25082,
+   "tag": "acid",
+   "beat": 464.7972,
+   "section": "s3"
+  },
+  {
+   "t": 204.51785,
+   "tag": "acid",
+   "beat": 465.4069,
+   "section": "s3"
+  },
+  {
+   "t": 204.90195,
+   "tag": "acid",
+   "beat": 466.284,
+   "section": "s3"
+  },
+  {
+   "t": 205.124911,
+   "tag": "response1",
+   "beat": 466.793,
+   "section": "s3"
+  },
+  {
+   "t": 205.348109,
+   "tag": "response1",
+   "beat": 467.3027,
+   "section": "s3"
+  },
+  {
+   "t": 205.640525,
+   "tag": "response1",
+   "beat": 467.9704,
+   "section": "s3"
+  },
+  {
+   "t": 206.025069,
+   "tag": "acid",
+   "beat": 468.8484,
+   "section": "s3"
+  },
+  {
+   "t": 206.263073,
+   "tag": "acid",
+   "beat": 469.3919,
+   "section": "s3"
+  },
+  {
+   "t": 206.831962,
+   "tag": "acid",
+   "beat": 470.6908,
+   "section": "s3"
+  },
+  {
+   "t": 207.087382,
+   "tag": "acid",
+   "beat": 471.274,
+   "section": "s3"
+  },
+  {
+   "t": 207.731735,
+   "tag": "acid",
+   "beat": 472.7453,
+   "section": "s3"
+  },
+  {
+   "t": 208.00457,
+   "tag": "acid",
+   "beat": 473.3683,
+   "section": "s3"
+  },
+  {
+   "t": 208.648924,
+   "tag": "acid",
+   "beat": 474.8395,
+   "section": "s3"
+  },
+  {
+   "t": 208.828562,
+   "tag": "response2",
+   "beat": 475.2497,
+   "section": "s3"
+  },
+  {
+   "t": 209.009971,
+   "tag": "response2",
+   "beat": 475.6639,
+   "section": "s3"
+  },
+  {
+   "t": 209.441945,
+   "tag": "acid",
+   "beat": 476.6503,
+   "section": "s3"
+  },
+  {
+   "t": 209.72639,
+   "tag": "acid",
+   "beat": 477.2998,
+   "section": "s3"
+  },
+  {
+   "t": 210.353328,
+   "tag": "acid",
+   "beat": 478.7313,
+   "section": "s3"
+  },
+  {
+   "t": 210.597138,
+   "tag": "acid",
+   "beat": 479.288,
+   "section": "s3"
+  },
+  {
+   "t": 211.206662,
+   "tag": "acid",
+   "beat": 480.6797,
+   "section": "s3"
+  },
+  {
+   "t": 211.433056,
+   "tag": "acid",
+   "beat": 481.1966,
+   "section": "s3"
+  },
+  {
+   "t": 212.07741,
+   "tag": "acid",
+   "beat": 482.6679,
+   "section": "s3"
+  },
+  {
+   "t": 212.099881,
+   "tag": "response1",
+   "beat": 482.7192,
+   "section": "s3"
+  },
+  {
+   "t": 212.573037,
+   "tag": "response1",
+   "beat": 483.7996,
+   "section": "s4"
+  }
+ ]
+}

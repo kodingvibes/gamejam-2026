@@ -1,0 +1,91 @@
+<!doctype html>
+<!-- Banco del muneco: SOLO el avatar, sin nivel ni musica encima. Usa el mismo `avatar.js`
+     que el juego, asi que lo que se ve aca es lo que se ve corriendo.
+     python3 -m http.server 8123  ->  http://localhost:8123/tools/avatar.html
+     Teclas: espacio para y sigue. `__lab.set({...})` desde consola para tocar el estado. -->
+<meta charset="utf-8">
+<title>banco del muneco</title>
+<style>
+  body { margin: 0; background: #0b0a14; color: #7c85a8;
+         font: 12px ui-monospace, Menlo, monospace; }
+  #hud { position: fixed; top: 8px; left: 10px; z-index: 2; line-height: 1.6; }
+  b { color: #22d3ee; font-weight: normal; }
+</style>
+<div id="hud"></div>
+<script type="module">
+import * as Phaser from "https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.esm.js";
+import { pose, drawAvatar, PJ_COL } from "../avatar.js";
+
+const BEAT = 0.4615;
+// las columnas del banco: fase del ciclo o estado suelto
+const COLS = [
+  { t: "derecho", ph: 0 }, { t: "derecho 2", ph: 0.25 },
+  { t: "a la izq", ph: 0.5, yaw: -0.55, tilt: -0.6 },
+  { t: "a la der", ph: 0.75, yaw: 0.55, tilt: 0.6 }, { t: "heli", air: 1, rising: 1, trick: "heli" },
+  { t: "flip", air: 1, trick: "flip" }, { t: "grab", air: 1, trick: "grab" },
+  { t: "slide", sliding: 1 },
+];
+
+class Lab extends Phaser.Scene {
+  create() {
+    this.g = this.add.graphics();
+    this.t = 0;
+    this.corre = true;
+    this.zoom = 1;
+    this.labels = COLS.map(() => this.add.text(0, 0, "", {
+      fontSize: "12px", color: "#5b6377", fontFamily: "monospace" }).setOrigin(0.5, 0));
+    this.input.keyboard.on("keydown-SPACE", () => { this.corre = !this.corre; });
+    window.__lab = {
+      set: (o) => Object.assign(this, o),
+      pose: (o) => pose(o),
+      col: (i) => COLS[i],
+    };
+  }
+  update(_, dt) {
+    if (this.corre) this.t += dt / 1000;
+    const g = this.g, W = this.scale.width, H = this.scale.height;
+    g.clear();
+    const n = COLS.length, cw = W / n;
+    const u = Math.min(cw * 0.62, H * 0.62) * this.zoom;   // pixeles de alto del muneco
+    const suelo = H * 0.78;
+    // la pista, para tener referencia de escala y de suelo
+    g.fillStyle(0x14131f, 1); g.fillRect(0, suelo, W, H - suelo);
+    g.lineStyle(1, 0x22d3ee, 0.25); g.lineBetween(0, suelo, W, suelo);
+
+    const steps = 2, s = (this.t / BEAT) * steps;
+    for (let i = 0; i < n; i++) {
+      const c = COLS[i];
+      const ph = c.ph !== undefined ? ((s / 2) % 1 + c.ph) % 1 : ((s / 2) % 1);
+      const u2 = s - Math.floor(s);
+      const corre = !c.air && !c.sliding;
+      const bote = corre ? Math.sin(Math.PI * ((c.ph !== undefined ? ph * 2 : u2) % 1)) : 0;
+      const st = { air: !!c.air, rising: !!c.rising, sliding: !!c.sliding,
+        land: c.land ? Math.abs(Math.sin(this.t * 2)) : 0, yaw: c.yaw ?? 0,
+        trick: c.trick, tp: (this.t * 0.7) % 1, arm: Math.sin(this.t * 1.2) };
+      const x = cw * (i + 0.5);
+      const y = suelo - (c.air ? u * 0.45 : 0) - bote * u * 0.045;
+      const P = (bx, by) => ({ x: x + bx * u, y: y - by * u });
+      if (c.tilt) { g.save(); g.translateCanvas(x, suelo); g.rotateCanvas(c.tilt * 0.22);
+        g.translateCanvas(-x, -suelo); }
+      // sombra
+      g.fillStyle(0x000000, 0.35);
+      g.fillEllipse(x, suelo, u * 0.5, u * 0.14);
+      drawAvatar(g, pose(st), P, u, 1,
+        (k) => 0.15 + 0.85 * Math.abs(Math.sin(this.t * (2 + k) * 2.1)));
+      if (c.tilt) g.restore();
+      const l = this.labels[i];
+      l.setText(c.t).setPosition(x, suelo + 14);
+    }
+    document.getElementById("hud").innerHTML =
+      `banco del muneco &middot; <b>${this.corre ? "corriendo" : "quieto"}</b> &middot; `
+      + `t=<b>${this.t.toFixed(2)}s</b> &middot; alto=<b>${u.toFixed(0)}px</b> &middot; `
+      + `SPACE para/sigue &middot; <b>__lab.set({zoom:2})</b>`;
+  }
+}
+
+new Phaser.Game({
+  type: Phaser.AUTO, parent: document.body, width: 1200, height: 520,
+  backgroundColor: "#0b0a14", scene: [Lab],
+  scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+});
+</script>

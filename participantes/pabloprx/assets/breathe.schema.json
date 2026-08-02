@@ -1,0 +1,1470 @@
+{
+ "version": 1,
+ "track": {
+  "name": "breathe-cut.m4a",
+  "duration": 289.111655,
+  "trim": {
+   "start": 136.5126,
+   "end": 247.60937419354838
+  }
+ },
+ "tempo": {
+  "bpm": 155,
+  "offset": 0.256,
+  "beatsPerBar": 4
+ },
+ "sections": [
+  {
+   "id": "s1",
+   "label": "intro",
+   "start": 136.512452,
+   "end": 149.032077
+  },
+  {
+   "id": "s2",
+   "label": "buildup",
+   "start": 149.032077,
+   "end": 158.198669
+  },
+  {
+   "id": "s3",
+   "label": "break",
+   "start": 158.198669,
+   "end": 161.293253
+  },
+  {
+   "id": "s4",
+   "label": "drop",
+   "start": 161.293253,
+   "end": 198.480206
+  },
+  {
+   "id": "s5",
+   "label": "break2",
+   "start": 198.480206,
+   "end": 210.781429
+  },
+  {
+   "id": "s6",
+   "label": "outro",
+   "start": 210.781429,
+   "end": 289.111655
+  }
+ ],
+ "tags": [
+  {
+   "id": "vocal melody",
+   "key": "1",
+   "color": "#eab308"
+  },
+  {
+   "id": "bass",
+   "key": "2",
+   "color": "#4be708"
+  },
+  {
+   "id": "melody drop",
+   "key": "3",
+   "color": "#e70808"
+  },
+  {
+   "id": "outropads",
+   "key": "4",
+   "color": "#0040ff"
+  }
+ ],
+ "events": [
+  {
+   "t": 136.513856,
+   "tag": "bass",
+   "beat": 351.9995,
+   "section": "s1"
+  },
+  {
+   "t": 137.119809,
+   "tag": "vocal melody",
+   "beat": 353.5648,
+   "section": "s1"
+  },
+  {
+   "t": 137.398448,
+   "tag": "vocal melody",
+   "beat": 354.2847,
+   "section": "s1"
+  },
+  {
+   "t": 137.735138,
+   "tag": "vocal melody",
+   "beat": 355.1544,
+   "section": "s1"
+  },
+  {
+   "t": 138.083437,
+   "tag": "vocal melody",
+   "beat": 356.0542,
+   "section": "s1"
+  },
+  {
+   "t": 138.605886,
+   "tag": "vocal melody",
+   "beat": 357.4039,
+   "section": "s1"
+  },
+  {
+   "t": 139.563074,
+   "tag": "bass",
+   "beat": 359.8766,
+   "section": "s1"
+  },
+  {
+   "t": 140.242893,
+   "tag": "vocal melody",
+   "beat": 361.6328,
+   "section": "s1"
+  },
+  {
+   "t": 140.707292,
+   "tag": "vocal melody",
+   "beat": 362.8325,
+   "section": "s1"
+  },
+  {
+   "t": 141.154276,
+   "tag": "vocal melody",
+   "beat": 363.9872,
+   "section": "s1"
+  },
+  {
+   "t": 141.252326,
+   "tag": "bass",
+   "beat": 364.2405,
+   "section": "s1"
+  },
+  {
+   "t": 141.72897,
+   "tag": "vocal melody",
+   "beat": 365.4718,
+   "section": "s1"
+  },
+  {
+   "t": 142.297859,
+   "tag": "vocal melody",
+   "beat": 366.9415,
+   "section": "s1"
+  },
+  {
+   "t": 142.691963,
+   "tag": "bass",
+   "beat": 367.9596,
+   "section": "s1"
+  },
+  {
+   "t": 143.348562,
+   "tag": "vocal melody",
+   "beat": 369.6558,
+   "section": "s1"
+  },
+  {
+   "t": 143.621396,
+   "tag": "vocal melody",
+   "beat": 370.3606,
+   "section": "s1"
+  },
+  {
+   "t": 143.9755,
+   "tag": "vocal melody",
+   "beat": 371.2754,
+   "section": "s1"
+  },
+  {
+   "t": 144.306385,
+   "tag": "vocal melody",
+   "beat": 372.1302,
+   "section": "s1"
+  },
+  {
+   "t": 144.753369,
+   "tag": "vocal melody",
+   "beat": 373.2849,
+   "section": "s1"
+  },
+  {
+   "t": 145.432553,
+   "tag": "vocal melody",
+   "beat": 375.0394,
+   "section": "s1"
+  },
+  {
+   "t": 145.687972,
+   "tag": "vocal melody",
+   "beat": 375.6993,
+   "section": "s1"
+  },
+  {
+   "t": 145.965977,
+   "tag": "bass",
+   "beat": 376.4174,
+   "section": "s1"
+  },
+  {
+   "t": 146.256861,
+   "tag": "vocal melody",
+   "beat": 377.1689,
+   "section": "s1"
+  },
+  {
+   "t": 146.483256,
+   "tag": "vocal melody",
+   "beat": 377.7537,
+   "section": "s1"
+  },
+  {
+   "t": 146.994095,
+   "tag": "vocal melody",
+   "beat": 379.0734,
+   "section": "s1"
+  },
+  {
+   "t": 147.203074,
+   "tag": "vocal melody",
+   "beat": 379.6133,
+   "section": "s1"
+  },
+  {
+   "t": 147.394004,
+   "tag": "bass",
+   "beat": 380.1065,
+   "section": "s1"
+  },
+  {
+   "t": 148.171872,
+   "tag": "bass",
+   "beat": 382.116,
+   "section": "s1"
+  },
+  {
+   "t": 149.071645,
+   "tag": "bass",
+   "beat": 384.4404,
+   "section": "s2"
+  },
+  {
+   "t": 149.646974,
+   "tag": "vocal melody",
+   "beat": 385.9267,
+   "section": "s2"
+  },
+  {
+   "t": 149.977859,
+   "tag": "vocal melody",
+   "beat": 386.7815,
+   "section": "s2"
+  },
+  {
+   "t": 150.430648,
+   "tag": "vocal melody",
+   "beat": 387.9512,
+   "section": "s2"
+  },
+  {
+   "t": 150.924072,
+   "tag": "vocal melody",
+   "beat": 389.2259,
+   "section": "s2"
+  },
+  {
+   "t": 152.026385,
+   "tag": "bass",
+   "beat": 392.0735,
+   "section": "s2"
+  },
+  {
+   "t": 152.636544,
+   "tag": "vocal melody",
+   "beat": 393.6497,
+   "section": "s2"
+  },
+  {
+   "t": 152.886158,
+   "tag": "vocal melody",
+   "beat": 394.2946,
+   "section": "s2"
+  },
+  {
+   "t": 153.217042,
+   "tag": "vocal melody",
+   "beat": 395.1494,
+   "section": "s2"
+  },
+  {
+   "t": 153.547927,
+   "tag": "vocal melody",
+   "beat": 396.0041,
+   "section": "s2"
+  },
+  {
+   "t": 153.605342,
+   "tag": "bass",
+   "beat": 396.1525,
+   "section": "s2"
+  },
+  {
+   "t": 154.140036,
+   "tag": "vocal melody",
+   "beat": 397.5338,
+   "section": "s2"
+  },
+  {
+   "t": 154.6799,
+   "tag": "vocal melody",
+   "beat": 398.9284,
+   "section": "s2"
+  },
+  {
+   "t": 155.132054,
+   "tag": "bass",
+   "beat": 400.0965,
+   "section": "s2"
+  },
+  {
+   "t": 155.736407,
+   "tag": "vocal melody",
+   "beat": 401.6577,
+   "section": "s2"
+  },
+  {
+   "t": 156.160172,
+   "tag": "vocal melody",
+   "beat": 402.7524,
+   "section": "s2"
+  },
+  {
+   "t": 156.578131,
+   "tag": "vocal melody",
+   "beat": 403.8322,
+   "section": "s2"
+  },
+  {
+   "t": 157.07736,
+   "tag": "vocal melody",
+   "beat": 405.1218,
+   "section": "s2"
+  },
+  {
+   "t": 157.744934,
+   "tag": "vocal melody",
+   "beat": 406.8464,
+   "section": "s2"
+  },
+  {
+   "t": 158.000353,
+   "tag": "vocal melody",
+   "beat": 407.5062,
+   "section": "s2"
+  },
+  {
+   "t": 158.117397,
+   "tag": "bass",
+   "beat": 407.8086,
+   "section": "s2"
+  },
+  {
+   "t": 158.569242,
+   "tag": "vocal melody",
+   "beat": 408.9759,
+   "section": "s3"
+  },
+  {
+   "t": 158.796569,
+   "tag": "vocal melody",
+   "beat": 409.5631,
+   "section": "s3"
+  },
+  {
+   "t": 159.387745,
+   "tag": "vocal melody",
+   "beat": 411.0903,
+   "section": "s3"
+  },
+  {
+   "t": 159.5677,
+   "tag": "vocal melody",
+   "beat": 411.5552,
+   "section": "s3"
+  },
+  {
+   "t": 161.637248,
+   "tag": "melody drop",
+   "beat": 416.9016,
+   "section": "s4"
+  },
+  {
+   "t": 162.037792,
+   "tag": "melody drop",
+   "beat": 417.9363,
+   "section": "s4"
+  },
+  {
+   "t": 162.269991,
+   "tag": "melody drop",
+   "beat": 418.5361,
+   "section": "s4"
+  },
+  {
+   "t": 162.502191,
+   "tag": "melody drop",
+   "beat": 419.136,
+   "section": "s4"
+  },
+  {
+   "t": 164.812576,
+   "tag": "melody drop",
+   "beat": 425.1045,
+   "section": "s4"
+  },
+  {
+   "t": 165.172486,
+   "tag": "melody drop",
+   "beat": 426.0343,
+   "section": "s4"
+  },
+  {
+   "t": 165.393075,
+   "tag": "melody drop",
+   "beat": 426.6041,
+   "section": "s4"
+  },
+  {
+   "t": 165.752984,
+   "tag": "melody drop",
+   "beat": 427.5339,
+   "section": "s4"
+  },
+  {
+   "t": 166.292848,
+   "tag": "melody drop",
+   "beat": 428.9285,
+   "section": "s4"
+  },
+  {
+   "t": 166.728223,
+   "tag": "melody drop",
+   "beat": 430.0532,
+   "section": "s4"
+  },
+  {
+   "t": 166.943007,
+   "tag": "melody drop",
+   "beat": 430.6081,
+   "section": "s4"
+  },
+  {
+   "t": 167.134572,
+   "tag": "melody drop",
+   "beat": 431.103,
+   "section": "s4"
+  },
+  {
+   "t": 167.331941,
+   "tag": "melody drop",
+   "beat": 431.6128,
+   "section": "s4"
+  },
+  {
+   "t": 167.87761,
+   "tag": "melody drop",
+   "beat": 433.0225,
+   "section": "s4"
+  },
+  {
+   "t": 168.289765,
+   "tag": "melody drop",
+   "beat": 434.0872,
+   "section": "s4"
+  },
+  {
+   "t": 168.481329,
+   "tag": "melody drop",
+   "beat": 434.5821,
+   "section": "s4"
+  },
+  {
+   "t": 168.649135,
+   "tag": "melody drop",
+   "beat": 435.0156,
+   "section": "s4"
+  },
+  {
+   "t": 170.971669,
+   "tag": "melody drop",
+   "beat": 441.0155,
+   "section": "s4"
+  },
+  {
+   "t": 171.378018,
+   "tag": "melody drop",
+   "beat": 442.0652,
+   "section": "s4"
+  },
+  {
+   "t": 171.557973,
+   "tag": "melody drop",
+   "beat": 442.5301,
+   "section": "s4"
+  },
+  {
+   "t": 171.964322,
+   "tag": "melody drop",
+   "beat": 443.5798,
+   "section": "s4"
+  },
+  {
+   "t": 172.463551,
+   "tag": "melody drop",
+   "beat": 444.8695,
+   "section": "s4"
+  },
+  {
+   "t": 172.881511,
+   "tag": "melody drop",
+   "beat": 445.9492,
+   "section": "s4"
+  },
+  {
+   "t": 173.061465,
+   "tag": "melody drop",
+   "beat": 446.4141,
+   "section": "s4"
+  },
+  {
+   "t": 173.25303,
+   "tag": "melody drop",
+   "beat": 446.909,
+   "section": "s4"
+  },
+  {
+   "t": 173.40396,
+   "tag": "melody drop",
+   "beat": 447.2989,
+   "section": "s4"
+  },
+  {
+   "t": 173.601329,
+   "tag": "melody drop",
+   "beat": 447.8088,
+   "section": "s4"
+  },
+  {
+   "t": 174.094753,
+   "tag": "melody drop",
+   "beat": 449.0834,
+   "section": "s4"
+  },
+  {
+   "t": 174.425638,
+   "tag": "melody drop",
+   "beat": 449.9382,
+   "section": "s4"
+  },
+  {
+   "t": 174.634617,
+   "tag": "melody drop",
+   "beat": 450.4781,
+   "section": "s4"
+  },
+  {
+   "t": 174.880178,
+   "tag": "melody drop",
+   "beat": 451.1125,
+   "section": "s4"
+  },
+  {
+   "t": 177.171397,
+   "tag": "melody drop",
+   "beat": 457.0314,
+   "section": "s4"
+  },
+  {
+   "t": 177.589356,
+   "tag": "melody drop",
+   "beat": 458.1112,
+   "section": "s4"
+  },
+  {
+   "t": 177.751896,
+   "tag": "melody drop",
+   "beat": 458.5311,
+   "section": "s4"
+  },
+  {
+   "t": 178.158245,
+   "tag": "melody drop",
+   "beat": 459.5808,
+   "section": "s4"
+  },
+  {
+   "t": 178.611034,
+   "tag": "melody drop",
+   "beat": 460.7505,
+   "section": "s4"
+  },
+  {
+   "t": 179.075433,
+   "tag": "melody drop",
+   "beat": 461.9502,
+   "section": "s4"
+  },
+  {
+   "t": 179.226363,
+   "tag": "melody drop",
+   "beat": 462.3401,
+   "section": "s4"
+  },
+  {
+   "t": 179.394708,
+   "tag": "melody drop",
+   "beat": 462.775,
+   "section": "s4"
+  },
+  {
+   "t": 179.551443,
+   "tag": "melody drop",
+   "beat": 463.1799,
+   "section": "s4"
+  },
+  {
+   "t": 179.731397,
+   "tag": "melody drop",
+   "beat": 463.6448,
+   "section": "s4"
+  },
+  {
+   "t": 180.265456,
+   "tag": "melody drop",
+   "beat": 465.0244,
+   "section": "s4"
+  },
+  {
+   "t": 180.648585,
+   "tag": "melody drop",
+   "beat": 466.0142,
+   "section": "s4"
+  },
+  {
+   "t": 180.857565,
+   "tag": "melody drop",
+   "beat": 466.554,
+   "section": "s4"
+  },
+  {
+   "t": 181.008011,
+   "tag": "melody drop",
+   "beat": 466.9427,
+   "section": "s4"
+  },
+  {
+   "t": 181.186222,
+   "tag": "melody drop",
+   "beat": 467.4031,
+   "section": "s4"
+  },
+  {
+   "t": 183.382735,
+   "tag": "melody drop",
+   "beat": 473.0774,
+   "section": "s4"
+  },
+  {
+   "t": 183.742644,
+   "tag": "melody drop",
+   "beat": 474.0072,
+   "section": "s4"
+  },
+  {
+   "t": 183.963234,
+   "tag": "melody drop",
+   "beat": 474.577,
+   "section": "s4"
+  },
+  {
+   "t": 184.357973,
+   "tag": "melody drop",
+   "beat": 475.5968,
+   "section": "s4"
+  },
+  {
+   "t": 184.851397,
+   "tag": "melody drop",
+   "beat": 476.8714,
+   "section": "s4"
+  },
+  {
+   "t": 185.280966,
+   "tag": "melody drop",
+   "beat": 477.9812,
+   "section": "s4"
+  },
+  {
+   "t": 185.489946,
+   "tag": "melody drop",
+   "beat": 478.521,
+   "section": "s4"
+  },
+  {
+   "t": 185.669901,
+   "tag": "melody drop",
+   "beat": 478.9859,
+   "section": "s4"
+  },
+  {
+   "t": 185.85566,
+   "tag": "melody drop",
+   "beat": 479.4658,
+   "section": "s4"
+  },
+  {
+   "t": 186.291034,
+   "tag": "melody drop",
+   "beat": 480.5905,
+   "section": "s4"
+  },
+  {
+   "t": 186.663015,
+   "tag": "vocal melody",
+   "beat": 481.5515,
+   "section": "s4"
+  },
+  {
+   "t": 186.801873,
+   "tag": "melody drop",
+   "beat": 481.9102,
+   "section": "s4"
+  },
+  {
+   "t": 186.964874,
+   "tag": "vocal melody",
+   "beat": 482.3313,
+   "section": "s4"
+  },
+  {
+   "t": 187.022463,
+   "tag": "melody drop",
+   "beat": 482.48,
+   "section": "s4"
+  },
+  {
+   "t": 187.295759,
+   "tag": "vocal melody",
+   "beat": 483.186,
+   "section": "s4"
+  },
+  {
+   "t": 187.302197,
+   "tag": "melody drop",
+   "beat": 483.2027,
+   "section": "s4"
+  },
+  {
+   "t": 187.597618,
+   "tag": "vocal melody",
+   "beat": 483.9658,
+   "section": "s4"
+  },
+  {
+   "t": 188.154897,
+   "tag": "vocal melody",
+   "beat": 485.4055,
+   "section": "s4"
+  },
+  {
+   "t": 189.541828,
+   "tag": "melody drop",
+   "beat": 488.9884,
+   "section": "s4"
+  },
+  {
+   "t": 189.757074,
+   "tag": "vocal melody",
+   "beat": 489.5444,
+   "section": "s4"
+  },
+  {
+   "t": 189.930762,
+   "tag": "melody drop",
+   "beat": 489.9931,
+   "section": "s4"
+  },
+  {
+   "t": 190.012493,
+   "tag": "vocal melody",
+   "beat": 490.2043,
+   "section": "s4"
+  },
+  {
+   "t": 190.133937,
+   "tag": "melody drop",
+   "beat": 490.518,
+   "section": "s4"
+  },
+  {
+   "t": 190.343378,
+   "tag": "vocal melody",
+   "beat": 491.0591,
+   "section": "s4"
+  },
+  {
+   "t": 190.592531,
+   "tag": "melody drop",
+   "beat": 491.7027,
+   "section": "s4"
+  },
+  {
+   "t": 190.703287,
+   "tag": "vocal melody",
+   "beat": 491.9888,
+   "section": "s4"
+  },
+  {
+   "t": 191.004685,
+   "tag": "melody drop",
+   "beat": 492.7674,
+   "section": "s4"
+  },
+  {
+   "t": 191.272176,
+   "tag": "vocal melody",
+   "beat": 493.4585,
+   "section": "s4"
+  },
+  {
+   "t": 191.463279,
+   "tag": "melody drop",
+   "beat": 493.9521,
+   "section": "s4"
+  },
+  {
+   "t": 191.643234,
+   "tag": "melody drop",
+   "beat": 494.417,
+   "section": "s4"
+  },
+  {
+   "t": 191.811579,
+   "tag": "melody drop",
+   "beat": 494.8519,
+   "section": "s4"
+  },
+  {
+   "t": 191.87009,
+   "tag": "vocal melody",
+   "beat": 495.0031,
+   "section": "s4"
+  },
+  {
+   "t": 191.974118,
+   "tag": "melody drop",
+   "beat": 495.2718,
+   "section": "s4"
+  },
+  {
+   "t": 192.154073,
+   "tag": "melody drop",
+   "beat": 495.7367,
+   "section": "s4"
+  },
+  {
+   "t": 192.682327,
+   "tag": "melody drop",
+   "beat": 497.1013,
+   "section": "s4"
+  },
+  {
+   "t": 192.874353,
+   "tag": "vocal melody",
+   "beat": 497.5974,
+   "section": "s4"
+  },
+  {
+   "t": 193.100286,
+   "tag": "melody drop",
+   "beat": 498.1811,
+   "section": "s4"
+  },
+  {
+   "t": 193.129772,
+   "tag": "vocal melody",
+   "beat": 498.2572,
+   "section": "s4"
+  },
+  {
+   "t": 193.280241,
+   "tag": "melody drop",
+   "beat": 498.646,
+   "section": "s4"
+  },
+  {
+   "t": 193.495487,
+   "tag": "vocal melody",
+   "beat": 499.202,
+   "section": "s4"
+  },
+  {
+   "t": 193.73303,
+   "tag": "melody drop",
+   "beat": 499.8157,
+   "section": "s4"
+  },
+  {
+   "t": 193.803151,
+   "tag": "vocal melody",
+   "beat": 499.9968,
+   "section": "s4"
+  },
+  {
+   "t": 194.31399,
+   "tag": "vocal melody",
+   "beat": 501.3165,
+   "section": "s4"
+  },
+  {
+   "t": 194.964149,
+   "tag": "vocal melody",
+   "beat": 502.9961,
+   "section": "s4"
+  },
+  {
+   "t": 195.173128,
+   "tag": "vocal melody",
+   "beat": 503.5359,
+   "section": "s4"
+  },
+  {
+   "t": 195.695577,
+   "tag": "vocal melody",
+   "beat": 504.8856,
+   "section": "s4"
+  },
+  {
+   "t": 195.753166,
+   "tag": "melody drop",
+   "beat": 505.0343,
+   "section": "s4"
+  },
+  {
+   "t": 195.904557,
+   "tag": "vocal melody",
+   "beat": 505.4254,
+   "section": "s4"
+  },
+  {
+   "t": 196.1421,
+   "tag": "melody drop",
+   "beat": 506.0391,
+   "section": "s4"
+  },
+  {
+   "t": 196.29303,
+   "tag": "melody drop",
+   "beat": 506.429,
+   "section": "s4"
+  },
+  {
+   "t": 196.461836,
+   "tag": "vocal melody",
+   "beat": 506.8651,
+   "section": "s4"
+  },
+  {
+   "t": 196.670815,
+   "tag": "vocal melody",
+   "beat": 507.4049,
+   "section": "s4"
+  },
+  {
+   "t": 196.745819,
+   "tag": "melody drop",
+   "beat": 507.5987,
+   "section": "s4"
+  },
+  {
+   "t": 197.192803,
+   "tag": "melody drop",
+   "beat": 508.7534,
+   "section": "s4"
+  },
+  {
+   "t": 197.674617,
+   "tag": "melody drop",
+   "beat": 509.9981,
+   "section": "s4"
+  },
+  {
+   "t": 197.854572,
+   "tag": "melody drop",
+   "beat": 510.463,
+   "section": "s4"
+  },
+  {
+   "t": 198.005501,
+   "tag": "melody drop",
+   "beat": 510.8529,
+   "section": "s4"
+  },
+  {
+   "t": 198.173846,
+   "tag": "melody drop",
+   "beat": 511.2878,
+   "section": "s4"
+  },
+  {
+   "t": 198.353801,
+   "tag": "melody drop",
+   "beat": 511.7527,
+   "section": "s4"
+  },
+  {
+   "t": 198.516871,
+   "tag": "bass",
+   "beat": 512.1739,
+   "section": "s5"
+  },
+  {
+   "t": 199.085691,
+   "tag": "vocal melody",
+   "beat": 513.6434,
+   "section": "s5"
+  },
+  {
+   "t": 199.312085,
+   "tag": "vocal melody",
+   "beat": 514.2282,
+   "section": "s5"
+  },
+  {
+   "t": 199.509455,
+   "tag": "vocal melody",
+   "beat": 514.7381,
+   "section": "s5"
+  },
+  {
+   "t": 199.718435,
+   "tag": "vocal melody",
+   "beat": 515.278,
+   "section": "s5"
+  },
+  {
+   "t": 199.973854,
+   "tag": "vocal melody",
+   "beat": 515.9378,
+   "section": "s5"
+  },
+  {
+   "t": 200.484693,
+   "tag": "vocal melody",
+   "beat": 517.2575,
+   "section": "s5"
+  },
+  {
+   "t": 201.605125,
+   "tag": "bass",
+   "beat": 520.1519,
+   "section": "s5"
+  },
+  {
+   "t": 202.057845,
+   "tag": "vocal melody",
+   "beat": 521.3214,
+   "section": "s5"
+  },
+  {
+   "t": 202.313264,
+   "tag": "vocal melody",
+   "beat": 521.9813,
+   "section": "s5"
+  },
+  {
+   "t": 202.684784,
+   "tag": "vocal melody",
+   "beat": 522.941,
+   "section": "s5"
+  },
+  {
+   "t": 203.062108,
+   "tag": "vocal melody",
+   "beat": 523.9158,
+   "section": "s5"
+  },
+  {
+   "t": 203.120227,
+   "tag": "bass",
+   "beat": 524.0659,
+   "section": "s5"
+  },
+  {
+   "t": 203.630997,
+   "tag": "vocal melody",
+   "beat": 525.3854,
+   "section": "s5"
+  },
+  {
+   "t": 204.159251,
+   "tag": "vocal melody",
+   "beat": 526.7501,
+   "section": "s5"
+  },
+  {
+   "t": 204.664354,
+   "tag": "bass",
+   "beat": 528.0549,
+   "section": "s5"
+  },
+  {
+   "t": 205.314444,
+   "tag": "vocal melody",
+   "beat": 529.7343,
+   "section": "s5"
+  },
+  {
+   "t": 205.506008,
+   "tag": "vocal melody",
+   "beat": 530.2292,
+   "section": "s5"
+  },
+  {
+   "t": 205.790453,
+   "tag": "vocal melody",
+   "beat": 530.964,
+   "section": "s5"
+  },
+  {
+   "t": 206.150362,
+   "tag": "vocal melody",
+   "beat": 531.8938,
+   "section": "s5"
+  },
+  {
+   "t": 206.649591,
+   "tag": "vocal melody",
+   "beat": 533.1834,
+   "section": "s5"
+  },
+  {
+   "t": 207.340385,
+   "tag": "vocal melody",
+   "beat": 534.968,
+   "section": "s5"
+  },
+  {
+   "t": 207.560974,
+   "tag": "vocal melody",
+   "beat": 535.5379,
+   "section": "s5"
+  },
+  {
+   "t": 207.786025,
+   "tag": "bass",
+   "beat": 536.1192,
+   "section": "s5"
+  },
+  {
+   "t": 208.129863,
+   "tag": "vocal melody",
+   "beat": 537.0075,
+   "section": "s5"
+  },
+  {
+   "t": 208.309818,
+   "tag": "vocal melody",
+   "beat": 537.4724,
+   "section": "s5"
+  },
+  {
+   "t": 208.867097,
+   "tag": "vocal melody",
+   "beat": 538.912,
+   "section": "s5"
+  },
+  {
+   "t": 209.064466,
+   "tag": "vocal melody",
+   "beat": 539.4219,
+   "section": "s5"
+  },
+  {
+   "t": 209.179222,
+   "tag": "bass",
+   "beat": 539.7183,
+   "section": "s5"
+  },
+  {
+   "t": 210.125435,
+   "tag": "bass",
+   "beat": 542.1627,
+   "section": "s5"
+  },
+  {
+   "t": 210.763984,
+   "tag": "bass",
+   "beat": 543.8123,
+   "section": "s5"
+  },
+  {
+   "t": 210.880778,
+   "tag": "outropads",
+   "beat": 544.114,
+   "section": "s6"
+  },
+  {
+   "t": 212.406708,
+   "tag": "outropads",
+   "beat": 548.056,
+   "section": "s6"
+  },
+  {
+   "t": 213.939225,
+   "tag": "outropads",
+   "beat": 552.015,
+   "section": "s6"
+  },
+  {
+   "t": 215.471742,
+   "tag": "outropads",
+   "beat": 555.974,
+   "section": "s6"
+  },
+  {
+   "t": 216.30766,
+   "tag": "outropads",
+   "beat": 558.1335,
+   "section": "s6"
+  },
+  {
+   "t": 216.986844,
+   "tag": "outropads",
+   "beat": 559.888,
+   "section": "s6"
+  },
+  {
+   "t": 218.652876,
+   "tag": "outropads",
+   "beat": 564.1919,
+   "section": "s6"
+  },
+  {
+   "t": 219.803201,
+   "tag": "outropads",
+   "beat": 567.1636,
+   "section": "s6"
+  },
+  {
+   "t": 220.151501,
+   "tag": "outropads",
+   "beat": 568.0634,
+   "section": "s6"
+  },
+  {
+   "t": 221.326784,
+   "tag": "outropads",
+   "beat": 571.0995,
+   "section": "s6"
+  },
+  {
+   "t": 221.684018,
+   "tag": "outropads",
+   "beat": 572.0224,
+   "section": "s6"
+  },
+  {
+   "t": 222.632906,
+   "tag": "outropads",
+   "beat": 574.4737,
+   "section": "s6"
+  },
+  {
+   "t": 223.248235,
+   "tag": "outropads",
+   "beat": 576.0633,
+   "section": "s6"
+  },
+  {
+   "t": 223.836163,
+   "tag": "vocal melody",
+   "beat": 577.5821,
+   "section": "s6"
+  },
+  {
+   "t": 224.126413,
+   "tag": "vocal melody",
+   "beat": 578.3319,
+   "section": "s6"
+  },
+  {
+   "t": 224.439882,
+   "tag": "vocal melody",
+   "beat": 579.1417,
+   "section": "s6"
+  },
+  {
+   "t": 224.763337,
+   "tag": "outropads",
+   "beat": 579.9773,
+   "section": "s6"
+  },
+  {
+   "t": 224.782376,
+   "tag": "vocal melody",
+   "beat": 580.0265,
+   "section": "s6"
+  },
+  {
+   "t": 225.2758,
+   "tag": "vocal melody",
+   "beat": 581.3012,
+   "section": "s6"
+  },
+  {
+   "t": 226.353904,
+   "tag": "outropads",
+   "beat": 584.0863,
+   "section": "s6"
+  },
+  {
+   "t": 227.005687,
+   "tag": "vocal melody",
+   "beat": 585.77,
+   "section": "s6"
+  },
+  {
+   "t": 227.423646,
+   "tag": "vocal melody",
+   "beat": 586.8498,
+   "section": "s6"
+  },
+  {
+   "t": 227.84741,
+   "tag": "vocal melody",
+   "beat": 587.9445,
+   "section": "s6"
+  },
+  {
+   "t": 227.869006,
+   "tag": "outropads",
+   "beat": 588.0003,
+   "section": "s6"
+  },
+  {
+   "t": 228.398884,
+   "tag": "vocal melody",
+   "beat": 589.3691,
+   "section": "s6"
+  },
+  {
+   "t": 228.711571,
+   "tag": "outropads",
+   "beat": 590.1769,
+   "section": "s6"
+  },
+  {
+   "t": 229.014213,
+   "tag": "vocal melody",
+   "beat": 590.9587,
+   "section": "s6"
+  },
+  {
+   "t": 229.448805,
+   "tag": "outropads",
+   "beat": 592.0814,
+   "section": "s6"
+  },
+  {
+   "t": 230.111356,
+   "tag": "vocal melody",
+   "beat": 593.793,
+   "section": "s6"
+  },
+  {
+   "t": 230.5119,
+   "tag": "vocal melody",
+   "beat": 594.8277,
+   "section": "s6"
+  },
+  {
+   "t": 230.947274,
+   "tag": "vocal melody",
+   "beat": 595.9525,
+   "section": "s6"
+  },
+  {
+   "t": 230.959787,
+   "tag": "outropads",
+   "beat": 595.9848,
+   "section": "s6"
+  },
+  {
+   "t": 231.365233,
+   "tag": "vocal melody",
+   "beat": 597.0322,
+   "section": "s6"
+  },
+  {
+   "t": 231.968952,
+   "tag": "vocal melody",
+   "beat": 598.5918,
+   "section": "s6"
+  },
+  {
+   "t": 232.12957,
+   "tag": "outropads",
+   "beat": 599.0067,
+   "section": "s6"
+  },
+  {
+   "t": 232.195347,
+   "tag": "vocal melody",
+   "beat": 599.1766,
+   "section": "s6"
+  },
+  {
+   "t": 232.534743,
+   "tag": "outropads",
+   "beat": 600.0534,
+   "section": "s6"
+  },
+  {
+   "t": 232.857116,
+   "tag": "vocal melody",
+   "beat": 600.8862,
+   "section": "s6"
+  },
+  {
+   "t": 233.066095,
+   "tag": "vocal melody",
+   "beat": 601.4261,
+   "section": "s6"
+  },
+  {
+   "t": 233.664009,
+   "tag": "vocal melody",
+   "beat": 602.9707,
+   "section": "s6"
+  },
+  {
+   "t": 233.681092,
+   "tag": "outropads",
+   "beat": 603.0148,
+   "section": "s6"
+  },
+  {
+   "t": 233.861379,
+   "tag": "vocal melody",
+   "beat": 603.4806,
+   "section": "s6"
+  },
+  {
+   "t": 234.098601,
+   "tag": "outropads",
+   "beat": 604.0934,
+   "section": "s6"
+  }
+ ]
+}

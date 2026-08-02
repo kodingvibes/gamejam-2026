@@ -1,0 +1,139 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>reactor lab</title>
+<!--
+  El banco del reactor, igual que `tools/avatar.html` es el del muneco: se sirve con
+  `python3 -m http.server 8161` y se abre en `/tools/reactor-lab.html`.
+
+  Dos cosas y ninguna mas:
+   - lo dibuja ENTERO (alpha 1, como el SVG) y AL TAMANO DEL NIVEL (alpha 0.5, como en el
+     juego): el bug es que a 0.5 se leia como chatarra gris, y eso solo se ve al tamano que
+     tiene en la pantalla, no a 1024.
+   - `__mide(alpha)` devuelve las estadisticas de sus pixeles (luma, saturacion, nucleo).
+     Es lo que se mide antes y despues de tocar la curva; a ojo no se mide nada.
+
+  El Graphics de Phaser que pide `drawReactor` es un doble de canvas2d de 20 lineas: solo se
+  usan seis metodos, y asi el banco no necesita ni Phaser ni el juego.
+-->
+<style>
+  body { margin: 0; background: #05070a; color: #a8ffff; font: 12px ui-monospace, monospace; }
+  .fila { display: flex; gap: 12px; align-items: flex-start; padding: 12px; }
+  canvas { background: #05070a; }
+  pre { padding: 0 12px; line-height: 1.5; }
+</style>
+<div class="fila">
+  <canvas id="entero" width="512" height="512"></canvas>
+  <canvas id="antes" width="480" height="480"></canvas>
+  <canvas id="despues" width="480" height="480"></canvas>
+</div>
+<pre id="txt"></pre>
+<script type="module">
+import { drawReactor, BOX, DIM } from "../reactor.js";
+
+// el doble: los seis metodos del Graphics que usa `drawReactor`, sobre canvas2d
+function gfx(ctx) {
+  let f = "#fff", s = "#fff", w = 1;
+  const hex = (c, a) => `rgba(${c >> 16 & 255},${c >> 8 & 255},${c & 255},${a})`;
+  const trazo = (pts, close) => {
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    if (close) ctx.closePath();
+  };
+  return {
+    fillStyle: (c, a = 1) => { f = hex(c, a); },
+    lineStyle: (ww, c, a = 1) => { w = ww; s = hex(c, a); },
+    fillCircle: (x, y, r) => { ctx.fillStyle = f; ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0), 0, 7); ctx.fill(); },
+    strokeCircle: (x, y, r) => { ctx.strokeStyle = s; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0), 0, 7); ctx.stroke(); },
+    fillPoints: (pts) => { ctx.fillStyle = f; trazo(pts, true); ctx.fill(); },
+    strokePoints: (pts, close) => { ctx.strokeStyle = s; ctx.lineWidth = w; trazo(pts, close); ctx.stroke(); },
+  };
+}
+
+// la puesta del juego, copiada de `AIRunnerGame.drawReactor`: radio 0.148 del alto, colgado
+// 0.75 radios REALES (486 nominales) por encima del horizonte, que en 3a persona es 0.36*h.
+const R = 0.148, UP = 0.75;
+function pinta(cv, alpha, o = {}) {
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const k = (cv.height * R) / (BOX / 2);
+  const cy = cv.height * 0.36 - 486 * k * UP;
+  drawReactor(gfx(ctx), (x, y) => ({ x: cv.width / 2 + (x - BOX / 2) * k, y: cy + (y - BOX / 2) * k }),
+    { alpha, ...o });
+}
+
+// el reactor entero, como el SVG: escala 1 sobre el cuadro de 1024 (aca a 512 para que entre)
+function entero(cv, alpha, o = {}) {
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const k = cv.width / BOX;
+  drawReactor(gfx(ctx), (x, y) => ({ x: x * k, y: y * k }), { alpha, ...o });
+}
+
+// --- la medida ---------------------------------------------------------------------------
+// Pixeles del reactor = los que no quedaron en negro puro sobre un fondo negro puro, al
+// TAMANO DEL NIVEL. Devuelve luma (Rec.601), saturacion (HSV) y el tamano del nucleo.
+window.__mide = (alpha = 0.5, o = {}) => {
+  const cv = document.createElement("canvas");
+  cv.width = 1280; cv.height = 720;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height);
+  pinta(cv, alpha, o);
+  const d = ctx.getImageData(0, 0, cv.width, cv.height).data;
+  const L = [], S = [];
+  let sr = 0, sg = 0, sb = 0, nucleo = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    if (!r && !g && !b) continue;
+    const l = 0.299 * r + 0.587 * g + 0.114 * b;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    L.push(l); S.push(mx ? (mx - mn) / mx : 0);
+    sr += r; sg += g; sb += b;
+    if (l > 120) nucleo++;
+  }
+  const n = L.length, ord = [...L].sort((a, b) => a - b);
+  const med = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  return {
+    px: n,
+    luma: +med(L).toFixed(1), mediana: +ord[n >> 1].toFixed(1),
+    p95: +ord[Math.floor(n * 0.95)].toFixed(1),
+    sobre100: +(100 * L.filter((v) => v > 100).length / n).toFixed(1),
+    sat: +med(S).toFixed(3), satBaja: +(100 * S.filter((v) => v < 0.2).length / n).toFixed(1),
+    rgb: [sr / n, sg / n, sb / n].map((v) => +v.toFixed(1)),
+    nucleo, nucleoPct: +(100 * nucleo / (cv.width * cv.height)).toFixed(3),
+  };
+};
+
+// El A/B: con todos los exponentes en 1 la curva ES el multiplicador plano de antes, o sea
+// que el "antes" no hay que reimplementarlo, se pide.
+const PLANO = Object.fromEntries(Object.keys(DIM).map((k) => [k, 1]));
+const CURVA = { ...DIM };
+window.__curva = (t) => Object.assign(DIM, t ? CURVA : PLANO);
+
+// un recorte de 250px alrededor del reactor, al doble: es donde se mira el detalle
+function zoom(cv, alpha, o) {
+  const off = document.createElement("canvas");
+  off.width = 1280; off.height = 720;
+  pinta(off, alpha, o);
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingEnabled = false;
+  const L = cv.width / 2;
+  ctx.drawImage(off, 640 - L / 2, 720 * 0.36 - L * 0.78, L, L, 0, 0, cv.width, cv.height);
+}
+
+const q = new URLSearchParams(location.search);
+const o = { t: +(q.get("t") ?? 0), beat: +(q.get("beat") ?? 1), pulse: +(q.get("pulse") ?? 0) };
+if (q.get("bass")) o.fft = new Uint8Array(128).fill(+q.get("bass") * 255);
+window.__curva(false);
+const antes = window.__mide(0.5, o);
+zoom(document.getElementById("antes"), 0.5, o);
+window.__curva(true);
+const despues = window.__mide(0.5, o);
+zoom(document.getElementById("despues"), 0.5, o);
+entero(document.getElementById("entero"), +(q.get("a") ?? 1), o);
+document.getElementById("txt").textContent =
+  `beat ${o.beat}  pulse ${o.pulse}  bass ${q.get("bass") ?? 0}\n`
+  + `alpha 0.5 PLANO (antes): ${JSON.stringify(antes)}\n`
+  + `alpha 0.5 CURVA (ahora): ${JSON.stringify(despues)}\n`
+  + `alpha 1.0 (el SVG):      ${JSON.stringify(window.__mide(1, o))}`;
+</script>

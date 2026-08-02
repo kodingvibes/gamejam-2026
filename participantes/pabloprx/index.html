@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DaftRun</title>
+<style>
+  /* la paleta es la del juego (theme.js): bg, border, cyan, violet, textMuted */
+  html, body { margin: 0; height: 100%; background: #0b0d17; color: #e2e8f0; overflow: hidden; }
+  /* explicito y con !important: `#menu { display: flex }` es especificidad de ID y le gana a
+     la regla `[hidden] { display: none }` del navegador, o sea que el menu se veria SIEMPRE. */
+  [hidden] { display: none !important; }
+
+  /* --- el menu (sin ?level=) --- */
+  #menu {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 26px; font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  #menu h1 { margin: 0; font-size: 34px; letter-spacing: 8px; color: #06b6d4; font-weight: 700; }
+  #menu ul { list-style: none; margin: 0; padding: 0; width: min(420px, 82vw); }
+  #menu a {
+    display: flex; align-items: baseline; gap: 14px; text-decoration: none;
+    margin: 10px 0; padding: 16px 20px; color: #e2e8f0;
+    border: 1px solid #2a2e4a; border-radius: 10px; background: #14162a;
+  }
+  #menu a:hover, #menu a:focus { outline: none; border-color: #06b6d4; background: #1e213a; color: #06b6d4; }
+  /* accentSoft y no violet: el violeta sobre la tarjeta da 4.21:1 a 13px, por debajo del
+     4.5:1 de AA. accentSoft (que ya es de la paleta del juego) da 5.98:1. */
+  #menu .n { color: #818cf8; font-size: 13px; }
+  #menu .t { font-size: 20px; letter-spacing: 3px; }
+  #menu p { margin: 0; color: #94a3b8; font-size: 12px; letter-spacing: 1px; }
+
+  /* --- el juego (con ?level=) --- */
+  #wrap { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; color: #e2e8f0; border-bottom: 1px solid #2a2e4a;
+    font: 600 14px 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  }
+  #game { flex: 1; min-height: 0; margin: 16px; border: 1px solid #2a2e4a; border-radius: 12px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="menu" hidden>
+  <h1>DAFTRUN</h1>
+  <ul>
+    <li><a class="lv" data-lv="insomnia-drop" href="?level=insomnia-drop&play=1"><span class="n">01</span><span class="t">INSOMNIA</span></a></li>
+    <li><a class="lv" data-lv="orbit-motion" href="?level=orbit-motion&play=1"><span class="n">02</span><span class="t">SPACE ORBIT</span></a></li>
+  </ul>
+  <p>↑↓ y ENTER · manten D para abrir en modo diseno</p>
+</div>
+<div id="wrap" hidden>
+  <header><span>DaftRun</span><span style="color:#94a3b8"><a href="./" style="color:#06b6d4">niveles</a></span></header>
+  <div id="game"></div>
+</div>
+<script type="module">
+  // Un solo fichero: sin `?level=` es el menu, con `?level=` es el juego. La URL del nivel 1
+  // pasa a ser explicita (`/?level=insomnia-drop`), y por eso la receta de medicion tambien:
+  // si el diff siguiera abriendo `/` compararia dos menus identicos y daria 0 px por el
+  // motivo equivocado.
+  if (!new URLSearchParams(location.search).get("level")) {
+    document.getElementById("menu").hidden = false;
+    // El debug es la AUSENCIA del flag: sin `play` el juego arranca en el modo diseno de siempre.
+    // Con D mantenida se le quita el flag al enlace y ya esta: asi el ENTER del teclado, el clic
+    // y el clic del medio salen todos por el camino nativo del <a> y no hay un handler que
+    // mantener sincronizado con otro.
+    const links = [...document.querySelectorAll("a.lv")];
+    const setD = (on) => links.forEach((a) => {
+      a.href = `?level=${a.dataset.lv}${on ? "" : "&play=1"}`;
+    });
+    addEventListener("keydown", (e) => {
+      if (e.key === "d" || e.key === "D") setD(true);
+      const i = links.indexOf(document.activeElement);
+      if (e.key === "ArrowDown") { e.preventDefault(); links[(i + 1) % links.length].focus(); }
+      if (e.key === "ArrowUp") { e.preventDefault(); links[(i + links.length - 1) % links.length].focus(); }
+    });
+    addEventListener("keyup", (e) => { if (e.key === "d" || e.key === "D") setD(false); });
+    // El keyup NO siempre llega, y ahi la D se queda hundida para siempre: navegando con ella
+    // apretada la pagina se guarda en bfcache con los href ya sin `play`, y al volver con Atras
+    // un clic normal abria en modo diseno (medido: los dos href sin `&play=1`, marks true,
+    // godmode true, lives 3). Lo mismo con alt+tab con la tecla abajo. Se suelta al perder el
+    // foco y se rearma al restaurar la pagina, que son las dos puertas por las que se escapa.
+    addEventListener("pageshow", () => setD(false));
+    addEventListener("blur", () => setD(false));
+    links[0].focus();
+  } else {
+    document.getElementById("wrap").hidden = false;
+    // dinamico a proposito: sin `?level=` el menu no descarga ni Phaser ni el juego.
+    const { createAIRunnerGame } = await import("./AIRunnerGame.js");
+    const el = document.getElementById("game");
+    const game = createAIRunnerGame(el);
+    window.__game = game; // debug handle
+    const fit = () => {
+      const r = el.getBoundingClientRect();
+      game.scale.setGameSize(Math.max(320, r.width | 0), Math.max(320, r.height | 0));
+    };
+    new ResizeObserver(fit).observe(el);
+    requestAnimationFrame(fit);
+  }
+</script>
+</body>
+</html>

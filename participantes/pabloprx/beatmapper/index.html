@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Beatmapper</title>
+<style>
+  :root {
+    --bg:#0b0d17; --surface:#14162a; --light:#1e213a; --border:#2a2e4a;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#6366f1; --red:#ef4444; --green:#22c55e;
+  }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
+    font:12px 'Plus Jakarta Sans','Segoe UI',sans-serif; overflow:hidden; }
+  #wrap { position:fixed; inset:0; display:flex; flex-direction:column; }
+  .row { display:flex; align-items:center; gap:6px; padding:5px 10px; border-bottom:1px solid var(--border);
+    flex-wrap:wrap; }
+  .row > b { color:var(--muted); font-weight:600; min-width:66px; }
+  button, select, input { background:var(--light); color:var(--text); border:1px solid var(--border);
+    border-radius:5px; padding:3px 7px; font:inherit; }
+  button { cursor:pointer; } button:hover { background:var(--border); }
+  button.on { background:var(--accent); border-color:var(--accent); }
+  input[type=number], input[type=text] { width:72px; }
+  input[type=color] { width:28px; padding:1px; height:22px; }
+  label { color:var(--muted); display:flex; align-items:center; gap:3px; }
+  .mono { font-family:ui-monospace,'JetBrains Mono',monospace; }
+  .val { background:var(--surface); border:1px solid var(--border); border-radius:5px; padding:3px 7px; }
+  #canvasBox { flex:1; min-height:0; position:relative; }
+  canvas { display:block; width:100%; height:100%; cursor:crosshair; }
+  #bottom { display:flex; gap:14px; padding:6px 10px; border-top:1px solid var(--border);
+    color:var(--muted); align-items:flex-start; }
+  #keys { line-height:1.5; }
+  #keys kbd { background:var(--light); border:1px solid var(--border); border-radius:3px; padding:0 4px; color:var(--text); }
+  #tags { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { display:flex; align-items:center; gap:3px; background:var(--surface); border:1px solid var(--border);
+    border-radius:5px; padding:2px 4px; }
+  .tag input[type=text] { width:70px; } .tag input.k { width:22px; text-align:center; }
+  #warn { color:var(--red); } #ok { color:var(--green); }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div class="row">
+    <b>archivo</b>
+    <input type="file" id="file" accept="audio/*" />
+    <button id="btnExport">exportar json</button>
+    <button id="btnImportBtn">importar json</button>
+    <input type="file" id="fileImport" accept=".json,application/json" style="display:none" />
+    <button id="btnClear">limpiar</button>
+    <span class="val mono" id="name">sin audio</span>
+    <span id="warn"></span><span id="ok"></span>
+  </div>
+
+  <div class="row">
+    <b>transporte</b>
+    <button id="btnPlay">play</button>
+    <span class="val mono" id="time">0:00.000</span>
+    <button id="zoomOut">-</button><button id="zoomIn">+</button>
+    <button id="btnFit">ver todo</button>
+    <label>lat ms <input type="number" id="lat" value="0" step="1" style="width:56px" /></label>
+    <span class="val mono" id="latInfo"></span>
+    <button id="btnIn">trim inicio</button><button id="btnOut">trim fin</button>
+    <label><input type="checkbox" id="chkLoop" /> loop</label>
+    <span class="val mono" id="trimTxt"></span>
+  </div>
+
+  <div class="row">
+    <b>tempo</b>
+    <button id="btnTap">tap (T)</button><button id="btnTapReset">reset taps</button>
+    <span class="val mono" id="tapInfo">0 taps</span>
+    <label>bpm <input type="number" id="bpm" step="0.01" value="120" /></label>
+    <button data-bpm="-0.1">-.1</button><button data-bpm="-0.01">-.01</button>
+    <button data-bpm="0.01">+.01</button><button data-bpm="0.1">+.1</button>
+    <label>offset s <input type="number" id="offset" step="0.001" value="0" /></label>
+    <button data-off="-10">-10ms</button><button data-off="-1">-1ms</button>
+    <button data-off="1">+1ms</button><button data-off="10">+10ms</button>
+    <label>beats/compas <input type="number" id="bpb" value="4" min="1" style="width:44px" /></label>
+  </div>
+
+  <div class="row">
+    <b>marcas</b>
+    <button id="chkSnap">snap: off</button>
+    <select id="div"><option value="1">1/1 beat</option><option value="0.5">1/2</option>
+      <option value="0.25">1/4</option><option value="0.125">1/8</option></select>
+    <button id="btnQuant">cuantizar seleccion</button>
+    <span class="val mono" id="selInfo">0 sel</span>
+    <b>tags</b><div id="tags"></div><button id="btnTagAdd">+ tag</button>
+  </div>
+
+  <div class="row">
+    <b>secciones</b>
+    <input type="text" id="secLabel" value="intro" style="width:110px" />
+    <button data-sec="intro">intro</button><button data-sec="verse">verse</button>
+    <button data-sec="buildup">buildup</button><button data-sec="drop">drop</button>
+    <button data-sec="break">break</button><button data-sec="outro">outro</button>
+    <button id="btnSecDel">borrar seccion</button>
+    <span class="val mono" id="secInfo">ninguna</span>
+  </div>
+
+  <div id="canvasBox"><canvas id="cv"></canvas></div>
+
+  <div id="bottom">
+    <div id="keys">
+      <kbd>space</kbd> play/pausa &middot; <kbd>T</kbd> tap &middot; <kbd>1-9</kbd> marca por tag &middot;
+      <kbd>S</kbd> corte de seccion en playhead &middot; <kbd>E</kbd> fin de la marca seleccionada (le da duracion) &middot; <kbd>Q</kbd> snap &middot;
+      <kbd>I</kbd>/<kbd>O</kbd> trim inicio/fin &middot; <kbd>Del</kbd> borrar seleccion &middot;
+      <kbd>ctrl+Z</kbd>/<kbd>ctrl+shift+Z</kbd> deshacer/rehacer &middot; <kbd>+</kbd>/<kbd>-</kbd> zoom &middot;
+      <kbd>Home</kbd> inicio<br />
+      raton: rueda zoom, shift+rueda scroll, arrastrar onda/regla busca, arrastrar banda de secciones crea/redimensiona,
+      arrastrar carril inferior selecciona o mueve marcas (shift = sumar a la seleccion)
+    </div>
+  </div>
+</div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
