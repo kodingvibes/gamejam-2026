@@ -104,6 +104,10 @@ const TRICKS = ["heli", "grab", "flip", "heli", "grab"];
 // colchon para cobrar un orb que pasaste sin mantener. 150ms cubre el retraso humano que se
 // midio en la grabacion (los saltos caian entre -109 y +119ms de la fila).
 const ORB_GRACE = 0.15;
+// Cuanto dedo es un swipe y no un toque, en px de PANTALLA (no fraccion del ancho: el dedo
+// mide lo mismo en un movil ancho que en uno angosto). 24 no esta medido en un telefono
+// todavia: es el orden del "slop" de arrastre de iOS (10pt) con margen para el temblor.
+const SWIPE = 24;
 const TAG_COLORS = {
   kick: PALETTE.red, accent: PALETTE.yellow, voice: PALETTE.green,
   kicks: PALETTE.red, response: PALETTE.yellow, acidbass: PALETTE.green, snare: PALETTE.cyan,
@@ -499,6 +503,31 @@ class RunnerScene extends Phaser.Scene {
       if (this.stripSeek(p)) return;
       if (this.tp && !this.tp.playing && !this.dead) this.tp.play();
     });
+    // TACTIL: un gesto = UNA accion y el eje dominante la elige. Llama a las MISMAS move/jump/
+    // slide que el teclado, o sea que el mundo no se entera de por donde entro la orden y no hay
+    // una segunda fisica que mantener. Solo el toque seco depende del modo: en diseno el clic ya
+    // es play/pausa y la tira es un seek.
+    this.sw = null;         // gesto en curso: { x, y, done }
+    this.touchHold = false; // dedo apoyado = ↑ mantenida, que es como se enganchan los orbs
+    this.input.on("pointerdown", (p) => {
+      this.sw = { x: p.x, y: p.y, done: false };
+      if (p.wasTouch) this.touchHold = true;   // el raton no: en escritorio se mantiene con ↑/W
+    });
+    this.input.on("pointermove", (p) => {
+      const s = this.sw;
+      if (!s || s.done || !p.isDown) return;
+      const dx = p.x - s.x, dy = p.y - s.y;
+      if (Math.abs(dx) < SWIPE && Math.abs(dy) < SWIPE) return;
+      s.done = true;
+      if (Math.abs(dx) > Math.abs(dy)) this.move(Math.sign(dx));
+      else if (dy < 0) this.jump();
+      else this.slide();
+    });
+    this.input.on("pointerup", () => {
+      if (PLAY && this.sw && !this.sw.done) this.jump();   // toque seco = saltar
+      this.sw = null;
+      this.touchHold = false;
+    });
 
     this.marks = !PLAY;
     this.nums = PLAY ? 0 : 1;   // modo diseno: arranca mostrando las filas
@@ -679,7 +708,7 @@ class RunnerScene extends Phaser.Scene {
     this.lane = to;
   }
 
-  held() { return this.holdKeys.UP.isDown || this.holdKeys.W.isDown; }
+  held() { return this.holdKeys.UP.isDown || this.holdKeys.W.isDown || this.touchHold; }
 
   jump() {
     // Colchon del orb: si lo pasaste SIN mantener, queda anotado ORB_GRACE segundos. Pulsar

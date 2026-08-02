@@ -6,7 +6,7 @@ import { KINDS, PLAYER_Z, SPAWN_Z, lanesX } from "./physics.js";
 export const LEVELS = {
   "insomnia-drop": {
     schema: "assets/insomnia.schema.json",
-    audio: "assets/insomnia-cut.m4a",
+    audio: "assets/insomnia-cut.mp3",
     // z/s de la pista: mueve el VIAJE, no la hora de llegada. Se subio de 700 a 1060 despues
     // de jugarlo: es la velocidad del nivel, y `V` (feel) sigue multiplicando sobre esta.
     // No afloja nada (todas las ventanas se ABREN al correr mas: la fila sigue durando un
@@ -509,7 +509,7 @@ export const LEVELS = {
   // obstaculo. El guion se dicta bailando despues (`Y` graba, `U` exporta), igual que el 1.
   "orbit-motion": {
     schema: "assets/orbit.schema.json",
-    audio: "assets/orbit-cut.m4a",
+    audio: "assets/orbit-cut.mp3",
     // CUATRO carriles. El paso sigue siendo 170 (ver `lanesX` en physics.js), o sea que la
     // pista se ensancha de 510 a 680: si el paso bajara a 113 para meter 4 en el ancho viejo,
     // un `high` (w=70, o sea 140 de ancho) se solaparia con el carril de al lado.

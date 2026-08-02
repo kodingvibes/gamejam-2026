@@ -277,7 +277,8 @@ sigue apuntando a lo mismo. La receta (hecha una vez, el 30/07, f128 -> f219):
    medido, deja restos de 22-25ms contra los 72-144ms de cuantizar todo a la negra).
 3. `trim.end` se lleva a una **fila entera** (`trim.start + filas*beat`): el corte viejo caia
    exacto en la f128 y el nuevo en la f220. El audio se re-corta con `ffmpeg -ss/-t` en el
-   mismo sitio (`-vn`: el m4a trae caratula y sin eso no escribe nada).
+   mismo sitio (`-vn`: el tema trae caratula y sin eso ffmpeg no escribe nada). Sale **mp3**,
+   ver mas abajo por que.
 4. Las secciones nuevas se pegan a la anterior (contiguas, sin hueco: el test lo exige) y se
    les da `glow`, `enter`, `sectors` y un `mode` de eq por sector.
 5. Los eventos marcados **pasados del corte** se tiran (fueron 85 kicks) y se dice cuantos.
@@ -373,6 +374,56 @@ de la lista de teclas y la tira. Teclas atadas: **9 jugando** (LEFT/A/RIGHT/D/UP
 contra **33 disenando**, y las 25 de diseno pulsadas una por una jugando no cambian ni un campo
 del estado. Cada nombre de tecla se valido antes en diseno, donde las 25 SI cambian algo: sin esa
 validacion previa, "todas muertas" no prueba nada, prueba que los nombres no llegan a Phaser.
+
+## Movil: un gesto una accion, y el audio en MP3 porque iOS no decodifica mp4
+El clic ya funcionaba; lo que no habia era ni swipe ni audio en el telefono.
+
+**El gesto va por los `pointer*` de Phaser** (que ya reciben el toque) y no por handlers de
+`touch` aparte: `pointerdown` abre el gesto, `pointermove` lo resuelve en cuanto pasa `SWIPE` =
+**24px de PANTALLA** y lo marca `done`, o sea que **un gesto = una accion** y arrastrar el dedo
+por la pantalla no encadena cambios de carril. Manda el eje mas largo: horizontal = carril,
+arriba = saltar, abajo = deslizarse, y **soltar sin haber pasado el umbral = saltar** (el toque
+seco, que es lo que ya funcionaba). Medido con eventos de toque de verdad (CDP
+`Emulation.setTouchEmulationEnabled` + `Page.reload`, que hace falta porque Phaser decide si hay
+touch al arrancar): dedo abajo -> `touchHold` true, swipe derecha carril 1->2, seguir moviendo
+dentro del MISMO gesto se queda en 2, swipe izquierda 2->1, arriba `vy`=296, abajo
+`sliding`=0.329, toque seco `vy` 0 -> 1000 (`JUMP_V`). Los 24px **no estan medidos en un
+telefono de verdad**.
+
+**Mantener el dedo es mantener `↑`**, que es como se enganchan los orbs: `touchHold` se pone en
+`pointerdown` (solo si `wasTouch`) y se quita en `pointerup`, y `held()` lo suma a las dos teclas.
+Sin eso, jugando en el telefono los orbs son inalcanzables.
+
+**El `<meta viewport>` y `touch-action: none` no son cosmetica**: sin `touch-action` el navegador
+se queda el arrastre para hacer scroll o el "tirar para recargar" de Android y el juego **no ve ni
+un `pointermove`**; sin `user-scalable=no` el doble toque de saltar hace zoom.
+
+**El audio va en MP3 y esto se midio en el telefono del usuario, no se supuso.** El sintoma era
+"no carga el nivel: Decoding failed" en iOS. La primera hipotesis (WebKit rechaza
+`decodeAudioData` con el contexto suspendido) es **falsa y esta desmentida**: Safari de escritorio
+decodifica el m4a suspendido por las tres vias (promesa, callback y `OfflineAudioContext`), y en
+iOS fallan las tres **con gesto y sin gesto**. Lo que falla es el CONTENEDOR: en iOS 27, tanto en
+el webview de la app de Google (`GSA/431.2`) como en Chrome de iOS (`CriOS/150`), `decodeAudioData`
+tira `EncodingError: Decoding failed` para **cualquier mp4** (AAC-LC y ALAC por igual), mientras
+que **wav y mp3 decodifican bien** y el MISMO m4a suena por un `<audio>` (dur=72.285). O sea que
+el decodificador de AAC esta, pero WebKit no lo expone a Web Audio ahi.
+
+**Cambiar de formato no mueve la grilla, y eso es lo que habia que medir**: el mundo entero es
+funcion de `songT` contra las filas, asi que un retardo de codificador al principio correria todos
+los obstaculos. Correlacionando 2s a partir del segundo 5 del m4a contra el mp3 (192k, mismo
+corte), **desfase 0 muestras** en los dos niveles, con r = **0.9968** (orbit) y **0.9951**
+(insomnia), y medido **dentro de un navegador** (`decodeAudioData` de los dos ficheros) y no solo
+con ffmpeg. Lo unico que cambia es el rabo: `duration` pasa de 72.310 a **72.330** y de 101.538 a
+**101.541**, o sea +19.7ms y +2.4ms de cola despues de la ultima fila.
+
+Con el mp3 puesto, **el usuario confirma en su iPhone que el nivel carga y se juega bien** (eso
+es reporte de el, no una medicion de aca: lo medido es todo lo de arriba).
+
+Por eso `transport.js` volvio a **un solo `decodeAudioData`**: las tres vias salian de la
+hipotesis que se midio y era falsa. Lo que si queda es el `resume()` colgado de la VENTANA
+(`pointerdown`/`touchend`), que no es lo mismo que el de `play()`: Phaser despacha sus punteros
+dentro del step del juego y ahi el gesto ya no cuenta para iOS. Medido: despues del primer toque
+`ctx.state` = `running` y `tp.playing` = true.
 
 ## Morir: una vida, congelado EN EL SITIO, medio segundo que no se puede saltar, y el %
 Se pidio literal "1 life and u repeat, like u die, wait 3s on the spot, and start again so its

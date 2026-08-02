@@ -2,8 +2,15 @@
 // pausa, camara lenta y rebobinado salen gratis: solo cambian el reloj.
 export async function loadAudio(url) {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const buf = await ctx.decodeAudioData(await (await fetch(url)).arrayBuffer());
-  return new Transport(ctx, buf);
+  // iOS: el contexto nace suspendido y solo lo despierta un gesto REAL del DOM. Phaser despacha
+  // sus pointerdown dentro del step del juego y no dentro del evento, o sea que el `resume()`
+  // de `play()` ya no cuenta como gesto: por eso el despertador va en la ventana. Se queda
+  // puesto (no `once`) porque el sistema vuelve a suspenderlo con cada llamada o alarma.
+  const wake = () => ctx.resume();
+  addEventListener("pointerdown", wake);
+  addEventListener("touchend", wake);
+  // El audio va en MP3 y no en m4a a proposito: iOS no lo decodifica por Web Audio (ver CLAUDE.md).
+  return new Transport(ctx, await ctx.decodeAudioData(await (await fetch(url)).arrayBuffer()));
 }
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

@@ -41,6 +41,11 @@ del proyecto. No hay nada que instalar: `python3` ya viene en macOS y en Linux.
 | `↓` / `S` | deslizarse |
 | `SPACE` | pausa |
 
+En el telefono es lo mismo por gestos: **arrastrar** a los lados cambia de carril, arriba
+salta y abajo desliza; un **toque seco** salta y **mantener el dedo** es mantener `↑`, o sea
+lo que engancha los orbs. Un gesto = una accion: arrastrar el dedo por la pantalla no
+encadena cambios de carril.
+
 Rojo mata, y es lo unico rojo de la pantalla. El resto lo dice la **forma**: chevron
 hacia arriba = saltar, chevron hacia abajo = deslizarse, X = no se pasa. Los agujeros
 del suelo matan igual: se saltan o se esquivan de carril.
@@ -78,7 +83,7 @@ un nivel, como se dicta bailando, la tabla de teclas del modo diseno y como move
 obstaculo concreto.
 
 El **nivel 3 esta a medias y a proposito**: el tema ya esta marcado y recortado
-(`assets/breathe.schema.json` + `assets/breathe-cut.m4a`, 155bpm, 287 filas, 111.1s) y no
+(`assets/breathe.schema.json` + `assets/breathe-cut.mp3`, 155bpm, 287 filas, 111.1s) y no
 esta enchufado en `LEVELS`. Los cuatro pasos que faltan estan en la seccion 10 de `GUIA.md`.
 
 Audio: los dos temas van recortados a la parte que se juega.

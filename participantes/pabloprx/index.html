@@ -2,11 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- `user-scalable=no` y `viewport-fit=cover`: un swipe de carril con dos dedos mal puestos
+     hace zoom, y el doble toque de saltar hace zoom seguro. viewport-fit por la muesca. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>DaftRun</title>
 <style>
   /* la paleta es la del juego (theme.js): bg, border, cyan, violet, textMuted */
   html, body { margin: 0; height: 100%; background: #0b0d17; color: #e2e8f0; overflow: hidden; }
+  /* el swipe de carril es un arrastre: sin `touch-action: none` el navegador se lo queda para
+     hacer scroll o para el "tirar para recargar" de Android, y el juego no ve ni un pointermove.
+     El resto es para que mantener el dedo (los orbs) no seleccione texto ni pinte el toque. */
+  body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   /* explicito y con !important: `#menu { display: flex }` es especificidad de ID y le gana a
      la regla `[hidden] { display: none }` del navegador, o sea que el menu se veria SIEMPRE. */
   [hidden] { display: none !important; }

@@ -65,7 +65,7 @@ fx.js             geometria de efectos (rayos, piramides, cordillera outrun)
 record.js         grabar bailando -> guion (teclas Y/U)
 theme.js          la paleta base
 assets/*.schema.json   las SENALES de cada tema (salidas del beatmapper)
-assets/*-cut.m4a       el audio recortado a la parte que se juega
+assets/*-cut.mp3       el audio recortado a la parte que se juega
 beatmapper/       la herramienta para marcar los temas
 tools/            bancos sueltos: avatar.html, reactor-lab.html
 ```
@@ -136,8 +136,9 @@ Tres cosas medidas que ahorran una tarde:
 2. **`trim.end` va a una fila entera**: `trim.start + filas * beat`. Si no, la ultima fila
    queda partida.
 3. El audio se re-corta en el mismo sitio:
-   `ffmpeg -ss <start> -t <dur> -i tema.mp3 -vn -c:a aac -b:a 128k assets/x-cut.m4a`.
-   El `-vn` no es opcional: el m4a trae caratula y sin eso no escribe nada.
+   `ffmpeg -ss <start> -t <dur> -i tema.mp3 -vn -c:a libmp3lame -b:a 192k assets/x-cut.mp3`.
+   El `-vn` no es opcional: el tema trae caratula y sin eso ffmpeg no escribe nada.
+   **MP3 y no m4a**: iOS no decodifica mp4 por Web Audio (medido, ver `CLAUDE.md`).
 
 `tools/analyze.py` solo sirve para **cuadrar** la grilla y los patrones contra el audio real.
 Nunca para inventar la estructura.
@@ -146,7 +147,7 @@ Nunca para inventar la estructura.
 
 ## 5. Anadir un nivel
 
-1. Marcar el tema (arriba) -> `assets/<id>.schema.json` + `assets/<id>-cut.m4a`.
+1. Marcar el tema (arriba) -> `assets/<id>.schema.json` + `assets/<id>-cut.mp3`.
 2. Entrada en `LEVELS` (`music.js`). Copiar `LEVELS["orbit-motion"]` y cambiar, que es el mas
    completo. Lo minimo que el test EXIGE:
    - `schema`, `audio`, `speed`, `bg`, `lanes`.
@@ -316,7 +317,7 @@ Estan los assets, no esta el nivel:
 
 ```
 assets/breathe.schema.json    Kobosil - BR3ATH3, marcado a mano
-assets/breathe-cut.m4a        el corte, ya a filas enteras
+assets/breathe-cut.mp3        el corte, ya a filas enteras
 ```
 
 Medido del export: **155 bpm** (beat 0.387097s), offset 0.256, corte

@@ -1799,7 +1799,7 @@ mover este obstaculo" con el ejemplo trabajado, depurar (agent-browser y las tre
 positivo) y el estado del nivel 3.
 
 **El tema del nivel 3 va marcado y recortado, sin enchufar.** `assets/breathe.schema.json` +
-`assets/breathe-cut.m4a`: 155bpm, offset 0.256, `trim` 136.5126 -> **247.6094**, o sea **287 filas
+`assets/breathe-cut.mp3`: 155bpm, offset 0.256, `trim` 136.5126 -> **247.6094**, o sea **287 filas
 de 0.387097s = 111.0968s** (el corte se llevo a fila entera), **232 eventos y 0 pasados del
 corte**, 6 secciones y 4 tags (`vocal melody` 106, `melody drop` 83, `outropads` 23, `bass` 20).
 No se declara en `LEVELS` a proposito: enchufarlo pide velocidad medida, `map`, `glow`, `sectors`,
@@ -1812,3 +1812,26 @@ primero: a 155bpm la ventana de carril del nivel 1 pediria `v = 103 / (0.387097 
 anteriores repartidos entre el viernes 23:00 y el sabado 10:00. Se hizo sin remoto configurado. El
 `$(pwd)` del filtro **no es la raiz del repo** (filter-branch corre dentro de `.git-rewrite/t/`):
 el mapa de fechas hay que cargarlo por ruta absoluta o el primer commit falla.
+
+## Tanda movil: swipe y el audio en MP3 (2/08)
+
+Tres cosas pedidas: swipe en Android, el "Decoding failed" de iOS y un servidor en la LAN para
+probar desde el telefono (`http://192.168.1.5:8123/`, que es el mismo `python3 -m http.server`,
+que ya escucha en 0.0.0.0).
+
+**El swipe** va por los `pointer*` que Phaser ya recibe, con umbral de 24px de pantalla y un gesto
+= una accion, mas `touchHold` para los orbs. Verificado con toques de verdad por CDP
+(`Emulation.setTouchEmulationEnabled` + `Page.reload`, que hace falta: Phaser decide si hay touch
+al arrancar). Los 24px NO estan medidos en un telefono de verdad.
+
+**El "Decoding failed" no era el gesto.** Se probaron tres vias de `decodeAudioData` y las tres
+fallan en iOS con gesto y sin el, mientras que Safari de escritorio decodifica el m4a suspendido
+por las tres. Sondeando el telefono del usuario (`probe.html` reportando cada linea por
+`fetch("/PROBE?...")` y leyendo el log de acceso del servidor, o sea sin capturas ni permisos):
+wav OK, mp3 OK, m4a FALLA, m4a-ALAC FALLA, y el mismo m4a suena por un `<audio>`. Es el
+CONTENEDOR mp4, no el codec ni el estado del contexto.
+
+Los tres cortes pasan a mp3 192k y **el desfase medido es 0 muestras** (r = 0.9968 y 0.9951,
+correlacionando 2s desde el segundo 5, dentro del navegador y no solo con ffmpeg), que era lo
+unico que podia romper: el mundo esta clavado a la grilla. Los `.m4a` se borran; queda un solo
+formato. `transport.js` vuelve a un `decodeAudioData` pelado.
