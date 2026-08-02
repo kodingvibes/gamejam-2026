@@ -15,7 +15,7 @@ function playClaimBurst(options) {
     return;
   }
 
-  const chainIndex = Math.min(6, Math.max(0, Math.floor(options.chainIndex ?? 0)));
+  const chainIndex = Math.min(GAME_FEEL.streakCap, Math.max(0, Math.floor(options.chainIndex ?? 0)));
   // Lado de la caja en unidades del viewBox. Con 5x5 ronda 130.
   const size = options.size ?? BOARD_STYLE.width / 4;
   // La cadena sube la intensidad, pero el tope evita enterrar el tablero en confeti.
@@ -50,6 +50,33 @@ function playClaimBurst(options) {
     fill: 'both',
   }));
 
+  // Segundo aro dorado con retraso: blanco + oro es lo que hace que la onda se lea
+  // como luz y no como humo sobre un tablero casi negro.
+  const ringTwo = document.createElementNS(CLAIM_BURST_NS, 'circle');
+  ringTwo.setAttribute('cx', x);
+  ringTwo.setAttribute('cy', y);
+  ringTwo.setAttribute('r', size * 0.5);
+  ringTwo.setAttribute('fill', 'none');
+  ringTwo.setAttribute('stroke', SVG_COLORS.sugar);
+  ringTwo.style.strokeWidth = '5px';
+  ringTwo.style.vectorEffect = 'non-scaling-stroke';
+  ringTwo.style.transformBox = 'fill-box';
+  ringTwo.style.transformOrigin = 'center';
+  group.appendChild(ringTwo);
+  animations.push(ringTwo.animate([
+    { transform: 'scale(0.25)', strokeWidth: '5px', opacity: 0.9 },
+    { transform: `scale(${CLAIM_BURST.ringTwoScale})`, strokeWidth: '0.5px', opacity: 0 },
+  ], {
+    duration: CLAIM_BURST.ringDuration,
+    delay: CLAIM_BURST.ringTwoDelay,
+    easing: 'cubic-bezier(0.1, 0.8, 0.25, 1)',
+    fill: 'both',
+  }));
+
+  // La franja dorada se ensancha con la cadena: una racha larga se vuelve de oro.
+  const goldLimit = 2 + CLAIM_BURST.goldBand + chainIndex * CLAIM_BURST.goldBandPerChain;
+  const particleRadius = CLAIM_BURST.particleRadius + chainIndex * CLAIM_BURST.particleRadiusPerChain;
+
   for (let index = 0; index < count; index += 1) {
     // Reparto radial con un desvío pequeño para que no se lea como un patrón fijo.
     const angle = (index / count) * Math.PI * 2 + Math.random() * 0.6;
@@ -57,11 +84,11 @@ function playClaimBurst(options) {
     // Núcleo blanco, capa dorada y dueño por fuera: lectura de caramelo, dura 400ms.
     const particleColor = index < 2
       ? CLAIM_BURST.coreColor
-      : (index < 4 ? SVG_COLORS.sugar : color);
+      : (index < goldLimit ? SVG_COLORS.sugar : color);
     const particle = document.createElementNS(CLAIM_BURST_NS, 'circle');
     particle.setAttribute('cx', x);
     particle.setAttribute('cy', y);
-    particle.setAttribute('r', CLAIM_BURST.particleRadius);
+    particle.setAttribute('r', particleRadius);
     particle.setAttribute('fill', particleColor);
     particle.style.transformBox = 'fill-box';
     particle.style.transformOrigin = 'center';

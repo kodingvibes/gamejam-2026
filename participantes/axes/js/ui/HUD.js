@@ -19,6 +19,13 @@ class HUD {
     this.lastGlow = '';
     this.lastGridOpacity = '';
     this.lastBoxOpacity = '';
+    // Un solo hueco de aviso: mientras una racha esté viva, nada la pisa.
+    this.streakUntil = -Infinity;
+    this.aiTurnIndex = 0;
+    this.ellipsisTimer = null;
+    this.safePulse = null;
+    // El dorado solo existe como string CSS: Phaser necesita el entero equivalente.
+    this.sugarColor = Phaser.Display.Color.HexStringToColor(SVG_COLORS.sugar).color;
 
     this.playerOneCard = this.createCard(150, 36, 220, COLORS.playerOne, 'JUGADOR 1', SVG_COLORS.playerOne);
     this.playerTwoCard = this.createCard(650, 36, 220, COLORS.playerTwo, 'JUGADOR 2', SVG_COLORS.playerTwo);
@@ -31,7 +38,7 @@ class HUD {
       fontStyle: 'bold',
       letterSpacing: 1,
     }).setOrigin(0.5);
-    this.thinkingText = scene.add.text(400, 90, '', {
+    this.thinkingText = scene.add.text(400, 96, '', {
       color: SVG_COLORS.playerTwo,
       fontFamily: FONTS.GAME,
       fontSize: '14px',
@@ -39,14 +46,31 @@ class HUD {
       letterSpacing: 2,
     }).setOrigin(0.5);
 
-    // Aviso de cadena: encaja entre la píldora de turno y el texto de la IA.
-    this.chainText = scene.add.text(400, 68, '', {
+    // Aviso de cadena: 34px centrados en 66 ocupan 49..83, libres del texto de la
+    // IA (96) y del marco del tablero (106).
+    this.chainPlate = scene.add.rectangle(400, 66, 10, 10, COLORS.panelBg, 0.9).setAlpha(0);
+    this.chainText = scene.add.text(400, 66, '', {
       color: SVG_COLORS.playerOne,
       fontFamily: FONTS.GAME,
       fontSize: '15px',
       fontStyle: 'bold',
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0);
+
+    // Mecha del terreno seguro: bajo el marco del tablero (674) y lejos de los botones.
+    this.safeLabel = scene.add.text(400, SAFE_METER.labelY, '', {
+      color: SVG_COLORS.textMuted,
+      fontFamily: FONTS.GAME,
+      fontSize: '13px',
+      fontStyle: 'bold',
+      letterSpacing: 2,
+    }).setOrigin(0.5).setAlpha(0);
+    this.safeTrack = scene.add.rectangle(400, SAFE_METER.barY, SAFE_METER.width, SAFE_METER.height, COLORS.buttonBase, 0.9)
+      .setStrokeStyle(1, COLORS.panelBorder, 1)
+      .setAlpha(0);
+    this.safeFill = scene.add.rectangle(400 - SAFE_METER.width / 2, SAFE_METER.barY, 0, SAFE_METER.height, COLORS.textMuted)
+      .setOrigin(0, 0.5)
+      .setAlpha(0);
 
     this.restartButton = new GlitchButton(this.scene, 680, 750, 150, 42, 'REINICIAR', () => this.onRestart(), {
       fontSize: '15px',
@@ -57,10 +81,20 @@ class HUD {
       { fontSize: AUDIO_TOGGLE.fontSize },
     );
     [this.playerOneCard.card, this.playerOneCard.label, this.playerOneCard.score,
+      this.playerOneCard.track, this.playerOneCard.progress,
       this.playerTwoCard.card, this.playerTwoCard.label, this.playerTwoCard.score,
-      this.turnPill, this.turnText, this.thinkingText, this.chainText].forEach((object) => object.setDepth(DEPTH.hud));
+      this.playerTwoCard.track, this.playerTwoCard.progress,
+      this.turnPill, this.turnText, this.thinkingText, this.chainText,
+      this.safeLabel, this.safeTrack, this.safeFill].forEach((object) => object.setDepth(DEPTH.hud));
+    // La placa vive justo debajo del texto de cadena, nunca encima.
+    this.chainPlate.setDepth(DEPTH.hud - 1);
     this.restartButton.setDepth(DEPTH.controls);
     this.soundButton.setDepth(DEPTH.controls);
+
+    // Los eventos temporizados del HUD no pueden sobrevivir a la escena.
+    const cleanup = () => this.destroy();
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+    scene.events.once(Phaser.Scenes.Events.DESTROY, cleanup);
   }
 
   /** @returns {boolean|null} preferencia guardada; null si el almacenamiento no está disponible */
@@ -105,14 +139,22 @@ class HUD {
       fontSize: UI_STYLE.scoreSize,
       fontStyle: 'bold',
     }).setOrigin(1, 0.5);
-    return { card, label: labelText, score, color };
+    // Barra de avance dentro de la tarjeta (y 7..65): la carrera se lee sin leer dígitos.
+    const barWidth = width - 28;
+    const track = this.scene.add.rectangle(x, y + 24, barWidth, 3, COLORS.textDim, 0.35);
+    const progress = this.scene.add.rectangle(x - width / 2 + 14, y + 24, 0, 3, color, 1)
+      .setOrigin(0, 0.5);
+    return { card, label: labelText, score, color, track, progress, barWidth };
   }
 
   /** @param {{currentPlayer: number, scores: number[]}} state */
   update(state) {
     // El dígito nunca queda viejo; el rebote lo dispara el +1 al aterrizar.
+    const totalBoxes = Math.max(1, state.boxes?.length ?? 1);
     [this.playerOneCard, this.playerTwoCard].forEach((card, index) => {
       card.score.setText(String(state.scores[index]));
+      // Una vez por jugada, nunca por frame.
+      card.progress.setSize(card.barWidth * Math.min(1, state.scores[index] / totalBoxes), 3);
     });
     this.scores = [...state.scores];
     this.turnColor = state.currentPlayer === 0 ? SVG_COLORS.playerOne : SVG_COLORS.playerTwo;
@@ -130,18 +172,27 @@ class HUD {
     this.scene.game.canvas.style.borderWidth = `${UI_STYLE.activePlayerBorderWidth}px`;
   }
 
-  /** @param {Phaser.GameObjects.Text} scoreText */
-  popScore(scoreText) {
+  /** @param {Phaser.GameObjects.Text} scoreText @param {number} chainIndex peldaño de la cadena */
+  popScore(scoreText, chainIndex = 0) {
     this.scene.tweens.killTweensOf(scoreText);
     scoreText.setScale(1);
     // Con movimiento reducido el marcador ya quedó escrito: solo se salta el rebote.
     if (!this.scene.reactiveEnabled) return;
     this.scene.tweens.add({
       targets: scoreText,
-      scale: GAME_FEEL.scorePopScale,
+      scale: chainIndex >= GAME_FEEL.scorePopBigFrom ? GAME_FEEL.scorePopScaleBig : GAME_FEEL.scorePopScale,
       duration: GAME_FEEL.scorePopDuration,
       ease: 'Back.out',
       yoyo: true,
+    });
+  }
+
+  /** Destello de la tarjeta al recibir el punto: el color del dueño lava el panel. */
+  flashCard(card) {
+    if (!card.card.scene) return;
+    card.card.setFillStyle(card.color, 0.35);
+    this.scene.time.delayedCall(120, () => {
+      if (card.card.scene) card.card.setFillStyle(COLORS.panelBg, UI_STYLE.panelAlpha);
     });
   }
 
@@ -150,27 +201,34 @@ class HUD {
    * Va en el SVG del tablero, no en el lienzo: el lienzo queda DEBAJO del SVG y el
    * marco opaco del tablero taparía el viaje entero. Ambos comparten el viewBox
    * 0 0 GAME_WIDTH GAME_HEIGHT, así que las coordenadas de Phaser valen tal cual.
-   * @param {number} fromX @param {number} fromY @param {number} player
+   * @param {number} fromX @param {number} fromY @param {number} player @param {number} chainIndex
    */
-  flingScore(fromX, fromY, player) {
+  flingScore(fromX, fromY, player, chainIndex = 0) {
     const card = player === 0 ? this.playerOneCard : this.playerTwoCard;
     const svg = this.scene.board?.svg;
     // Con movimiento reducido, sin WAAPI o sin tablero, el marcador solo rebota.
     if (!this.scene.reactiveEnabled || !svg || !effectsAllowed()) {
-      this.popScore(card.score);
+      this.popScore(card.score, chainIndex);
       return;
     }
+    const ownerColor = player === 0 ? SVG_COLORS.playerOne : SVG_COLORS.playerTwo;
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', fromX);
     text.setAttribute('y', fromY);
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'central');
-    text.setAttribute('fill', player === 0 ? SVG_COLORS.playerOne : SVG_COLORS.playerTwo);
-    text.style.font = `bold ${GAME_FEEL.flingFontSize} ${FONTS.GAME}`;
+    // Dorado con filo del dueño: sobre una tarjeta del mismo color seguiría leyéndose.
+    text.setAttribute('fill', SVG_COLORS.sugar);
+    text.setAttribute('stroke', ownerColor);
+    text.setAttribute('stroke-width', 2);
+    text.setAttribute('paint-order', 'stroke');
+    const size = chainIndex >= GAME_FEEL.flingBigFrom ? GAME_FEEL.flingFontSizeBig : GAME_FEEL.flingFontSize;
+    text.style.font = `bold ${size} ${FONTS.GAME}`;
     text.style.pointerEvents = 'none';
     text.style.transformBox = 'fill-box';
     text.style.transformOrigin = 'center';
-    text.textContent = '+1';
+    // Pasado cierto peldaño la ficha deja de contar cajas y canta el multiplicador.
+    text.textContent = chainIndex >= GAME_FEEL.flingMultiplierFrom ? `x${chainIndex + 1}` : '+1';
     svg.appendChild(text);
     const total = GAME_FEEL.flingRiseDuration + GAME_FEEL.flingTravelDuration;
     const dx = card.score.x - fromX;
@@ -192,39 +250,121 @@ class HUD {
         offset: 0.86,
         easing: 'linear',
       },
-      { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(0.45)`, opacity: 0 },
+      // Muere POR ENCIMA del dígito: aterrizar sobre él anulaba los dos a la vez.
+      {
+        transform: `translate(${dx.toFixed(1)}px, ${(dy + GAME_FEEL.flingLandOffset).toFixed(1)}px) scale(0.45)`,
+        opacity: 0,
+      },
     ], { duration: total, fill: 'both' });
     animation.finished.then(() => {
       text.remove();
       // Al reiniciar la escena el marcador ya está destruido: no se rebota un muerto.
-      if (card.score.scene) this.popScore(card.score);
+      if (card.score.scene) {
+        this.popScore(card.score, chainIndex);
+        this.flashCard(card);
+      }
     }, () => text.remove());
+  }
+
+  /**
+   * Único hueco de aviso del HUD: racha, cambio de mando y match point comparten
+   * objeto. No cabe un segundo texto entre la píldora de turno y el marco.
+   * @param {string} label @param {string} color @param {number} fontSize px
+   * @param {number} hold ms antes del desvanecido @param {boolean} wobble
+   */
+  popBanner(label, color, fontSize, hold, wobble = false) {
+    const targets = [this.chainText, this.chainPlate];
+    this.scene.tweens.killTweensOf(targets);
+    this.chainText.setFontSize(fontSize);
+    this.chainText.setText(label);
+    this.chainText.setColor(color);
+    // La placa oscura mantiene legible el dorado grande sobre el fondo del juego.
+    // El alto se ciñe al texto: con 34px la placa ya roza la línea de la IA (96).
+    this.chainPlate.setSize(this.chainText.width + 26, this.chainText.height + 6);
+    targets.forEach((object) => object.setAngle(0));
+    // Con movimiento reducido el aviso aparece ya a tamaño final y solo se desvanece.
+    const animated = Boolean(this.scene.reactiveEnabled);
+    targets.forEach((object) => object.setAlpha(1).setScale(animated ? 0.55 : 1));
+    if (animated) {
+      this.scene.tweens.add({
+        targets,
+        scale: 1,
+        duration: GAME_FEEL.chainPopDuration,
+        ease: 'Back.out',
+      });
+      if (wobble) {
+        this.scene.tweens.add({
+          targets,
+          angle: { from: -3, to: 3 },
+          duration: 90,
+          yoyo: true,
+          repeat: 2,
+          onComplete: () => targets.forEach((object) => object.setAngle(0)),
+        });
+      }
+    }
+    this.scene.tweens.add({
+      targets,
+      alpha: 0,
+      delay: hold,
+      duration: GAME_FEEL.chainFadeDuration,
+    });
   }
 
   /** @param {number} count cajas seguidas del mismo jugador */
   showStreak(count) {
     const value = Math.max(2, Math.floor(count));
-    const label = value >= 6 ? `IMPARABLE x${value}` : (value >= 3 ? `RACHA x${value}` : 'DOBLE');
+    let label = 'DOBLE';
+    if (value >= 10) label = `PERFECTO x${value}`;
+    else if (value >= 7) label = `DEVASTADOR x${value}`;
+    else if (value >= 6) label = `IMPARABLE x${value}`;
+    else if (value >= 3) label = `RACHA x${value}`;
+    // El tamaño sube con la racha: a x8 el aviso era más pequeño que la etiqueta TURNO.
+    const sizes = { 2: 15, 3: 22, 4: 26, 5: 30 };
+    const fontSize = `${sizes[value] ?? 34}px`;
     // El dorado marca el salto de nivel; el doble se queda con el color del turno.
     const color = value >= 3 ? SVG_COLORS.sugar : this.turnColor;
-    this.scene.tweens.killTweensOf(this.chainText);
-    this.chainText.setText(label);
-    this.chainText.setColor(color);
-    // Con movimiento reducido el aviso aparece ya a tamaño final y solo se desvanece.
-    this.chainText.setAlpha(1).setScale(this.scene.reactiveEnabled ? 0.55 : 1);
-    if (this.scene.reactiveEnabled) {
-      this.scene.tweens.add({
-        targets: this.chainText,
-        scale: 1 + Math.min(4, value - 2) * GAME_FEEL.streakScaleStep,
-        duration: GAME_FEEL.chainPopDuration,
-        ease: 'Back.out',
-      });
+    const hold = GAME_FEEL.chainHoldDuration + value * 60;
+    // La racha manda: mientras esté viva ningún otro aviso ocupa el hueco.
+    this.streakUntil = this.scene.time.now + hold;
+    this.popBanner(label, color, fontSize, hold, value >= 5);
+  }
+
+  /** @param {string} text @param {string} [color] */
+  showBanner(text, color) {
+    if (this.scene.time.now < this.streakUntil) return;
+    this.popBanner(text, color ?? SVG_COLORS.textPrimary, '20px', GAME_FEEL.chainHoldDuration);
+  }
+
+  /**
+   * Medidor de terreno seguro. Nunca se confunde con un marcador: es una barra
+   * en su propia familia de color y vive bajo el tablero.
+   * @param {number} value jugadas seguras restantes @param {number} denominator primera lectura
+   */
+  setSafeMeter(value, denominator) {
+    const ratio = Math.max(0, Math.min(1, value / Math.max(1, denominator)));
+    const isWarning = value <= SAFE_METER.warnAt;
+    const isCritical = value <= SAFE_METER.criticalAt;
+    this.safeLabel.setText(value <= 0 ? SAFE_METER.labelEmpty : `${SAFE_METER.labelIdle} · ${value}`);
+    this.safeLabel.setColor(isWarning ? SVG_COLORS.sugar : SVG_COLORS.textMuted);
+    this.safeFill.setFillStyle(isWarning ? this.sugarColor : COLORS.textMuted, 1);
+    this.safeFill.setSize(SAFE_METER.width * ratio, SAFE_METER.height);
+    this.safeLabel.setAlpha(1);
+    this.safeTrack.setAlpha(1);
+    if (!isCritical || !this.scene.reactiveEnabled) {
+      if (this.safePulse) this.scene.tweens.killTweensOf([this.safeFill, this.safeLabel]);
+      this.safePulse = null;
+      this.safeFill.setAlpha(1);
+      return;
     }
-    this.scene.tweens.add({
-      targets: this.chainText,
-      alpha: 0,
-      delay: GAME_FEEL.chainHoldDuration + value * 60,
-      duration: GAME_FEEL.chainFadeDuration,
+    // Ya en zona crítica: el latido no se relanza en cada jugada.
+    if (this.safePulse) return;
+    this.safePulse = this.scene.tweens.add({
+      targets: [this.safeFill, this.safeLabel],
+      alpha: 0.45,
+      duration: 520,
+      yoyo: true,
+      repeat: -1,
     });
   }
 
@@ -264,7 +404,28 @@ class HUD {
     this.lastGridOpacity = '';
     this.lastBoxOpacity = '';
     document.documentElement.style.removeProperty('--grid-opacity');
+    // El tinte del bando ganador no puede sobrevivir hasta el menú.
+    document.documentElement.style.removeProperty('--grid-border');
     this.scene?.board?.svg?.style.removeProperty('--box-owner-opacity');
+  }
+
+  /**
+   * Partida terminada: el HUD deja de anunciar un turno pendiente y el lienzo
+   * pierde el color del jugador de turno.
+   */
+  setFinished() {
+    this.turnText.setText('');
+    this.turnPill.setStrokeStyle(1, COLORS.panelBorder, 1);
+    [this.playerOneCard, this.playerTwoCard].forEach((card) => {
+      card.card.setStrokeStyle(1, COLORS.panelBorder, 1);
+      card.card.setAlpha(1);
+      card.score.setAlpha(1);
+    });
+    this.scene.game.canvas.style.borderColor = SVG_COLORS.grayBorder;
+    this.setAiThinking(false);
+    if (this.safePulse) this.scene.tweens.killTweensOf([this.safeFill, this.safeLabel]);
+    this.safePulse = null;
+    [this.safeLabel, this.safeTrack, this.safeFill].forEach((object) => object.setVisible(false));
   }
 
   /** Oculta o muestra la acción persistente durante la partida. */
@@ -278,13 +439,51 @@ class HUD {
     this.restartButton.setEnabled(enabled);
   }
 
-  /** Muestra feedback durante el turno automático sin cambiar las reglas. */
-  setAiThinking(isThinking) {
-    this.thinkingText.setText(isThinking ? AI_CONFIG.thinkingText : '');
-    this.thinkingText.setVisible(isThinking);
+  /**
+   * Feedback del turno automático, con la voz de cada dificultad.
+   * La frase se elige por índice de turno, no al azar: no parpadea entre frames.
+   * @param {boolean} isThinking @param {string} [difficulty] @param {boolean} [chainTell]
+   */
+  setAiThinking(isThinking, difficulty, chainTell = false) {
+    this.stopEllipsis();
+    if (!isThinking) {
+      this.thinkingText.setText('');
+      this.thinkingText.setVisible(false);
+      return;
+    }
+    const lines = AI_THINKING[difficulty];
+    const base = chainTell
+      ? AI_THINKING.chainTell
+      : (Array.isArray(lines) && lines.length > 0
+        ? lines[this.aiTurnIndex % lines.length]
+        : AI_CONFIG.thinkingText.replace(/\.+$/, ''));
+    this.aiTurnIndex += 1;
+    this.thinkingText.setVisible(true);
+    // Con movimiento reducido los puntos quedan quietos: es texto, no animación.
+    if (!this.scene.reactiveEnabled) {
+      this.thinkingText.setText(`${base}...`);
+      return;
+    }
+    this.thinkingText.setText(base);
+    let step = 0;
+    this.ellipsisTimer = this.scene.time.addEvent({
+      delay: AI_THINKING.ellipsisPeriod,
+      loop: true,
+      callback: () => {
+        step = (step + 1) % 4;
+        this.thinkingText.setText(base + '.'.repeat(step));
+      },
+    });
+  }
+
+  stopEllipsis() {
+    this.ellipsisTimer?.remove(false);
+    this.ellipsisTimer = null;
   }
 
   destroy() {
-    // La escena destruye automáticamente sus GameObjects.
+    // La escena destruye automáticamente sus GameObjects, pero no sus temporizadores.
+    this.stopEllipsis();
+    this.safePulse = null;
   }
 }

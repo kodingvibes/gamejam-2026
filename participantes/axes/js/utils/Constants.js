@@ -78,7 +78,8 @@ const SVG_COLORS = Object.freeze({
   buttonBase: '#1a1f2c',
   buttonHover: '#252d40',
   dot: '#000000',
-  emptyLine: '#000000',
+  emptyLine: '#05070d',
+  dotStroke: 'rgba(0, 245, 255, 0.25)',
   hoverLine: '#00f5ff',
   playerOne: '#00e5ff',
   playerTwo: '#f626a8',
@@ -106,7 +107,7 @@ const BOARD_STYLE = Object.freeze({
   dotRadius: 7,
   lineWidth: 6,
   lineHoverWidth: 8,
-  hitboxWidth: 28,
+  hitboxWidth: 40,
   cellRadius: 0,
   cellOpacity: 0.92,
   ownerOpacity: 0.28,
@@ -117,7 +118,7 @@ const BOARD_STYLE = Object.freeze({
 
 // Tiempos breves de presentación que no alteran las reglas del juego.
 const GAME_TIMING = Object.freeze({
-  gameOverDelay: 650,
+  gameOverDelay: 900,
   // Milisegundos extra por paso de racha antes de tapar el tablero con el panel final.
   gameOverStreakDelay: 90,
 });
@@ -126,6 +127,17 @@ const AI_DIFFICULTY = Object.freeze({
   EASY: 'easy',
   MEDIUM: 'medium',
   HARD: 'hard',
+});
+
+// Cada cuánto MEDIUM se equivoca a propósito en un turno sin puntuación.
+// Sin esto nunca abre una cadena y la partida se decide sola. Medido con 300 partidas
+// de 4 puntos por lado (9 cajas) contra un bot casual que come si puede y si no juega al
+// azar: rate 0 -> 1.7/9 cajas y 9% de victorias, 0.35 -> 3.2/9 y 23%, 0.5 -> 4.1/9 y 40%.
+// Referencias con el mismo bot: EASY 7.7/9 y 100%, HARD 1.3/9 y 5%. Un humano real juega
+// mejor que ese bot, así que 0.35 sube sin convertir MEDIUM en un segundo EASY.
+// Es la perilla para ajustar dificultad: subirlo ablanda, bajarlo endurece.
+const AI_PERSONALITY = Object.freeze({
+  [AI_DIFFICULTY.MEDIUM]: Object.freeze({ blunderRate: 0.35 }),
 });
 
 const AI_CONFIG = Object.freeze({
@@ -172,15 +184,22 @@ const BOX_CLAIM_GLITCH = Object.freeze({
 // Estallido neón al reclamar una caja. Se escala con la posición en la cadena.
 const CLAIM_BURST = Object.freeze({
   baseCount: 7,
-  countPerChain: 2,
-  maxCount: 16,
+  countPerChain: 3,
+  maxCount: 26,
   radius: 46,
-  radiusPerChain: 11,
+  radiusPerChain: 16,
   particleRadius: 4,
+  particleRadiusPerChain: 0.4,
+  // Dos aros, blanco y dorado: la onda se lee como luz y no como humo.
+  ringTwoDelay: 60,
+  ringTwoScale: 1.6,
+  // Franja dorada de partículas: se ensancha con la cadena hasta teñir el estallido.
+  goldBand: 2,
+  goldBandPerChain: 0.6,
   duration: 420,
   durationJitter: 160,
   ringColor: '#ffffff',
-  ringDuration: 380,
+  ringDuration: 420,
   coreColor: '#ffffff',
   // Más de 4 y el grupo temporal vive ~1.2s: dos reclamos seguidos dejarían dos grupos.
   sparkleCount: 3,
@@ -203,14 +222,14 @@ const BOARD_PULSE = Object.freeze({
 const AUDIO_REACTIVE = Object.freeze({
   smoothing: 0.18,
   glowFloor: 5,
-  glowRange: 16,
+  glowRange: 24,
   glowAlpha: '55',
   gridOpacityFloor: 0.18,
   gridOpacityRange: 0.1,
   boxOpacityFloor: BOARD_STYLE.ownerOpacity,
   boxOpacityRange: 0.07,
   // El avance de la partida se suma a las expresiones existentes: no añade escrituras.
-  heatRange: 10,
+  heatRange: 18,
   heatOpacityRange: 0.05,
 });
 
@@ -229,12 +248,20 @@ const GAME_FEEL = Object.freeze({
   chainPopDuration: 200,
   chainHoldDuration: 900,
   chainFadeDuration: 220,
-  streakCap: 6,          // mismo tope que ya aplican playClaimBurst y playBoxClaim
-  streakScaleStep: 0.07,
+  streakCap: 10,         // cadenas medidas: 7.5-8.3 en 5x5 y 10.6-12.4 en 6x6
+  shakeChainCap: 6,      // sacudida y haptics NO siguen al tope nuevo: 10 peldaños marean
   streakStagger: 90,     // separacion visual entre las cajas de una misma jugada
+  streakStaggerFast: 60, // a partir de cierta racha la cadena se comprime y suena seguida
+  streakStaggerFastFrom: 5,
   flingRiseDuration: 150,
   flingTravelDuration: 300,
   flingFontSize: '40px',
+  flingFontSizeBig: '52px',
+  flingBigFrom: 2,
+  flingMultiplierFrom: 4,
+  flingLandOffset: -26,
+  scorePopScaleBig: 1.45,
+  scorePopBigFrom: 3,
 });
 
 // Vibración móvil. navigator.vibrate arranca vibrando: los índices pares son duración.
@@ -242,6 +269,7 @@ const HAPTICS = Object.freeze({
   move: 12,
   box: 18,
   boxPerChain: 8,
+  boxMax: 90,            // tope de vibración independiente del tope visual
   invalid: 10,
   victory: Object.freeze([40, 60, 40, 60, 120]),
 });
@@ -335,13 +363,18 @@ const BUTTON_STYLE = Object.freeze({
 // Layout del panel final: una fila centrada y simétrica.
 const GAME_OVER_STYLE = Object.freeze({
   panelWidth: 620,
-  panelHeight: 390,
+  panelHeight: 480,
   centerX: GAME_WIDTH / 2,
   centerY: GAME_HEIGHT / 2,
-  titleY: 265,
-  resultY: 335,
-  scoreY: 395,
-  buttonsY: 500,
+  // El panel ocupa y 160..640: libre de las tarjetas del HUD y del botón de sonido.
+  titleY: 225,
+  resultY: 285,
+  gradeY: 362,
+  gradeCaptionY: 408,
+  scoreY: 452,
+  recordY: 494,
+  hookY: 526,
+  buttonsY: 575,
   buttonWidth: 220,
   buttonHeight: 52,
   buttonGap: 30,
@@ -368,4 +401,104 @@ const CONFIRM_MODAL_STYLE = Object.freeze({
   buttonGap: 24,
   overlayAlpha: 0.78,
   panelAlpha: 0.99,
+});
+
+// Telegrafía de caja caliente: 3 de 4 lados trazados. Marca dorada, nunca un relleno.
+const HOT_BOX = Object.freeze({
+  inset: 0.09,            // fracción del lado de la celda
+  strokeWidth: 3,
+  dash: '10 7',
+  peak: 0.55,
+  rest: 0.12,
+  period: 1400,
+  delayStep: 90,          // ms por (fila + columna): un tablero entero caliente se lee como onda
+  densityThreshold: 0.4,  // por encima, la marca baja de intensidad en vez de desaparecer
+  densePeak: 0.24,
+  densePeriod: 2200,
+});
+
+// Impacto de la línea en sus dos puntos. El retraso sigue al revelado, no lo adelanta.
+const DOT_IMPACT = Object.freeze({
+  delay: 140,             // 0.58 * BOARD_STYLE.lineRevealDuration: la punta llega aquí
+  punchScale: 1.5,
+  punchDuration: 200,
+  ringRadius: 7,
+  ringScale: 2.6,
+  ringWidth: 4,
+  ringDuration: 260,
+  hoverScale: 1.2,
+});
+
+// Latido de reposo de los puntos. Amplitud por debajo del golpe: nunca se confunden.
+const DOT_IDLE = Object.freeze({ scale: 1.12, duration: 3200, delayStep: 140 });
+
+// Hilo que une una caja de la cadena con la anterior. Siempre temporal.
+const CHAIN_LINK = Object.freeze({
+  width: 3, widthPerStep: 0.6, maxWidth: 7,
+  revealDuration: 200, holdDuration: 140, fadeDuration: 300,
+  goldFromStep: 4,
+});
+
+// Destello dorado sobre todo el marco en una racha larga.
+const STREAK_FLASH = Object.freeze({
+  minStreak: 4, peak: 0.14, peakPerStep: 0.02, maxPeak: 0.26,
+  duration: 260, delay: 120,
+});
+
+// Barrido de la IA mientras piensa. Cabe dentro de AI_CONFIG.turnDelay.
+const AI_SCAN = Object.freeze({ duration: 480, opacity: 0.22, width: 2 });
+
+// Vista previa al pasar por una línea libre: solo el premio, nunca la trampa.
+const HOVER_PREVIEW = Object.freeze({ fillOpacity: 0.16, duration: 120 });
+
+// Reacción de las cajas vacías vecinas a un reclamo. Solo trazo: un relleno parecería dueño.
+const EMPTY_RIPPLE = Object.freeze({
+  strokeOpacity: 0.25, strokeWidth: 1.5, duration: 180, stagger: 40, radius: 1,
+});
+
+// Confeti del panel final. Medido: el vuelo no cuesta frame, solo la construcción.
+const CONFETTI = Object.freeze({
+  count: 110, recordCount: 140,
+  minWidth: 9, maxWidth: 15, aspect: 1.6,
+  duration: 1900, durationJitter: 1300,
+  driftRange: 80, spinRange: 540, fallDistance: 880,
+  stagger: 8, originY: -20,
+});
+
+// Medidor de terreno seguro: la tensión del medio juego, hoy invisible.
+const SAFE_METER = Object.freeze({
+  labelY: 684, barY: 702, width: 360, height: 8,
+  warnAt: 6, criticalAt: 2,
+  labelIdle: 'TERRENO SEGURO', labelEmpty: 'SIN SALIDA',
+});
+
+// Coreografía del final de partida.
+const GAME_OVER_FEEL = Object.freeze({
+  scrimAlpha: 0.72, scrimDuration: 180,
+  dissolveDuration: 260,
+  panelOpenDuration: 260, panelOpenScaleY: 0.06,
+  titleDelay: 300, resultDelay: 420, scoreDelay: 520, countDuration: 520,
+  gradeDelay: 900, stampDuration: 180,
+  buttonsDelay: 900,
+  gradeFontSize: '76px', captionFontSize: '15px',
+  storageKey: 'timbiriche:best',
+});
+
+// Entrada y latido del menú. Solo transforms de contenedor.
+const MENU_FEEL = Object.freeze({
+  titleDuration: 320, subtitleDelay: 120, subtitleDuration: 220,
+  panelDelay: 180, panelDuration: 260,
+  buttonDelay: 300, buttonStagger: 45, buttonDuration: 180,
+  idleScale: 1.015, idleDuration: 2400,
+  fadeOutDuration: 200,
+  recordY: 660,
+});
+
+// Personalidad de la IA en su compás de pensar. Se rota por índice, no al azar por frame.
+const AI_THINKING = Object.freeze({
+  easy: Object.freeze(['IA · TANTEANDO', 'IA · A VER...']),
+  medium: Object.freeze(['IA · MIDIENDO EL RIESGO', 'IA · CALCULANDO']),
+  hard: Object.freeze(['IA · LEYENDO CADENAS', 'IA · TE VEO VENIR']),
+  chainTell: 'IA · ME LAS COMO TODAS',
+  ellipsisPeriod: 220,
 });

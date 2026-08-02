@@ -15,6 +15,9 @@ class Board {
     this.dots = [];
     this.boxes = [];
     this.lineById = new Map();
+    this.boxById = new Map();
+    this.previewAnimations = [];
+    this.dotIdle = null;
     this.inputEnabled = true;
     this.moveEnabled = true;
     this.activePlayer = this.state.currentPlayer;
@@ -39,6 +42,9 @@ class Board {
     const left = (GAME_WIDTH - BOARD_STYLE.width) / 2;
     const top = BOARD_STYLE.top;
 
+    // Los degradados van primero para no alterar el orden de pintado.
+    this.svg.appendChild(this.createFillDefs());
+
     const frame = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     frame.setAttribute('x', left - BOARD_STYLE.framePadding);
     frame.setAttribute('y', top - BOARD_STYLE.framePadding);
@@ -60,7 +66,9 @@ class Board {
     for (let row = 0; row < this.size - 1; row += 1) {
       for (let column = 0; column < this.size - 1; column += 1) {
         const cellColor = (row + column) % 2 === 0 ? SVG_COLORS.boardCellA : SVG_COLORS.boardCellB;
-        this.boxes.push(new Box(this.boxesLayer, `box-${row}-${column}`, left + column * spacing, top + row * spacing, spacing, cellColor));
+        const box = new Box(this.boxesLayer, `box-${row}-${column}`, left + column * spacing, top + row * spacing, spacing, cellColor);
+        this.boxes.push(box);
+        this.boxById.set(box.id, box);
       }
     }
 
@@ -72,7 +80,7 @@ class Board {
         const line = new Line(this.svg, {
           id: `h-${row}-${column}`,
           type: 'h', x1, y1: y, x2, y2: y,
-        }, (lineId) => this.handleLineClick(lineId), () => this.getActivePlayerColor());
+        }, (lineId) => this.handleLineClick(lineId), () => this.getActivePlayerColor(), (lineId, hovered) => this.handleLineHover(lineId, hovered));
         this.lines.push(line);
         this.lineById.set(line.id, line);
       }
@@ -86,7 +94,7 @@ class Board {
         const line = new Line(this.svg, {
           id: `v-${row}-${column}`,
           type: 'v', x1: x, y1, x2: x, y2,
-        }, (lineId) => this.handleLineClick(lineId), () => this.getActivePlayerColor());
+        }, (lineId) => this.handleLineClick(lineId), () => this.getActivePlayerColor(), (lineId, hovered) => this.handleLineHover(lineId, hovered));
         this.lines.push(line);
         this.lineById.set(line.id, line);
       }
@@ -94,9 +102,56 @@ class Board {
 
     for (let row = 0; row < this.size; row += 1) {
       for (let column = 0; column < this.size; column += 1) {
-        this.dots.push(new Dot(this.svg, left + column * spacing, top + row * spacing));
+        const dot = new Dot(this.svg, left + column * spacing, top + row * spacing);
+        // En reposo los puntos parecían taladros negros: un borde apenas encendido
+        // los devuelve al mismo idioma neón que las líneas.
+        dot.element.setAttribute('stroke', SVG_COLORS.dotStroke);
+        dot.element.setAttribute('stroke-width', 2);
+        this.dots.push(dot);
       }
     }
+
+    this.dotIdle = startDotIdle(this.dots.map((dot) => dot.element));
+  }
+
+  /** Un degradado por jugador; objectBoundingBox permite reutilizarlo en toda celda. */
+  createFillDefs() {
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    [['box-fill-p0', SVG_COLORS.playerOne], ['box-fill-p1', SVG_COLORS.playerTwo]].forEach(([id, color]) => {
+      const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+      gradient.setAttribute('id', id);
+      [[0, 1], [0.7, 0.55], [1, 0.34]].forEach(([offset, opacity]) => {
+        const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop.setAttribute('offset', offset);
+        stop.setAttribute('stop-color', color);
+        stop.setAttribute('stop-opacity', opacity);
+        gradient.appendChild(stop);
+      });
+      defs.appendChild(gradient);
+    });
+    return defs;
+  }
+
+  /**
+   * Índices de los dos puntos que toca una línea. Los puntos se apilan por filas,
+   * así que la posición es pura aritmética y no hace falta ninguna estructura extra.
+   * @param {string} lineId @returns {number[]}
+   */
+  getLineDotIndexes(lineId) {
+    const parts = String(lineId).split('-');
+    const row = Number(parts[1]);
+    const column = Number(parts[2]);
+    if (!Number.isFinite(row) || !Number.isFinite(column)) return [];
+    const base = row * this.size + column;
+    return parts[0] === 'h' ? [base, base + 1] : [base, base + this.size];
+  }
+
+  /** @param {string} lineId @param {string} color @param {object} [options] */
+  punchLineDots(lineId, color, options) {
+    this.getLineDotIndexes(lineId).forEach((index) => {
+      const dot = this.dots[index];
+      if (dot) punchDot(dot.element, color, { parent: this.svg, ...options });
+    });
   }
 
   handleLineClick(lineId) {
@@ -126,8 +181,122 @@ class Board {
   }
 
   renderState() {
-    this.state.lines.forEach((line) => this.lineById.get(line.id)?.setOwner(line.owner));
-    this.state.boxes.forEach((box) => this.boxes.find((view) => view.id === box.id)?.setOwner(box.owner));
+    this.clearHoverPreview();
+
+    const drawn = new Set();
+    this.state.lines.forEach((line) => {
+      if (line.owner !== null) drawn.add(line.id);
+      const view = this.lineById.get(line.id);
+      if (!view) return;
+      const wasEmpty = view.owner === null;
+      view.setOwner(line.owner);
+      // El retraso por defecto está calculado para que el aro salga cuando la
+      // punta del trazo llega al punto, no antes.
+      if (wasEmpty && line.owner !== null) {
+        this.punchLineDots(line.id, line.owner === 0 ? SVG_COLORS.playerOne : SVG_COLORS.playerTwo);
+      }
+    });
+
+    let hotCount = 0;
+    this.state.boxes.forEach((box) => {
+      const view = this.boxById.get(box.id);
+      if (!view) return;
+      view.setOwner(box.owner);
+      const hot = box.owner === null && box.edges.filter((edgeId) => drawn.has(edgeId)).length === 3;
+      if (hot) hotCount += 1;
+      view.setHot(hot);
+    });
+
+    // Una sola escritura por jugada, nunca por frame: con medio tablero caliente la
+    // marca baja de intensidad en vez de desaparecer, que es cuando más se necesita.
+    const dense = hotCount / this.state.boxes.length > HOT_BOX.densityThreshold;
+    this.svg.style.setProperty('--hot-peak', dense ? HOT_BOX.densePeak : HOT_BOX.peak);
+    this.svg.style.setProperty('--hot-period', `${dense ? HOT_BOX.densePeriod : HOT_BOX.period}ms`);
+    this.svg.style.setProperty('--hot-rest', HOT_BOX.rest);
+  }
+
+  /**
+   * Vista previa al pasar por una línea libre: SOLO el premio. Nunca las cajas que
+   * quedarían a tres lados, que es consejo estratégico y cambia la dificultad.
+   * @param {string} lineId @param {boolean} hovered
+   */
+  handleLineHover(lineId, hovered) {
+    if (!hovered) {
+      this.clearHoverPreview();
+      return;
+    }
+    if (!this.inputEnabled) return;
+
+    const color = this.getActivePlayerColor();
+    this.punchLineDots(lineId, color, { ring: false, scale: DOT_IMPACT.hoverScale, delay: 0 });
+    if (!effectsAllowed()) return;
+
+    getCompletedBoxesForMove(this.state, lineId).forEach((boxId) => {
+      const box = this.boxById.get(boxId);
+      if (!box) return;
+      // fill: 'both' mantiene el tinte mientras dure el hover; cancel() devuelve la
+      // celda EXACTAMENTE a su reposo sin tener que reconstruir ningún estilo.
+      this.previewAnimations.push(box.element.animate(
+        [{ fill: color, fillOpacity: HOVER_PREVIEW.fillOpacity }],
+        { duration: HOVER_PREVIEW.duration, easing: 'ease-out', fill: 'both' },
+      ));
+    });
+  }
+
+  clearHoverPreview() {
+    this.previewAnimations.forEach((animation) => animation.cancel());
+    this.previewAnimations.length = 0;
+  }
+
+  /**
+   * Reacción de las cajas VACÍAS vecinas a un reclamo. Solo trazo: escalar o rellenar
+   * una caja libre se lee como un reclamo falso.
+   * @param {string|null} originId @param {{color: string, exclude?: string[], radius?: number}} options
+   */
+  rippleEmpty(originId, options) {
+    if (!effectsAllowed() || !originId) return;
+    const origin = this.parseCell(originId);
+    if (!Number.isFinite(origin.row) || !Number.isFinite(origin.column)) return;
+    const radius = options?.radius ?? EMPTY_RIPPLE.radius;
+    this.boxes.forEach((box) => {
+      if (box.id === originId || options?.exclude?.includes(box.id)) return;
+      if (box.element.dataset.owner !== undefined) return;
+      const cell = this.parseCell(box.id);
+      const distance = Math.hypot(cell.row - origin.row, cell.column - origin.column);
+      // Con radius 1 las diagonales (1.41) quedan fuera: máximo 4 nodos por reclamo.
+      if (distance > radius) return;
+      // Sin fill-mode: al terminar, la caja libre vuelve sola a no tener trazo.
+      box.element.animate([
+        { stroke: options.color, strokeWidth: EMPTY_RIPPLE.strokeWidth, strokeOpacity: EMPTY_RIPPLE.strokeOpacity },
+        { stroke: options.color, strokeWidth: EMPTY_RIPPLE.strokeWidth, strokeOpacity: 0 },
+      ], {
+        duration: EMPTY_RIPPLE.duration,
+        delay: distance * EMPTY_RIPPLE.stagger,
+        easing: 'ease-out',
+      });
+    });
+  }
+
+  /** Hilo entre dos cajas consecutivas de una cadena. La escena decide cuándo. */
+  linkClaim(fromBoxId, toBoxId, color, step) {
+    const from = this.boxById.get(fromBoxId);
+    const to = this.boxById.get(toBoxId);
+    if (!from || !to || fromBoxId === toBoxId) return;
+    playChainLink({
+      parent: this.svg,
+      fromX: from.centerX,
+      fromY: from.centerY,
+      toX: to.centerX,
+      toY: to.centerY,
+      color,
+      step,
+    });
+  }
+
+  /** @param {string} id @returns {{row: number, column: number}} */
+  parseCell(id) {
+    const parts = String(id).split('-');
+    return { row: Number(parts[1]), column: Number(parts[2]) };
   }
 
   /**
@@ -137,16 +306,12 @@ class Board {
    */
   pulseOwned(originId, options) {
     if (!effectsAllowed() || !originId) return;
-    const parse = (id) => {
-      const parts = String(id).split('-');
-      return { row: Number(parts[1]), column: Number(parts[2]) };
-    };
-    const origin = parse(originId);
+    const origin = this.parseCell(originId);
     if (!Number.isFinite(origin.row) || !Number.isFinite(origin.column)) return;
     this.boxes.forEach((box) => {
       if (box.id === originId || options.exclude?.includes(box.id)) return;
       if (box.element.dataset.owner === undefined) return;
-      const cell = parse(box.id);
+      const cell = this.parseCell(box.id);
       const distance = Math.hypot(cell.row - origin.row, cell.column - origin.column);
       // Con radius 1 las diagonales (1.41) quedan fuera: solo vecinas ortogonales.
       if (options.radius && distance > options.radius) return;
@@ -187,6 +352,10 @@ class Board {
     this.onMove = null;
     this.setInteractive(false);
     this.onMove = null;
+    this.clearHoverPreview();
+    // Sin esto quedan tantas animaciones infinitas vivas como puntos por reinicio.
+    this.dotIdle?.cancel();
+    this.dotIdle = null;
     this.lines.forEach((line) => line.destroy());
     this.boxes.forEach((box) => box.destroy());
     this.dots.forEach((dot) => dot.element.remove());

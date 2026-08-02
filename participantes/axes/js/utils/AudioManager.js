@@ -8,10 +8,15 @@
  *   setDifficulty(difficulty)      'easy'|'medium'|'hard' -> 84/100/120 bpm. Otro valor -> 96 bpm.
  *   setProgress(ratio)             0..1 de líneas trazadas. Define las capas del arreglo.
  *   playMove(lineId, gridSize)     pluck afinado según la línea trazada y nota para el arpegio.
- *   playBoxClaim(chainIndex, byPlayer)  remate por grados de escala. chainIndex 0..6 de la racha,
+ *   playBoxClaim(chainIndex, byPlayer)  remate por grados de escala. chainIndex 0..CHAIN_CAP,
  *                                  byPlayer 0 humano (sube) o 1 IA (baja). Agacha el bed.
  *   playInvalid() / playHover()    feedback corto de UI.
  *   playTurnChange(player)         player 0 o 1.
+ *   playLeadChange(player, isComeback)  cambio de líder. player 0 sube, 1 baja.
+ *                                  isComeback (remontada desde 3+ abajo) añade nota y ganancia.
+ *   playClinch()                   la partida queda matemáticamente decidida. No es victoria.
+ *   playStamp(isRecord)            sello de la nota final en la pantalla de resultado.
+ *   setNoSafeMoves(flag)           sin jugadas seguras: fuerza el cambio de marcha en el downbeat.
  *   playVictory() / playDefeat()   remates finales.
  *   setMuted(muted) / toggleMute() devuelven el estado de silencio (boolean).
  *   vibrate(pattern)               háptico móvil, apagado por el mismo silencio.
@@ -46,6 +51,9 @@ class AudioManager {
     // Buffer circular de grados: cada jugada reescribe el arpegio.
     this.melody = [];
     this.gear = false;
+    // Se enciende cuando findSafeMoves llega a cero: adelanta el cambio de marcha al
+    // momento real en que cambia el carácter de la partida, no al umbral fijo.
+    this.forceGear = false;
     this.lastKickTime = -10;
     this.prevKickTime = -10;
     this.lastHoverTime = -10;
@@ -98,6 +106,32 @@ class AudioManager {
   /** @param {string} lineId @param {number} gridSize @returns {number} Hz */
   static frequencyForLine(lineId, gridSize) {
     return AudioManager.frequency(AudioManager.midiForLine(lineId, gridSize));
+  }
+
+  /**
+   * Grado base del remate de caja. El humano sube con la racha y la IA baja, así el
+   * mismo golpe se lee como "toma" o como "ay". El índice se acota aquí dentro: es el
+   * único sitio donde vive el tope, y por eso es lo que fijan las pruebas.
+   * @param {number} index posición en la racha @param {number} byPlayer 0 humano, 1 IA
+   * @returns {number} grado de escala 0..CHAIN_CAP
+   */
+  static claimDegreeBase(index, byPlayer = 0) {
+    const value = Number.isFinite(index) ? Math.floor(index) : 0;
+    const clamped = Math.min(AudioManager.CHAIN_CAP, Math.max(0, value));
+    return byPlayer === 1 ? AudioManager.CHAIN_CAP - clamped : clamped;
+  }
+
+  /**
+   * Notas del aviso de cambio de líder, en grados de escala: quinta justa y octava.
+   * La remontada añade una tercera nota por encima. El jugador 1 recibe la inversión
+   * descendente, misma convención que playTurnChange.
+   * @param {number} player 0 humano, 1 IA @param {boolean} isComeback
+   * @returns {number[]} grados de escala
+   */
+  static leadChangeDegrees(player = 0, isComeback = false) {
+    // Grado 3 -> 7 semitonos (quinta), 5 -> 12 (octava), 8 -> 19 (docena).
+    const degrees = isComeback ? [3, 5, 8] : [3, 5];
+    return player === 1 ? degrees.reverse() : degrees;
   }
 
   /** @param {number} progress 0..1 @returns {{pulse: boolean, pad: boolean, bass: boolean, hats: boolean, arp: boolean, gear: boolean, lead: boolean}} */
@@ -353,6 +387,7 @@ class AudioManager {
     this.melody = [];
     this.bar = 0;
     this.gear = false;
+    this.forceGear = false;
     return this.transpose;
   }
 
@@ -407,15 +442,17 @@ class AudioManager {
     // Único compás que distingue la primera mitad de la frase de la segunda: se caen
     // arpegio y hats, y bombo, bajo y pad siguen, así getBeat() nunca se queda plano.
     const drop = bar === AudioManager.DROP_BAR;
-    // El cambio de marcha se resuelve en el downbeat: cae como cambio musical, no como glitch.
-    if (step === 0) this.gear = layers.gear;
+    // El cambio de marcha se resuelve en el downbeat: cae como cambio musical, no como
+    // glitch. forceGear lo adelanta al momento en que ya no quedan jugadas seguras.
+    const wantsGear = layers.gear || this.forceGear;
+    if (step === 0) this.gear = wantsGear;
 
     const kickSteps = AudioManager.KICK_PATTERNS[bar % AudioManager.KICK_PATTERNS.length];
     // kick() sigue siendo el único que toca lastKickTime: getBeat() no se entera del cambio.
     if (layers.pulse && kickSteps.includes(step)) this.kick(time, step === 0 || step === 8 ? 0.5 : 0.34);
     if (layers.pulse && step === 12) {
       // Fill de fin de frase o riser previo al cambio de marcha, nunca los dos a la vez.
-      if (fill || (layers.gear && !this.gear)) this.noiseRoll(time, stepDuration, 4);
+      if (fill || (wantsGear && !this.gear)) this.noiseRoll(time, stepDuration, 4);
       else this.noise(time, 0.12, 0.05, 3000);
     }
     if (layers.bass && AudioManager.BASS_STEPS.includes(step)) {
@@ -503,19 +540,26 @@ class AudioManager {
     this.pluck(frequency * 2, time + 0.012, 0.1, 0.05, 'sine');
   }
 
-  /** @param {number} chainIndex posición en la racha, ya acotada 0..6 @param {number} byPlayer 0 humano, 1 IA */
+  /** @param {number} chainIndex posición en la racha, se acota a 0..CHAIN_CAP @param {number} byPlayer 0 humano, 1 IA */
   playBoxClaim(chainIndex = 0, byPlayer = 0) {
     if (!this.unlock()) return;
-    const index = Number.isFinite(chainIndex) ? Math.min(6, Math.max(0, Math.floor(chainIndex))) : 0;
+    const index = Number.isFinite(chainIndex)
+      ? Math.min(AudioManager.CHAIN_CAP, Math.max(0, Math.floor(chainIndex))) : 0;
     // Sin retraso: la escena ya escalona los golpes de una misma jugada, y sumar aquí el
     // índice de racha dejaba el remate hasta 270ms detrás de su propio estallido.
     const time = this.context.currentTime;
-    // El humano sube, la IA baja: el mismo remate se lee como "toma" o como "ay".
-    const degreeBase = byPlayer === 0 ? index : Math.max(0, 6 - index);
-    const boost = 1 + index * 0.1;
+    const degreeBase = AudioManager.claimDegreeBase(index, byPlayer);
+    // La escalera pasó de 6 a 10 peldaños. Las pendientes se reparten sobre CHAIN_CAP
+    // en vez de subir 0.1 por peldaño: así el peldaño 10 aterriza en el mismo techo de
+    // 1.6 que antes tenía el 6, sigue subiendo en todos y no recorta contra el master.
+    const ramp = index / AudioManager.CHAIN_CAP;
+    const boost = 1 + ramp * 0.6;
+    // Por encima del peldaño 6 no se apilan más voces: se aprieta el escalonado. Diez
+    // remates en ~600ms con 55ms de separación se solapan hasta hacer barro.
+    const spread = index > 6 ? 0.04 : 0.055;
     [0, 2, 4].forEach((offset, position) => {
       const midi = this.root() + 12 + AudioManager.midiForDegree(degreeBase + offset);
-      this.pluck(AudioManager.frequency(midi), time + position * 0.055, 0.28, 0.15 * boost, 'square');
+      this.pluck(AudioManager.frequency(midi), time + position * spread, 0.28, 0.15 * boost, 'square');
     });
     if (index <= 2) {
       // Campana FM: dos senos en razón 3.5 dan el brillo metálico del remate. Solo hasta
@@ -524,9 +568,10 @@ class AudioManager {
       this.pluck(bell, time, 0.5, 0.07, 'sine', this.sfxBus);
       this.pluck(bell * 3.5, time, 0.22, 0.03, 'sine', this.sfxBus);
     }
-    // Barrido de ruido ascendente en vez de un golpe plano.
+    // Barrido de ruido ascendente en vez de un golpe plano. Misma pendiente repartida:
+    // el peldaño 10 llega al 0.088 que antes marcaba el 6.
     [2500, 5000, 9000].forEach((cutoff, position) => {
-      this.noise(time + position * 0.05, 0.12, 0.04 + index * 0.008, cutoff, this.sfxBus);
+      this.noise(time + position * 0.05, 0.12, 0.04 + ramp * 0.048, cutoff, this.sfxBus);
     });
     // El bed se aparta un instante: el contraste de volumen es lo que agranda el premio.
     // Cada caja de la racha vuelve a llamar aquí, así el duck se estira solo.
@@ -563,6 +608,74 @@ class AudioManager {
       const frequency = AudioManager.frequency(this.root() + 12 + semitone);
       this.pluck(frequency, time + position * 0.07, 0.16, 0.09, 'triangle');
     });
+  }
+
+  /**
+   * Cambio de líder: el marcador acaba de invertirse. Medido 0.7-1.1 veces por partida,
+   * o sea un evento y no un goteo, así que puede permitirse ocupar el primer plano.
+   * @param {number} player 0 humano, 1 IA @param {boolean} isComeback remontada desde 3+ abajo
+   */
+  playLeadChange(player = 0, isComeback = false) {
+    if (!this.unlock()) return;
+    const time = this.context.currentTime;
+    const degrees = AudioManager.leadChangeDegrees(player, isComeback);
+    // La remontada pega algo más fuerte, pero se queda lejos de playVictory: esto avisa,
+    // no celebra. Va por sfxBus para que el duck del remate de caja también le aplique.
+    const level = isComeback ? 0.14 : 0.105;
+    degrees.forEach((degree, position) => {
+      const midi = this.root() + 12 + AudioManager.midiForDegree(degree);
+      this.pluck(AudioManager.frequency(midi), time + position * 0.09, 0.26, level, 'triangle');
+    });
+  }
+
+  /**
+   * La partida queda decidida matemáticamente (medido 3.6 jugadas antes del final en
+   * 5x5 y 6.9 en 6x6). Golpe grave y seco, sin resolución: no es victoria, y quien
+   * pierde no debe oírlo como un castigo.
+   */
+  playClinch() {
+    if (!this.unlock()) return;
+    const time = this.context.currentTime;
+    // Tónica y quinta en el registro grave, casi a la vez: peso sin fanfarria.
+    [0, 7].forEach((semitone, position) => {
+      this.pluck(AudioManager.frequency(this.root() + semitone), time + position * 0.03,
+        0.42, 0.15, 'sawtooth');
+    });
+    // Hinchada de ruido: dos golpes que abren el corte hacia arriba, cortos.
+    [700, 2200].forEach((cutoff, position) => {
+      this.noise(time + position * 0.07, 0.2, 0.05, cutoff, this.sfxBus);
+    });
+  }
+
+  /**
+   * Sello de la nota final, ~900ms después de abrirse el panel. Se cuela DEBAJO de la
+   * cola de playVictory/playDefeat que ya está sonando: impacto corto y cola metálica.
+   * @param {boolean} isRecord añade el gliss ascendente del récord
+   */
+  playStamp(isRecord = false) {
+    if (!this.unlock()) return;
+    const time = this.context.currentTime;
+    // Impacto: fundamental una octava abajo más un chasquido de ruido. Eso es el "clac".
+    this.pluck(AudioManager.frequency(this.root() - 12), time, 0.18, 0.18, 'square');
+    this.noise(time, 0.09, 0.09, 1800, this.sfxBus);
+    // Cola metálica con la misma razón 3.5 del remate de caja, a propósito fuera de escala.
+    const bell = AudioManager.frequency(this.root() + 24);
+    this.pluck(bell, time + 0.02, 0.7, 0.055, 'sine', this.sfxBus);
+    this.pluck(bell * 3.5, time + 0.02, 0.3, 0.022, 'sine', this.sfxBus);
+    if (!isRecord) return;
+    [0, 2, 4, 6].forEach((degree, position) => {
+      const midi = this.root() + 24 + AudioManager.midiForDegree(degree);
+      this.pluck(AudioManager.frequency(midi), time + 0.12 + position * 0.06, 0.24, 0.075, 'triangle');
+    });
+  }
+
+  /**
+   * Sin jugadas seguras: alguien está obligado a abrir. No suena nada aquí, solo levanta
+   * la bandera; el cambio se resuelve en el downbeat siguiente dentro de scheduleStep.
+   * @param {boolean} flag
+   */
+  setNoSafeMoves(flag) {
+    this.forceGear = Boolean(flag);
   }
 
   playVictory() {
@@ -642,6 +755,10 @@ class AudioManager {
 AudioManager.instance = null;
 AudioManager.ROOT_MIDI = 45; // A2
 AudioManager.SCALE = Object.freeze([0, 3, 5, 7, 10]); // pentatónica menor
+// Tope de la escalera de racha. DEBE seguir a GAME_FEEL.streakCap en js/utils/Constants.js.
+// No se lee de ahí a propósito: el sandbox de las pruebas carga solo este archivo y no
+// puede ganar una dependencia de Constants.js.
+AudioManager.CHAIN_CAP = 10;
 AudioManager.DEFAULT_BPM = 96;
 AudioManager.BPM_BY_DIFFICULTY = Object.freeze({ easy: 84, medium: 100, hard: 120 });
 // gear va en la misma tabla que las capas: el final de partida es un umbral más, no otro sistema.

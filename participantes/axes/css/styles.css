@@ -102,6 +102,47 @@ body::before {
   transform-origin: center;
 }
 
+/* ---------------------------------------------------------------------------
+   Contrato de propiedades personalizadas. Cada una tiene UN solo escritor.
+
+   --box-owner-opacity  board.svg   HUD, por frame        0.28 .. 0.40
+   --grid-opacity       :root       HUD, por frame        opacidad de la rejilla de fondo
+   --grid-border        :root       GameScene, por jugada tinte de la arena hacia quien lidera
+   --hot-period         board.svg   Board, por jugada     periodo del latido de caja caliente
+   --hot-peak           board.svg   Board, por jugada     opacidad alta del latido
+   --hot-rest           board.svg   Board, por jugada     opacidad baja del latido
+   --hot-delay          rect .board-box-hot   Box, una vez al construir
+
+   Nada de esto se escribe dentro de un rAF salvo las dos marcadas "por frame",
+   que ya existían y solo tocan variables leídas por opacity/fill-opacity.
+   --------------------------------------------------------------------------- */
+
+/* Marca de caja caliente: 3 de 4 lados trazados. Solo trazo dorado, nunca relleno:
+   un relleno la haría parecer reclamada y rompería la lectura de dueño. */
+#board-svg .board-box-hot { pointer-events: none; opacity: 0; }
+
+/* La marca late; su 100% es el estado legible estático. Con movimiento reducido la
+   regla global recorta la animación a 0.01ms y una iteración: queda exactamente ese
+   fotograma, así que la información sobrevive y solo se pierde el latido. */
+#board-svg .board-box-hot.box-hot {
+  animation: box-hot var(--hot-period, 1400ms) ease-in-out infinite;
+  animation-delay: var(--hot-delay, 0ms);
+  animation-fill-mode: both;
+}
+
+/* animation-fill-mode: both es OBLIGATORIO. Sin él, el recorte por movimiento
+   reducido termina la animación y el elemento vuelve a su opacity 0 en línea:
+   la telegrafía desaparecería justo para quien más la necesita estática. */
+@keyframes box-hot {
+  0%   { opacity: var(--hot-peak, 0.55); }
+  50%  { opacity: var(--hot-rest, 0.12); }
+  100% { opacity: var(--hot-peak, 0.55); }
+}
+
+/* Una línea bajo el cursor era MÁS apagada que una trazada: el drop-shadow solo
+   vivía en .line-reveal-segment. Line.js pone is-hovered y escribe segment.style.color. */
+#board-svg .line-visible.is-hovered .line-segment { filter: drop-shadow(0 0 8px currentColor); }
+
 @keyframes line-reveal-from-center {
   from { stroke-dashoffset: var(--line-segment-length); }
   to { stroke-dashoffset: 0; }

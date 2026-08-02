@@ -9,10 +9,11 @@ class Line {
    * @param {SVGElement} svg
    * @param {{ id: string, type: string, x1: number, y1: number, x2: number, y2: number }} data
    */
-  constructor(svg, data, onClick, getHoverColor) {
+  constructor(svg, data, onClick, getHoverColor, onHover) {
     this.id = data.id;
     this.owner = null;
     this.getHoverColor = getHoverColor ?? (() => SVG_COLORS.hoverLine);
+    this.onHover = onHover;
     this.group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this.group.dataset.lineId = this.id;
     this.group.setAttribute('role', 'button');
@@ -50,13 +51,16 @@ class Line {
     this.hitbox.addEventListener('pointerover', (event) => {
       if (this.owner !== null) return;
       this.setHovered(true);
+      this.onHover?.(this.id, true);
       // En táctil el pointerover llega junto al pointerdown: sonarían dos notas.
       if (event.pointerType === 'touch') return;
       // playHover solo suena si el audio ya está activo y se limita por sí mismo.
       AudioManager.instance?.playHover();
     });
     this.hitbox.addEventListener('pointerout', () => {
-      if (this.owner === null) this.setHovered(false);
+      if (this.owner !== null) return;
+      this.setHovered(false);
+      this.onHover?.(this.id, false);
     });
     this.hitbox.addEventListener('pointerdown', () => onClick?.(this.id));
   }
@@ -80,9 +84,12 @@ class Line {
   setHovered(hovered) {
     if (this.owner !== null) return;
     const hoverColor = this.getHoverColor();
+    // La regla .is-hovered usa currentColor para su halo: por eso se escribe color.
+    this.visible.classList.toggle('is-hovered', hovered);
     this.visibleSegments.forEach((segment) => {
       segment.setAttribute('stroke', hovered ? hoverColor : SVG_COLORS.emptyLine);
       segment.setAttribute('stroke-width', hovered ? BOARD_STYLE.lineHoverWidth : BOARD_STYLE.lineWidth);
+      segment.style.color = hovered ? hoverColor : SVG_COLORS.emptyLine;
     });
   }
 
@@ -98,6 +105,11 @@ class Line {
     });
     this.hitbox.style.cursor = owner === null ? 'pointer' : 'default';
     this.visible.classList.toggle('line-drawn', owner !== null);
+    if (owner !== null) {
+      // Sin esto, una previsualización quedaría huérfana al empezar el turno de la IA.
+      this.visible.classList.remove('is-hovered');
+      this.onHover?.(this.id, false);
+    }
     if (owner === null) this.resetReveal();
     else if (wasEmpty) this.revealFromCenter();
   }
@@ -126,6 +138,10 @@ class Line {
   setInteractive(enabled) {
     this.hitbox.style.pointerEvents = enabled ? 'stroke' : 'none';
     this.hitbox.style.cursor = enabled && this.owner === null ? 'pointer' : 'default';
+    if (enabled) return;
+    // Al apagar el input no llega pointerout: hay que soltar el hover a mano.
+    if (this.owner === null) this.setHovered(false);
+    this.onHover?.(this.id, false);
   }
 
   destroy() {

@@ -67,7 +67,16 @@ function chooseMediumMove(state, options = {}) {
   }
 
   const safeMoves = findSafeMoves(state);
-  if (safeMoves.length > 0) return chooseRandomMove(safeMoves, random);
+  if (safeMoves.length > 0) {
+    const { blunderRate } = AI_PERSONALITY[AI_DIFFICULTY.MEDIUM];
+    if (normalizeRandom(random) > blunderRate) return chooseRandomMove(safeMoves, random);
+    // Fallo deliberado: entrega una cadena en vez de esconderse. Filtrar aquí y no
+    // delegar en chooseLowestRiskMove, que con jugadas seguras devuelve justo esas.
+    const safeSet = new Set(safeMoves);
+    const riskyMoves = getAvailableMoves(state).filter((lineId) => !safeSet.has(lineId));
+    if (riskyMoves.length > 0) return chooseRandomMove(riskyMoves, random);
+    return chooseRandomMove(safeMoves, random);
+  }
   return chooseLowestRiskMove(state, getAvailableMoves(state), random);
 }
 

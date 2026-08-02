@@ -11,8 +11,13 @@ class GlitchText {
     this.main = scene.add.text(0, 0, value, style).setOrigin(0.5);
     this.container.add([this.cyan, this.magenta, this.main]);
 
-    // Un solo pulso corto al aparecer: legible y sin movimiento permanente.
-    scene.tweens.add({
+    this.scene = scene;
+    this.pulse();
+  }
+
+  /** Un solo pulso corto: legible y sin movimiento permanente. Re-disparable al reaparecer. */
+  pulse() {
+    this.scene.tweens.add({
       targets: [this.cyan, this.magenta],
       alpha: 0.08,
       duration: 110,
