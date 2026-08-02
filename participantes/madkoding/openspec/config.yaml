@@ -1,0 +1,66 @@
+schema: spec-driven
+
+context: |
+  Project: starfox-rail (FOXSTAR) — Three.js 0.160 rail shooter (Star Fox style)
+  Stack: Three.js ^0.160.0, TypeScript ^5.4.0 (strict), Vite ^8.2.0, ESM, target ES2022
+  Architecture: modular domain folders (rail, enemies, player, fx, core, ui, weapons, waves, camera, audio, types, utils)
+  Entry: src/main.ts -> core/Game.ts; canvas-based, Object3D hierarchy, ObjectPool for projectiles/particles
+  Testing: none detected (no test script, no test framework, no coverage tool)
+  Quality: TypeScript strict mode (tsc), no linter, no formatter
+  Isolated participant folder in multi-tenant GameJam 2026 repo — all changes MUST stay inside participantes/madkoding/
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Keep changes scoped to participantes/madkoding/ only
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Document Three.js Object3D hierarchy changes with rationale
+    - Include sequence diagrams for complex game loop flows
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing module-per-domain folder convention
+      - Use ObjectPool for any new projectile/particle types
+      - Preserve strict TypeScript mode (no any without justification)
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+
+strict_tdd: false
+strict_tdd_reason: "No test runner, no test framework, and no test scripts detected in package.json. GameJam policy prioritizes 'must run, must be self-contained' over automated test coverage."
+
+testing:
+  detected: 2026-08-02
+  strict_tdd: false
+  test_runner:
+    command: ""
+    framework: "none"
+  test_layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage:
+    available: false
+    command: ""
+  quality:
+    linter: false
+    type_checker: true
+    type_checker_command: "tsc --noEmit"
+    formatter: false
+
+skill_registry:
+  path: .atl/skill-registry.md
+  entries: 56
+  project_skills: 10
+  project_skills_scope: threejs-* (fundamentals, geometry, materials, lighting, animation, interaction, loaders, postprocessing, shaders, textures)
+  last_updated: 2026-08-02
