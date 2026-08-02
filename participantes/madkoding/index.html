@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoxStar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="hud"></div>
+    <div id="menu-screen" class="screen hidden">
+      <div class="menu-content">
+        <h1 class="game-title">FoxStar</h1>
+        <button id="start-button" class="menu-button">START</button>
+        <div class="controls-info">
+          <p>WASD / Flechas — Mover nave y mira</p>
+          <p>ESPACIO — Disparar Lasers</p>
+          <p>Z — Lanzar Bomba (5 total)</p>
+          <p>ESC — Pausa</p>
+        </div>
+      </div>
+    </div>
+    <div id="pause-overlay" class="screen hidden">
+      <div class="menu-content">
+        <h2>PAUSA</h2>
+        <button id="resume-button" class="menu-button">CONTINUAR</button>
+        <button id="quit-button" class="menu-button">SALIR</button>
+      </div>
+    </div>
+    <div id="gameover-screen" class="screen hidden">
+      <div class="menu-content">
+        <h2>GAME OVER</h2>
+        <p id="final-score" class="score-display">Puntuación: 0</p>
+        <p id="final-wave" class="score-display">Oleada: 0</p>
+        <button id="continue-button" class="menu-button">VOLVER A INTENTAR</button>
+      </div>
+    </div>
+    <div id="victory-screen" class="screen hidden">
+      <div class="menu-content">
+        <h2>VICTORIA</h2>
+        <p id="victory-score" class="score-display">Puntuación: 0</p>
+        <button id="victory-continue-button" class="menu-button">CONTINUAR</button>
+      </div>
+    </div>
+    <div id="damage-overlay" class="damage-flash hidden"></div>
+    <div id="fade-overlay"></div>
+    <div id="engage-text">ENGAGE</div>
+    <div id="lives-display"></div>
+    <div id="speed-lines"></div>
+    <div id="vignette-overlay"></div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
