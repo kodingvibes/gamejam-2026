@@ -23,14 +23,14 @@ class MenuScene extends Phaser.Scene {
       ? saved.difficulty
       : AI_CONFIG.defaultDifficulty;
     this.selectedBoardSize = [3, 4, 5, 6].includes(saved?.size) ? saved.size : 5;
-    this.title = new GlitchText(this, GAME_WIDTH / 2, 108, 'TIMBIRICHE', {
+    this.title = new GlitchText(this, GAME_WIDTH / 2, MENU_LAYOUT.titleY, 'TIMBIRICHE', {
       color: SVG_COLORS.textPrimary,
       fontFamily: FONTS.TITLE,
       fontSize: UI_STYLE.titleSize,
       fontStyle: 'bold',
     });
 
-    this.subtitle = this.add.text(GAME_WIDTH / 2, 172, 'DOTS AND BOXES', {
+    this.subtitle = this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.subtitleY, 'DOTS AND BOXES', {
       color: SVG_COLORS.textMuted,
       fontFamily: FONTS.GAME,
       fontSize: UI_STYLE.subtitleSize,
@@ -53,7 +53,7 @@ class MenuScene extends Phaser.Scene {
     this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.modeTitleY, 'MODO DE JUEGO', {
       color: SVG_COLORS.playerOne,
       fontFamily: FONTS.GAME,
-      fontSize: '18px',
+      fontSize: MENU_LAYOUT.sectionTitleSize,
       fontStyle: 'bold',
       letterSpacing: 2,
     }).setOrigin(0.5);
@@ -65,29 +65,29 @@ class MenuScene extends Phaser.Scene {
       MENU_LAYOUT.hotSeatHeight,
       'HOT-SEAT',
       () => this.selectMode(GAME_MODES.LOCAL),
-      { fontSize: '15px' },
+      { fontSize: MENU_LAYOUT.hotSeatFontSize },
     );
 
     const aiButtonCenters = this.getRowCenters(3, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonGap);
     this.easyModeButton = this.createMenuButton(
       aiButtonCenters[0], MENU_LAYOUT.aiRowY, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonHeight,
-      'VS IA · EASY', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.EASY), { fontSize: '12px' },
+      'VS IA · EASY', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.EASY), { fontSize: MENU_LAYOUT.aiFontSize },
     );
     this.mediumModeButton = this.createMenuButton(
       aiButtonCenters[1], MENU_LAYOUT.aiRowY, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonHeight,
-      'VS IA · MEDIUM', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.MEDIUM), { fontSize: '11px' },
+      'VS IA · MEDIUM', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.MEDIUM), { fontSize: MENU_LAYOUT.aiFontSizeLong },
     );
     this.hardModeButton = this.createMenuButton(
       aiButtonCenters[2], MENU_LAYOUT.aiRowY, MENU_LAYOUT.aiButtonWidth, MENU_LAYOUT.aiButtonHeight,
       'VS IA · HARD', () => this.selectMode(GAME_MODES.VS_AI, AI_DIFFICULTY.HARD), {
-        fontSize: '12px',
+        fontSize: MENU_LAYOUT.aiFontSize,
       },
     );
 
     this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.boardTitleY, 'SELECCIONA EL TABLERO', {
       color: SVG_COLORS.textPrimary,
       fontFamily: FONTS.GAME,
-      fontSize: '17px',
+      fontSize: MENU_LAYOUT.boardTitleSize,
       fontStyle: 'bold',
       letterSpacing: 2,
     }).setOrigin(0.5);
@@ -110,24 +110,24 @@ class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.boardButtonHeight,
         `${gridSize}x${gridSize}`,
         () => this.selectBoardSize(gridSize),
-        { fontSize: '16px', selected: gridSize === this.selectedBoardSize },
+        { fontSize: MENU_LAYOUT.boardFontSize, selected: gridSize === this.selectedBoardSize },
       );
       this.boardButtons ??= {};
       this.boardButtons[gridSize] = button;
     });
 
-    this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.helpY, '(mouse) NAVEGA   ·   (left click) CONFIRMA', {
+    this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.helpY, MENU_LAYOUT.helpText, {
       color: SVG_COLORS.textMuted,
       fontFamily: FONTS.GAME,
-      fontSize: '14px',
+      fontSize: MENU_LAYOUT.helpSize,
       letterSpacing: 1,
     }).setOrigin(0.5);
 
     // La banda inferior estaba vacía: el récord solo tira si se recuerda antes de jugar.
-    this.recordText = this.add.text(GAME_WIDTH / 2, MENU_FEEL.recordY, '', {
+    this.recordText = this.add.text(GAME_WIDTH / 2, MENU_LAYOUT.recordY, '', {
       color: SVG_COLORS.textMuted,
       fontFamily: FONTS.GAME,
-      fontSize: '14px',
+      fontSize: MENU_LAYOUT.recordSize,
       letterSpacing: 1,
     }).setOrigin(0.5);
 

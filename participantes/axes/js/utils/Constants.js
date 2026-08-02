@@ -1,6 +1,26 @@
 // Dimensiones base del lienzo Phaser. El layout responsive escala este espacio.
 const GAME_WIDTH = 800;
-const GAME_HEIGHT = 800;
+
+// En vertical el mundo crece a lo alto. Con Scale.FIT el canvas escala por el lado que
+// primero se queda corto: con un mundo cuadrado eso es el ancho, y en un móvil sobraban
+// 420px de negro arriba y abajo. Midiendo #game y adoptando su proporción, el canvas
+// llena la pantalla y ese espacio pasa a ser tablero y HUD.
+// Sin DOM (pruebas en node) se queda el cuadrado de siempre.
+const stageElement = typeof document === 'undefined' ? null : document.getElementById('game');
+const stageRect = stageElement ? stageElement.getBoundingClientRect() : null;
+const stageAspect = stageRect && stageRect.width > 0 ? stageRect.height / stageRect.width : 1;
+// 1.4 deja fuera tablets 4:3, que se leen mejor con el layout de escritorio y que además
+// no dan alto suficiente para el bloque de menú vertical.
+const IS_PORTRAIT = stageAspect > 1.4;
+// Tope 2.2: más estirado el HUD se despega tanto del tablero que dejan de leerse juntos.
+const GAME_HEIGHT = IS_PORTRAIT ? Math.round(GAME_WIDTH * Math.min(2.2, stageAspect)) : 800;
+
+/**
+ * Elige valor según la orientación medida al cargar. Girar el móvil no reordena el
+ * layout: hace falta recargar. Es un jam, no una app que viva rotando.
+ * @param {*} portrait @param {*} landscape @returns {*}
+ */
+const responsive = (portrait, landscape) => (IS_PORTRAIT ? portrait : landscape);
 
 // Jerarquía visual compartida por Phaser y las capas DOM/SVG del juego.
 const DEPTH = Object.freeze({
@@ -100,9 +120,13 @@ const SVG_COLORS = Object.freeze({
 });
 
 // Medidas visuales del tablero. Mantiene el mismo espacio jugable entre fases.
+// En vertical el tablero es el protagonista: ocupa casi todo el ancho y se centra en el
+// mundo alto. En escritorio se queda exactamente donde estaba.
+const BOARD_WIDTH = responsive(740, 520);
+
 const BOARD_STYLE = Object.freeze({
-  width: 520,
-  top: 130,
+  width: BOARD_WIDTH,
+  top: responsive(Math.round((GAME_HEIGHT - BOARD_WIDTH) / 2), 130),
   framePadding: 24,
   dotRadius: 7,
   lineWidth: 6,
@@ -114,6 +138,32 @@ const BOARD_STYLE = Object.freeze({
   lineRevealDuration: 240,
   boxRevealDuration: 380,
   boxRevealInitialScale: 0.55,
+});
+
+// Posiciones del HUD de partida. En escritorio son las de siempre; en vertical el HUD
+// se reparte por las bandas que deja el tablero centrado, con tarjetas y botones grandes.
+const BOARD_BOTTOM = BOARD_STYLE.top + BOARD_STYLE.width;
+const HUD_LAYOUT = Object.freeze({
+  cardY: responsive(64, 36),
+  cardWidth: responsive(330, 220),
+  cardHeight: responsive(84, 58),
+  leftCardX: responsive(180, 150),
+  rightCardX: responsive(620, 650),
+  // En vertical la píldora de turno baja a su propia fila: al ancho de móvil no cabe
+  // entre dos tarjetas grandes.
+  turnY: responsive(154, 36),
+  turnWidth: responsive(260, 150),
+  turnHeight: responsive(52, 42),
+  turnFontSize: responsive('26px', '17px'),
+  thinkingY: responsive(216, 96),
+  thinkingFontSize: responsive('20px', '14px'),
+  chainY: responsive(BOARD_STYLE.top - 54, 66),
+  chainFontSize: responsive('22px', '15px'),
+  buttonY: responsive(GAME_HEIGHT - 90, 750),
+  buttonWidth: responsive(300, 150),
+  buttonHeight: responsive(76, 42),
+  buttonFontSize: responsive('22px', '15px'),
+  restartX: responsive(560, 680),
 });
 
 // Tiempos breves de presentación que no alteran las reglas del juego.
@@ -276,11 +326,11 @@ const HAPTICS = Object.freeze({
 
 // Botón de sonido: mismo formato que REINICIAR, en la esquina opuesta.
 const AUDIO_TOGGLE = Object.freeze({
-  x: 120,
-  y: 750,
-  width: 150,
-  height: 42,
-  fontSize: '15px',
+  x: responsive(240, 120),
+  y: HUD_LAYOUT.buttonY,
+  width: HUD_LAYOUT.buttonWidth,
+  height: HUD_LAYOUT.buttonHeight,
+  fontSize: HUD_LAYOUT.buttonFontSize,
   labelOn: 'SONIDO: ON',
   labelOff: 'SONIDO: OFF',
   storageKey: 'timbiriche:muted',
@@ -291,11 +341,11 @@ const UI_STYLE = Object.freeze({
   panelRadius: 0,
   panelAlpha: 0.96,
   borderWidth: 2,
-  titleSize: '56px',
-  subtitleSize: '20px',
-  bodySize: '16px',
-  hudLabelSize: '13px',
-  scoreSize: '28px',
+  titleSize: responsive('72px', '56px'),
+  subtitleSize: responsive('26px', '20px'),
+  bodySize: responsive('22px', '16px'),
+  hudLabelSize: responsive('18px', '13px'),
+  scoreSize: responsive('40px', '28px'),
   buttonSize: '20px',
   glitchOffset: 2,
   activePlayerBorderWidth: 2,
@@ -304,27 +354,47 @@ const UI_STYLE = Object.freeze({
 });
 
 // Layout del menú: dos bloques verticales, con medidas compartidas.
+// En vertical el bloque entero se cuelga del centro del mundo alto: así crece con la
+// pantalla en vez de quedar pegado a un 400 pensado para un lienzo cuadrado.
+// El suelo de 620 protege el caso justo (aspecto 1.4): sin él el título saldría por arriba.
+const MENU_CENTER_Y = responsive(Math.max(620, Math.round(GAME_HEIGHT / 2)), 400);
+/** @param {number} offset distancia al centro del bloque @returns {number} */
+const menuY = (offset) => MENU_CENTER_Y + offset;
+
 const MENU_LAYOUT = Object.freeze({
   panelX: GAME_WIDTH / 2,
-  panelY: 400,
-  panelWidth: 430,
-  panelHeight: 430,
-  modeTitleY: 220,
-  hotSeatY: 270,
-  hotSeatWidth: 300,
-  hotSeatHeight: 42,
-  aiRowY: 325,
-  aiButtonWidth: 120,
-  aiButtonHeight: 42,
-  aiButtonGap: 10,
-  boardTitleY: 380,
-  boardButtonWidth: 120,
-  boardButtonHeight: 48,
-  boardColumnGap: 20,
+  panelY: MENU_CENTER_Y,
+  panelWidth: responsive(720, 430),
+  panelHeight: responsive(800, 430),
+  titleY: responsive(menuY(-560), 108),
+  subtitleY: responsive(menuY(-480), 172),
+  modeTitleY: responsive(menuY(-340), 220),
+  sectionTitleSize: responsive('26px', '18px'),
+  hotSeatY: responsive(menuY(-260), 270),
+  hotSeatWidth: responsive(620, 300),
+  hotSeatHeight: responsive(84, 42),
+  hotSeatFontSize: responsive('24px', '15px'),
+  aiRowY: responsive(menuY(-150), 325),
+  aiButtonWidth: responsive(200, 120),
+  aiButtonHeight: responsive(84, 42),
+  aiButtonGap: responsive(14, 10),
+  aiFontSize: responsive('17px', '12px'),
+  aiFontSizeLong: responsive('15px', '11px'),
+  boardTitleY: responsive(menuY(-30), 380),
+  boardTitleSize: responsive('24px', '17px'),
+  boardButtonWidth: responsive(260, 120),
+  boardButtonHeight: responsive(100, 48),
+  boardColumnGap: responsive(30, 20),
   boardRowGap: 16,
-  boardFirstRowY: 435,
-  boardSecondRowY: 499,
-  helpY: 560,
+  boardFirstRowY: responsive(menuY(70), 435),
+  boardSecondRowY: responsive(menuY(190), 499),
+  boardFontSize: responsive('30px', '16px'),
+  helpY: responsive(menuY(310), 560),
+  helpSize: responsive('18px', '14px'),
+  // En un móvil no hay ratón que mover ni clic izquierdo que distinguir.
+  helpText: responsive('TOCA PARA ELEGIR  ·  TOCA OTRA VEZ PARA JUGAR', '(mouse) NAVEGA   ·   (left click) CONFIRMA'),
+  recordY: responsive(menuY(420), 660),
+  recordSize: responsive('18px', '14px'),
 });
 
 // Sistema visual compartido por todos los botones Phaser.
@@ -360,44 +430,56 @@ const BUTTON_STYLE = Object.freeze({
   fontSize: UI_STYLE.buttonSize,
 });
 
+// Los paneles flotantes se miden desde el centro del mundo, que en vertical no es 400.
+// Con el mundo cuadrado cada offset devuelve exactamente la coordenada de siempre.
+const PANEL_CENTER_Y = Math.round(GAME_HEIGHT / 2);
+/** @param {number} offset distancia al centro del panel @returns {number} */
+const panelY = (offset) => PANEL_CENTER_Y + offset;
+
 // Layout del panel final: una fila centrada y simétrica.
 const GAME_OVER_STYLE = Object.freeze({
-  panelWidth: 620,
+  panelWidth: responsive(740, 620),
   panelHeight: 480,
   centerX: GAME_WIDTH / 2,
-  centerY: GAME_HEIGHT / 2,
-  // El panel ocupa y 160..640: libre de las tarjetas del HUD y del botón de sonido.
-  titleY: 225,
-  resultY: 285,
-  gradeY: 362,
-  gradeCaptionY: 408,
-  scoreY: 452,
-  recordY: 494,
-  hookY: 526,
-  buttonsY: 575,
-  buttonWidth: 220,
-  buttonHeight: 52,
+  centerY: PANEL_CENTER_Y,
+  // El panel ocupa 240px a cada lado del centro: libre de las tarjetas del HUD y del botón de sonido.
+  titleY: panelY(-175),
+  resultY: panelY(-115),
+  gradeY: panelY(-38),
+  gradeCaptionY: panelY(8),
+  scoreY: panelY(52),
+  recordY: panelY(94),
+  hookY: panelY(126),
+  buttonsY: panelY(175),
+  buttonWidth: responsive(300, 220),
+  buttonHeight: responsive(72, 52),
   buttonGap: 30,
   // Ajusta aquí la posición horizontal de los botones del panel final.
   // Ambos valores son el centro de cada botón; usa el mismo criterio para mantenerlos simétricos.
-  leftButtonX: GAME_WIDTH / 2 - (220 / 2 + 30 / 2),
-  rightButtonX: GAME_WIDTH / 2 + (220 / 2 + 30 / 2),
+  leftButtonX: GAME_WIDTH / 2 - (responsive(300, 220) / 2 + 30 / 2),
+  rightButtonX: GAME_WIDTH / 2 + (responsive(300, 220) / 2 + 30 / 2),
 });
 
 // Layout compartido del modal de confirmación de acciones.
 const CONFIRM_MODAL_STYLE = Object.freeze({
-  panelWidth: 560,
-  panelHeight: 320,
+  panelWidth: responsive(720, 560),
+  panelHeight: responsive(400, 320),
   centerX: GAME_WIDTH / 2,
-  centerY: GAME_HEIGHT / 2,
-  titleY: 300,
-  messageY: 350,
-  buttonsY: 425,
-  menuButtonY: 505,
-  buttonWidth: 150,
-  buttonHeight: 48,
-  menuButtonWidth: 324,
-  menuButtonHeight: 44,
+  centerY: PANEL_CENTER_Y,
+  titleY: panelY(responsive(-130, -100)),
+  messageY: panelY(responsive(-70, -50)),
+  buttonsY: panelY(responsive(30, 25)),
+  menuButtonY: panelY(responsive(130, 105)),
+  buttonWidth: responsive(300, 150),
+  buttonHeight: responsive(76, 48),
+  menuButtonWidth: responsive(620, 324),
+  menuButtonHeight: responsive(64, 44),
+  titleSize: responsive('30px', '24px'),
+  buttonFontSize: responsive('22px', '17px'),
+  menuFontSize: responsive('18px', '15px'),
+  // Línea de corte: separa la respuesta a la pregunta de la tercera salida.
+  dividerY: panelY(responsive(84, 68)),
+  dividerWidth: responsive(620, 324),
   buttonGap: 24,
   overlayAlpha: 0.78,
   panelAlpha: 0.99,
@@ -467,7 +549,11 @@ const CONFETTI = Object.freeze({
 
 // Medidor de terreno seguro: la tensión del medio juego, hoy invisible.
 const SAFE_METER = Object.freeze({
-  labelY: 684, barY: 702, width: 360, height: 8,
+  labelY: responsive(BOARD_BOTTOM + 54, 684),
+  barY: responsive(BOARD_BOTTOM + 84, 702),
+  width: responsive(520, 360),
+  height: responsive(12, 8),
+  labelFontSize: responsive('20px', '13px'),
   warnAt: 6, criticalAt: 2,
   labelIdle: 'TERRENO SEGURO', labelEmpty: 'SIN SALIDA',
 });
@@ -491,7 +577,6 @@ const MENU_FEEL = Object.freeze({
   buttonDelay: 300, buttonStagger: 45, buttonDuration: 180,
   idleScale: 1.015, idleDuration: 2400,
   fadeOutDuration: 200,
-  recordY: 660,
 });
 
 // Personalidad de la IA en su compás de pensar. Se rota por índice, no al azar por frame.

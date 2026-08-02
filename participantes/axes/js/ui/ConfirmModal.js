@@ -32,7 +32,7 @@ class ConfirmModal {
     this.title = scene.add.text(CONFIRM_MODAL_STYLE.centerX, CONFIRM_MODAL_STYLE.titleY, options.title ?? '¿CONFIRMAR ACCIÓN?', {
       color: SVG_COLORS.textPrimary,
       fontFamily: FONTS.TITLE,
-      fontSize: '24px',
+      fontSize: CONFIRM_MODAL_STYLE.titleSize,
       fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5);
@@ -44,21 +44,24 @@ class ConfirmModal {
     }).setOrigin(0.5);
 
     const buttonOffset = (CONFIRM_MODAL_STYLE.buttonWidth + CONFIRM_MODAL_STYLE.buttonGap) / 2;
+    // El botón lleno y luminoso es el que NO destruye nada. Antes el relleno magenta
+    // empujaba hacia perder la partida, que es justo lo que hay que costar de pulsar.
     this.confirmButton = new GlitchButton(
       scene,
       CONFIRM_MODAL_STYLE.centerX - buttonOffset,
       CONFIRM_MODAL_STYLE.buttonsY,
       CONFIRM_MODAL_STYLE.buttonWidth,
       CONFIRM_MODAL_STYLE.buttonHeight,
-      options.confirmLabel ?? 'SÍ',
+      options.confirmLabel ?? 'CONFIRMAR',
       () => this.resolve('confirm'),
       {
-        baseColor: COLORS.playerTwo,
+        baseColor: COLORS.buttonBase,
         hoverColor: COLORS.confirmDangerHover,
         pressedColor: COLORS.confirmDangerPressed,
+        borderColor: COLORS.playerTwo,
         activeColor: COLORS.playerTwo,
-        textColor: SVG_COLORS.textPrimary,
-        fontSize: '17px',
+        textColor: SVG_COLORS.playerTwo,
+        fontSize: CONFIRM_MODAL_STYLE.buttonFontSize,
       },
     );
     this.cancelButton = new GlitchButton(
@@ -67,7 +70,7 @@ class ConfirmModal {
       CONFIRM_MODAL_STYLE.buttonsY,
       CONFIRM_MODAL_STYLE.buttonWidth,
       CONFIRM_MODAL_STYLE.buttonHeight,
-      options.cancelLabel ?? 'NO',
+      options.cancelLabel ?? 'CANCELAR',
       () => this.resolve('cancel'),
       {
         baseColor: COLORS.playerOne,
@@ -75,8 +78,17 @@ class ConfirmModal {
         pressedColor: COLORS.buttonPrimaryPressed,
         activeColor: COLORS.playerOne,
         textColor: SVG_COLORS.buttonActiveText,
-        fontSize: '17px',
+        fontSize: CONFIRM_MODAL_STYLE.buttonFontSize,
       },
+    );
+    // La tercera salida no responde a la pregunta del título: va debajo de la línea.
+    this.divider = scene.add.rectangle(
+      CONFIRM_MODAL_STYLE.centerX,
+      CONFIRM_MODAL_STYLE.dividerY,
+      CONFIRM_MODAL_STYLE.dividerWidth,
+      1,
+      COLORS.textDim,
+      0.35,
     );
     this.menuButton = new GlitchButton(
       scene,
@@ -84,20 +96,20 @@ class ConfirmModal {
       CONFIRM_MODAL_STYLE.menuButtonY,
       CONFIRM_MODAL_STYLE.menuButtonWidth,
       CONFIRM_MODAL_STYLE.menuButtonHeight,
-      options.menuLabel ?? 'VOLVER AL MENÚ PRINCIPAL',
+      options.menuLabel ?? 'SALIR AL MENÚ',
       () => this.resolve('menu'),
       {
-        fontSize: '15px',
+        fontSize: CONFIRM_MODAL_STYLE.menuFontSize,
         baseColor: COLORS.buttonBase,
         hoverColor: COLORS.buttonHover,
         pressedColor: BUTTON_STYLE.backgroundPressed,
         activeColor: COLORS.panelBorder,
-        textColor: SVG_COLORS.textPrimary,
+        textColor: SVG_COLORS.textMuted,
       },
     );
 
     this.overlay.setDepth(DEPTH.overlay);
-    [this.panel, this.title, this.message].forEach((object) => object.setDepth(DEPTH.modal));
+    [this.panel, this.title, this.message, this.divider].forEach((object) => object.setDepth(DEPTH.modal));
     this.confirmButton.setDepth(DEPTH.modalContent);
     this.cancelButton.setDepth(DEPTH.modalContent);
     this.menuButton.setDepth(DEPTH.modalContent);
@@ -106,6 +118,7 @@ class ConfirmModal {
       this.panel,
       this.title,
       this.message,
+      this.divider,
       this.confirmButton.container,
       this.cancelButton.container,
       this.menuButton.container,
@@ -141,6 +154,7 @@ class ConfirmModal {
     this.panel?.destroy();
     this.title?.destroy();
     this.message?.destroy();
+    this.divider?.destroy();
     this.onConfirm = null;
     this.onCancel = null;
     this.onMenu = null;

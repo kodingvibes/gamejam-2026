@@ -27,41 +27,41 @@ class HUD {
     // El dorado solo existe como string CSS: Phaser necesita el entero equivalente.
     this.sugarColor = Phaser.Display.Color.HexStringToColor(SVG_COLORS.sugar).color;
 
-    this.playerOneCard = this.createCard(150, 36, 220, COLORS.playerOne, 'JUGADOR 1', SVG_COLORS.playerOne);
-    this.playerTwoCard = this.createCard(650, 36, 220, COLORS.playerTwo, 'JUGADOR 2', SVG_COLORS.playerTwo);
-    this.turnPill = scene.add.rectangle(400, 36, 150, 42, COLORS.panelBg, 0.92)
+    this.playerOneCard = this.createCard(HUD_LAYOUT.leftCardX, HUD_LAYOUT.cardY, HUD_LAYOUT.cardWidth, COLORS.playerOne, 'JUGADOR 1', SVG_COLORS.playerOne);
+    this.playerTwoCard = this.createCard(HUD_LAYOUT.rightCardX, HUD_LAYOUT.cardY, HUD_LAYOUT.cardWidth, COLORS.playerTwo, 'JUGADOR 2', SVG_COLORS.playerTwo);
+    this.turnPill = scene.add.rectangle(400, HUD_LAYOUT.turnY, HUD_LAYOUT.turnWidth, HUD_LAYOUT.turnHeight, COLORS.panelBg, 0.92)
       .setStrokeStyle(1, COLORS.panelBorder, 1);
-    this.turnText = scene.add.text(400, 36, '', {
+    this.turnText = scene.add.text(400, HUD_LAYOUT.turnY, '', {
       color: SVG_COLORS.textPrimary,
       fontFamily: FONTS.GAME,
-      fontSize: '17px',
+      fontSize: HUD_LAYOUT.turnFontSize,
       fontStyle: 'bold',
       letterSpacing: 1,
     }).setOrigin(0.5);
-    this.thinkingText = scene.add.text(400, 96, '', {
+    this.thinkingText = scene.add.text(400, HUD_LAYOUT.thinkingY, '', {
       color: SVG_COLORS.playerTwo,
       fontFamily: FONTS.GAME,
-      fontSize: '14px',
+      fontSize: HUD_LAYOUT.thinkingFontSize,
       fontStyle: 'bold',
       letterSpacing: 2,
     }).setOrigin(0.5);
 
-    // Aviso de cadena: 34px centrados en 66 ocupan 49..83, libres del texto de la
-    // IA (96) y del marco del tablero (106).
-    this.chainPlate = scene.add.rectangle(400, 66, 10, 10, COLORS.panelBg, 0.9).setAlpha(0);
-    this.chainText = scene.add.text(400, 66, '', {
+    // Aviso de cadena: en escritorio 34px centrados en 66 ocupan 49..83, libres del texto
+    // de la IA (96) y del marco del tablero (106). En vertical vive justo sobre el marco.
+    this.chainPlate = scene.add.rectangle(400, HUD_LAYOUT.chainY, 10, 10, COLORS.panelBg, 0.9).setAlpha(0);
+    this.chainText = scene.add.text(400, HUD_LAYOUT.chainY, '', {
       color: SVG_COLORS.playerOne,
       fontFamily: FONTS.GAME,
-      fontSize: '15px',
+      fontSize: HUD_LAYOUT.chainFontSize,
       fontStyle: 'bold',
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0);
 
-    // Mecha del terreno seguro: bajo el marco del tablero (674) y lejos de los botones.
+    // Mecha del terreno seguro: bajo el marco del tablero y lejos de los botones.
     this.safeLabel = scene.add.text(400, SAFE_METER.labelY, '', {
       color: SVG_COLORS.textMuted,
       fontFamily: FONTS.GAME,
-      fontSize: '13px',
+      fontSize: SAFE_METER.labelFontSize,
       fontStyle: 'bold',
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0);
@@ -72,9 +72,11 @@ class HUD {
       .setOrigin(0, 0.5)
       .setAlpha(0);
 
-    this.restartButton = new GlitchButton(this.scene, 680, 750, 150, 42, 'REINICIAR', () => this.onRestart(), {
-      fontSize: '15px',
-    });
+    this.restartButton = new GlitchButton(
+      this.scene, HUD_LAYOUT.restartX, HUD_LAYOUT.buttonY,
+      HUD_LAYOUT.buttonWidth, HUD_LAYOUT.buttonHeight, 'REINICIAR', () => this.onRestart(),
+      { fontSize: HUD_LAYOUT.buttonFontSize },
+    );
     this.soundButton = new GlitchButton(
       this.scene, AUDIO_TOGGLE.x, AUDIO_TOGGLE.y, AUDIO_TOGGLE.width, AUDIO_TOGGLE.height,
       this.muted ? AUDIO_TOGGLE.labelOff : AUDIO_TOGGLE.labelOn, () => this.toggleSound(),
@@ -124,25 +126,29 @@ class HUD {
 
   /** @param {number} x @param {number} y @param {number} width @param {number} color @param {string} label @param {string} cssColor */
   createCard(x, y, width, color, label, cssColor) {
-    const card = this.scene.add.rectangle(x, y, width, 58, COLORS.panelBg, UI_STYLE.panelAlpha)
+    // Las tres filas se miden desde los bordes de la tarjeta, no con offsets fijos:
+    // en vertical la tarjeta es más alta y los valores de escritorio salen idénticos.
+    const height = HUD_LAYOUT.cardHeight;
+    const barY = y + height / 2 - 5;
+    const card = this.scene.add.rectangle(x, y, width, height, COLORS.panelBg, UI_STYLE.panelAlpha)
       .setStrokeStyle(1, COLORS.panelBorder, 1);
-    const labelText = this.scene.add.text(x - width / 2 + 14, y - 15, label, {
+    const labelText = this.scene.add.text(x - width / 2 + 14, y - height / 2 + 14, label, {
       color: SVG_COLORS.textMuted,
       fontFamily: FONTS.GAME,
       fontSize: UI_STYLE.hudLabelSize,
       fontStyle: 'bold',
       letterSpacing: 1,
     });
-    const score = this.scene.add.text(x + width / 2 - 16, y + 3, '0', {
+    const score = this.scene.add.text(x + width / 2 - 16, y + height * 0.05, '0', {
       color: cssColor,
       fontFamily: FONTS.GAME,
       fontSize: UI_STYLE.scoreSize,
       fontStyle: 'bold',
     }).setOrigin(1, 0.5);
-    // Barra de avance dentro de la tarjeta (y 7..65): la carrera se lee sin leer dígitos.
+    // Barra de avance pegada al borde inferior: la carrera se lee sin leer dígitos.
     const barWidth = width - 28;
-    const track = this.scene.add.rectangle(x, y + 24, barWidth, 3, COLORS.textDim, 0.35);
-    const progress = this.scene.add.rectangle(x - width / 2 + 14, y + 24, 0, 3, color, 1)
+    const track = this.scene.add.rectangle(x, barY, barWidth, 3, COLORS.textDim, 0.35);
+    const progress = this.scene.add.rectangle(x - width / 2 + 14, barY, 0, 3, color, 1)
       .setOrigin(0, 0.5);
     return { card, label: labelText, score, color, track, progress, barWidth };
   }

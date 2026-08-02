@@ -450,12 +450,18 @@ class GameScene extends Phaser.Scene {
     this.board.setInteractive(false);
     this.board.setModalLayer(true);
     this.hud.setRestartEnabled(false);
+    // El SÍ/NO obligaba a releer el título para saber qué se estaba respondiendo.
+    // Las etiquetas dicen el verbo, y el mensaje pone en juego el marcador de verdad.
+    const [scoreOne, scoreTwo] = this.state.scores;
+    const claimed = scoreOne + scoreTwo;
     this.confirmModal = new ConfirmModal(this, {
-      title: '¿DESEAS REINICIAR LA PARTIDA?',
-      message: 'Se perderá el progreso actual.',
-      confirmLabel: 'SÍ',
-      cancelLabel: 'NO',
-      menuLabel: 'VOLVER AL MENÚ PRINCIPAL',
+      title: '¿REINICIAR LA PARTIDA?',
+      message: claimed > 0
+        ? `Vas ${scoreOne}-${scoreTwo}. El tablero vuelve a cero.`
+        : 'El tablero vuelve a cero.',
+      confirmLabel: 'REINICIAR',
+      cancelLabel: 'SEGUIR JUGANDO',
+      menuLabel: 'SALIR AL MENÚ',
       onConfirm: () => {
         this.confirmModal = null;
         this.restartGame();
