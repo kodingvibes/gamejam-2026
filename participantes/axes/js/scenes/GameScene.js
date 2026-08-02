@@ -22,6 +22,11 @@ class GameScene extends Phaser.Scene {
     this.isNavigating = false;
     this.lastRejectTime = -Infinity;
     this.stageShake = null;
+    // Racha viva: turnos consecutivos del mismo jugador. init() corre en cada reinicio.
+    this.streakPlayer = null;
+    this.streakCount = 0;
+    this.lastClaimedBoxId = null;
+    this.heat = 0;
   }
 
   create() {
@@ -97,6 +102,7 @@ class GameScene extends Phaser.Scene {
     this.hud.setReactive(
       this.reactivePulse,
       AUDIO_REACTIVE.boxOpacityFloor + AUDIO_REACTIVE.boxOpacityRange * this.reactiveMid,
+      this.heat,
     );
   }
 
@@ -112,12 +118,28 @@ class GameScene extends Phaser.Scene {
     const previousPlayer = this.state.currentPlayer;
     this.state = result.state;
     this.hud.update(this.state);
-    this.audioManager.setProgress((this.state.scores[0] + this.state.scores[1]) / this.state.boxes.length);
+    // El arreglo se enciende por capas: contar cajas lo deja en cero media partida.
+    const drawn = this.state.lines.filter((line) => line.owner !== null).length;
+    this.audioManager.setProgress(drawn / this.state.lines.length);
+    // Las cajas reclamadas siguen valiendo, pero solo como temperatura visual.
+    this.heat = (this.state.scores[0] + this.state.scores[1]) / this.state.boxes.length;
     this.audioManager.playMove(result.lineId, this.gridSize);
     this.audioManager.vibrate(HAPTICS.move);
 
-    if (result.completedBoxIds.length > 0) this.celebrateBoxes(result.completedBoxIds, previousPlayer);
-    else if (this.state.currentPlayer !== previousPlayer) this.audioManager.playTurnChange(this.state.currentPlayer);
+    if (result.completedBoxIds.length > 0) {
+      // Una racha son turnos consecutivos del mismo jugador, no cajas de una misma línea.
+      if (this.streakPlayer !== previousPlayer) {
+        this.streakPlayer = previousPlayer;
+        this.streakCount = 0;
+      }
+      const runStart = this.streakCount;
+      this.streakCount += result.completedBoxIds.length;
+      this.celebrateBoxes(result.completedBoxIds, previousPlayer, runStart);
+    } else {
+      this.streakPlayer = null;
+      this.streakCount = 0;
+      if (this.state.currentPlayer !== previousPlayer) this.audioManager.playTurnChange(this.state.currentPlayer);
+    }
 
     if (this.state.gameOver || isGameOver(this.state)) this.finishGame();
     else this.updateTurnController();
@@ -134,13 +156,17 @@ class GameScene extends Phaser.Scene {
     const stage = this.game.canvas?.parentElement;
     if (!stage || typeof stage.animate !== 'function') return;
     const amplitude = intensity * GAME_WIDTH;
+    // En móvil el wrapper ocupa todo el ancho: moverlo de lado abriría scroll horizontal.
+    // Una medida por sacudida, no por frame.
+    const slack = Math.max(0, (document.documentElement.clientWidth - stage.getBoundingClientRect().width) / 2);
+    const amplitudeX = Math.min(amplitude, slack);
     try {
       this.stageShake?.cancel();
       this.stageShake = stage.animate([
         { transform: 'translate(0, 0)' },
-        { transform: `translate(${-amplitude}px, ${amplitude * 0.6}px)`, offset: 0.25 },
-        { transform: `translate(${amplitude}px, ${-amplitude * 0.5}px)`, offset: 0.55 },
-        { transform: `translate(${-amplitude * 0.45}px, 0)`, offset: 0.8 },
+        { transform: `translate(${-amplitudeX}px, ${amplitude * 0.6}px)`, offset: 0.25 },
+        { transform: `translate(${amplitudeX}px, ${-amplitude * 0.5}px)`, offset: 0.55 },
+        { transform: `translate(${-amplitudeX * 0.45}px, 0)`, offset: 0.8 },
         { transform: 'translate(0, 0)' },
       ], { duration, easing: 'ease-out' });
       // Phaser cachea el rect del canvas cada 500ms: si lo mide desplazado, los
@@ -163,36 +189,57 @@ class GameScene extends Phaser.Scene {
     this.shakeStage(GAME_FEEL.invalidShakeDuration, GAME_FEEL.invalidShakeIntensity);
   }
 
-  /** @param {string[]} boxIds cajas de una misma jugada @param {number} player */
-  celebrateBoxes(boxIds, player) {
+  /** @param {string[]} boxIds cajas de una misma jugada @param {number} player @param {number} runStart cajas ya comidas en la racha */
+  celebrateBoxes(boxIds, player, runStart = 0) {
     const color = player === 0 ? SVG_COLORS.playerOne : SVG_COLORS.playerTwo;
-    const lastIndex = boxIds.length - 1;
     boxIds.forEach((boxId, chainIndex) => {
-      this.audioManager.playBoxClaim(chainIndex);
+      const step = Math.min(GAME_FEEL.streakCap, runStart + chainIndex);
       const view = this.board.boxes.find((box) => box.id === boxId);
-      if (!view) return;
-      try {
-        playClaimBurst({
-          // Sobre líneas y puntos: el estallido debe leerse por encima del tablero.
-          parent: this.board.svg,
-          x: view.centerX,
-          y: view.centerY,
-          color,
-          chainIndex,
+      if (view) this.lastClaimedBoxId = boxId;
+      const fire = () => {
+        if (!this.board || !this.hud) return;
+        // Suena aquí y no en el forEach: el escalonado de la jugada ya separa los golpes,
+        // y el índice de racha solo debe elegir la nota, nunca retrasarla.
+        this.audioManager.playBoxClaim(step, player);
+        if (!view) return;
+        try {
+          playClaimBurst({
+            // Sobre líneas y puntos: el estallido debe leerse por encima del tablero.
+            parent: this.board.svg,
+            x: view.centerX,
+            y: view.centerY,
+            color,
+            chainIndex: step,
+            size: view.width,
+          });
+        } catch (error) {
+          // El estallido es decorativo: la caja ya quedó reclamada y la partida sigue.
+          console.warn('ClaimBurst no pudo ejecutarse.', error);
+        }
+        this.hud.flingScore(view.centerX, view.centerY, player);
+        this.board.pulseOwned(boxId, {
+          radius: 1,
+          scale: BOARD_PULSE.neighborScale,
+          duration: BOARD_PULSE.neighborDuration,
+          stagger: BOARD_PULSE.neighborStagger,
+          exclude: boxIds,
         });
-      } catch (error) {
-        // El estallido es decorativo: la caja ya quedó reclamada y la partida sigue.
-        console.warn('ClaimBurst no pudo ejecutarse.', error);
-      }
+      };
+      // Un doble se lee como DOS golpes solo si no caen en el mismo frame.
+      if (chainIndex === 0) fire();
+      else this.time.delayedCall(chainIndex * GAME_FEEL.streakStagger, fire);
     });
 
+    // shakeStage y vibrate son los únicos consumidores sin tope propio.
+    const peak = Math.min(GAME_FEEL.streakCap, runStart + boxIds.length - 1);
     this.shakeStage(
       GAME_FEEL.shakeDuration,
-      GAME_FEEL.shakeIntensity + lastIndex * GAME_FEEL.shakePerChain,
+      GAME_FEEL.shakeIntensity + peak * GAME_FEEL.shakePerChain,
     );
     // Un solo pulso: la cadena solo lo alarga.
-    this.audioManager.vibrate(HAPTICS.box + lastIndex * HAPTICS.boxPerChain);
-    if (boxIds.length > 1) this.hud.showChain();
+    this.audioManager.vibrate(HAPTICS.box + peak * HAPTICS.boxPerChain);
+    const total = runStart + boxIds.length;
+    if (total > 1) this.hud.showStreak(total);
   }
 
   finishGame() {
@@ -215,7 +262,17 @@ class GameScene extends Phaser.Scene {
       this.audioManager.vibrate(HAPTICS.victory);
     }
 
-    this.gameOverTimer = this.time.delayedCall(GAME_TIMING.gameOverDelay, () => {
+    // El tablero hace una reverencia y la última racha alcanza a terminar en pantalla.
+    this.board.pulseOwned(this.lastClaimedBoxId, {
+      scale: BOARD_PULSE.waveScale,
+      duration: BOARD_PULSE.waveDuration,
+      stagger: BOARD_PULSE.waveStagger,
+      maxDelay: BOARD_PULSE.waveMaxDelay,
+    });
+
+    const closingDelay = GAME_TIMING.gameOverDelay
+      + Math.min(GAME_FEEL.streakCap, this.streakCount) * GAME_TIMING.gameOverStreakDelay;
+    this.gameOverTimer = this.time.delayedCall(closingDelay, () => {
       this.gameOverTimer = null;
       if (!this.gameFinished || !this.finalResult || !this.board || !this.gameOverPanel) return;
       this.board.setModalLayer(true);
@@ -296,7 +353,9 @@ class GameScene extends Phaser.Scene {
 
   scheduleAiTurn() {
     if (this.aiTurnTimer || !isAITurn(this.matchConfig, this.state)) return;
-    this.aiTurnTimer = this.time.delayedCall(AI_CONFIG.turnDelay, () => {
+    // Si la IA viene de reclamar, sigue comiendo: la pausa de "pensar" sobra.
+    const delay = this.streakPlayer === 1 && this.streakCount > 0 ? AI_CONFIG.claimDelay : AI_CONFIG.turnDelay;
+    this.aiTurnTimer = this.time.delayedCall(delay, () => {
       this.aiTurnTimer = null;
       this.executeAiTurn();
     });

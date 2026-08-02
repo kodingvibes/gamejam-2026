@@ -6,9 +6,10 @@
  *   newMatch(random)               tonalidad al azar y melodía en blanco. random() es inyectable.
  *   startMusic() / stopMusic()     arranca o detiene el secuenciador. startMusic hace unlock().
  *   setDifficulty(difficulty)      'easy'|'medium'|'hard' -> 84/100/120 bpm. Otro valor -> 96 bpm.
- *   setProgress(ratio)             0..1 de cajas completadas. Define las capas del arreglo.
+ *   setProgress(ratio)             0..1 de líneas trazadas. Define las capas del arreglo.
  *   playMove(lineId, gridSize)     pluck afinado según la línea trazada y nota para el arpegio.
- *   playBoxClaim(chainIndex)       arpegio ascendente. chainIndex 0..n dentro de la misma jugada.
+ *   playBoxClaim(chainIndex, byPlayer)  remate por grados de escala. chainIndex 0..6 de la racha,
+ *                                  byPlayer 0 humano (sube) o 1 IA (baja). Agacha el bed.
  *   playInvalid() / playHover()    feedback corto de UI.
  *   playTurnChange(player)         player 0 o 1.
  *   playVictory() / playDefeat()   remates finales.
@@ -31,6 +32,8 @@ class AudioManager {
     this.analyser = null;
     this.spectrum = null;
     this.noiseBuffer = null;
+    this.reverb = null;
+    this.delay = null;
     this.muted = false;
     this.playing = false;
     this.timerId = null;
@@ -97,7 +100,7 @@ class AudioManager {
     return AudioManager.frequency(AudioManager.midiForLine(lineId, gridSize));
   }
 
-  /** @param {number} progress 0..1 @returns {{pulse: boolean, bass: boolean, hats: boolean, arp: boolean, lead: boolean}} */
+  /** @param {number} progress 0..1 @returns {{pulse: boolean, pad: boolean, bass: boolean, hats: boolean, arp: boolean, gear: boolean, lead: boolean}} */
   static layersForProgress(progress) {
     const ratio = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0;
     const layers = {};
@@ -124,21 +127,99 @@ class AudioManager {
     this.master = context.createGain();
     this.master.gain.value = this.muted ? 0 : AudioManager.MASTER_GAIN;
     this.musicBus = context.createGain();
-    // 0.50 en vez de 0.55: el bed tiene más voces por compás que antes y no debe subir de nivel.
-    this.musicBus.gain.value = 0.5;
+    // El bed iba 14dB por debajo de cualquier sting: por eso sonaba vacío.
+    this.musicBus.gain.value = AudioManager.MUSIC_GAIN;
     this.sfxBus = context.createGain();
-    this.sfxBus.gain.value = 1;
+    this.sfxBus.gain.value = 0.8;
     this.analyser = context.createAnalyser();
     // 512 bins de ~43Hz a 44.1kHz: con fftSize 256 el bombo entero caía en un solo bin.
     this.analyser.fftSize = 1024;
     this.analyser.smoothingTimeConstant = 0.75;
     this.spectrum = new Uint8Array(this.analyser.frequencyBinCount);
     const compressor = context.createDynamicsCompressor();
+    // Compresor de pegamento, no limitador: el ataque de 8ms deja pasar el transitorio
+    // del bombo en vez de comérselo como hacía el ajuste por defecto (3ms, ratio 12).
+    compressor.threshold.value = -14;
+    compressor.knee.value = 8;
+    compressor.ratio.value = 3.5;
+    compressor.attack.value = 0.008;
+    compressor.release.value = 0.14;
     this.musicBus.connect(this.master);
     this.sfxBus.connect(this.master);
-    this.master.connect(compressor);
-    compressor.connect(this.analyser);
-    this.analyser.connect(context.destination);
+    // El analizador cuelga del master en paralelo: ve la señal limpia, pre saturador y
+    // pre compresor, así el limitador ya no aplasta los visuales. Post master mantiene
+    // correcto el silencio: master.gain a 0 anula el espectro.
+    this.master.connect(this.analyser);
+    // Sumidero a ganancia 0. La rama del analizador no llega al destino y la norma solo
+    // obliga a procesar lo que sí llega: esto lo garantiza sin añadir ni un dB.
+    const analyserSink = context.createGain();
+    analyserSink.gain.value = 0;
+    this.analyser.connect(analyserSink).connect(context.destination);
+
+    let tail = this.master;
+    if (typeof context.createWaveShaper === 'function') {
+      const shaper = context.createWaveShaper();
+      const curve = new Float32Array(1024);
+      // Normalizado por tanh(drive): satura sin subir de nivel y sin pelear con el compresor.
+      // Los armónicos que genera del bombo son lo que hace audible el grave en un móvil.
+      for (let index = 0; index < 1024; index += 1) {
+        const x = (index / 1023) * 2 - 1;
+        curve[index] = Math.tanh(x * AudioManager.SATURATION_DRIVE) / Math.tanh(AudioManager.SATURATION_DRIVE);
+      }
+      shaper.curve = curve;
+      shaper.oversample = '2x'; // sin esto los hats alias y suenan a fritura
+      this.master.connect(shaper);
+      tail = shaper;
+    }
+    tail.connect(compressor);
+    compressor.connect(context.destination);
+
+    // Envíos globales: cada voz termina en silencio digital, así que el compás tiene
+    // huecos. La reverb y el delay los rellenan con la energía de las propias voces
+    // sin tocar ni una línea de pluck/sustained/noise/kick.
+    if (typeof context.createConvolver === 'function') {
+      const reverb = context.createConvolver();
+      const length = Math.floor(context.sampleRate * AudioManager.REVERB_SECONDS);
+      const impulse = context.createBuffer(2, length, context.sampleRate);
+      for (let channel = 0; channel < 2; channel += 1) {
+        const data = impulse.getChannelData(channel);
+        let previous = 0;
+        for (let index = 0; index < length; index += 1) {
+          const ratio = index / length;
+          // Un polo pasa-bajo: sin esto la cola de ruido blanco suena a siseo de cinta.
+          previous = previous * 0.62 + (Math.random() * 2 - 1) * 0.38;
+          // La rampa de 12ms de entrada evita el chasquido inicial.
+          data[index] = previous * ((1 - ratio) ** 3.2) * Math.min(1, index / (context.sampleRate * 0.012));
+        }
+      }
+      reverb.buffer = impulse;
+      reverb.connect(this.master);
+      this.reverb = reverb;
+    }
+    this.delay = context.createDelay(1.5);
+    this.delay.delayTime.value = 3 * this.stepDuration(); // corchea con puntillo
+    const feedback = context.createGain();
+    feedback.gain.value = 0.32;
+    const feedbackTone = context.createBiquadFilter();
+    feedbackTone.type = 'lowpass';
+    feedbackTone.frequency.value = 2400;
+    this.delay.connect(feedbackTone).connect(feedback).connect(this.delay);
+    this.delay.connect(this.master);
+    // El envío va filtrado en 300Hz: mandar graves a una reverb es barro, y además deja
+    // el bombo y el bajo fuera de los efectos, así getBands().low no cambia ni un bit.
+    const send = (source, amount, target) => {
+      if (!target) return;
+      const gain = context.createGain();
+      gain.gain.value = amount;
+      const highpass = context.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = 300;
+      source.connect(gain).connect(highpass).connect(target);
+    };
+    send(this.musicBus, 0.16, this.reverb);
+    send(this.musicBus, 0.13, this.delay);
+    send(this.sfxBus, 0.24, this.reverb);
+    send(this.sfxBus, 0.16, this.delay);
 
     // Ruido blanco reutilizado por hats, barridos y remates.
     const frames = Math.floor(context.sampleRate * 0.4);
@@ -159,8 +240,11 @@ class AudioManager {
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, time);
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(Math.min(12000, frequency * 6), time);
-    filter.Q.value = 6;
+    // Envolvente de filtro por nota: antes todas compartían el mismo pico estático en
+    // frequency*6 y sonaban al mismo timbre. El barrido da el ataque brillante.
+    filter.frequency.setValueAtTime(Math.min(14000, frequency * 9), time);
+    filter.frequency.exponentialRampToValueAtTime(Math.max(200, frequency * 1.6), time + duration * 0.55);
+    filter.Q.value = 3;
     gain.gain.setValueAtTime(0.0001, time);
     gain.gain.exponentialRampToValueAtTime(gainValue, time + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
@@ -173,20 +257,27 @@ class AudioManager {
   sustained(frequency, time, duration, gainValue, cutoff, bus = this.musicBus, type = 'sawtooth') {
     const context = this.context;
     if (!context) return;
-    const oscillator = context.createOscillator();
     const gain = context.createGain();
     const filter = context.createBiquadFilter();
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, time);
-    oscillator.detune.setValueAtTime(-7, time);
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(cutoff, time);
+    // Dos osciladores a +-9 cents baten a ~1.15Hz en una nota de 110Hz. Con uno solo
+    // el detune no batía contra nada: dejaba el bed 7 cents bajo y nada más.
+    [-9, 9].forEach((cents) => {
+      const oscillator = context.createOscillator();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, time);
+      oscillator.detune.setValueAtTime(cents, time);
+      oscillator.connect(filter);
+      oscillator.start(time);
+      oscillator.stop(time + duration + 0.05);
+    });
+    // Dos sierras correlacionadas suman unos +5dB, así que 0.6 y no 0.5.
+    const level = gainValue * 0.6;
     gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.linearRampToValueAtTime(gainValue, time + duration * 0.2);
+    gain.gain.linearRampToValueAtTime(level, time + duration * 0.2);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-    oscillator.connect(filter).connect(gain).connect(bus);
-    oscillator.start(time);
-    oscillator.stop(time + duration + 0.05);
+    filter.connect(gain).connect(bus);
   }
 
   /** Bombo del pulso base. @param {number} time @param {number} gainValue */
@@ -311,7 +402,11 @@ class AudioManager {
     const scale = AudioManager.SCALE;
     const bar = this.bar;
     const chord = this.chordIndex();
-    const fill = bar === AudioManager.PHRASE_BARS - 1;
+    // El fill cada 4 compases construye tanto hacia el drop como hacia el cierre de frase.
+    const fill = bar % 4 === 3;
+    // Único compás que distingue la primera mitad de la frase de la segunda: se caen
+    // arpegio y hats, y bombo, bajo y pad siguen, así getBeat() nunca se queda plano.
+    const drop = bar === AudioManager.DROP_BAR;
     // El cambio de marcha se resuelve en el downbeat: cae como cambio musical, no como glitch.
     if (step === 0) this.gear = layers.gear;
 
@@ -329,20 +424,35 @@ class AudioManager {
       const root = this.root() + AudioManager.CHORD_OFFSETS[chord];
       this.sustained(AudioManager.frequency(root - 12 + interval), time, stepDuration * 2.2, 0.22, this.gear ? 620 : 420);
     }
-    if (layers.hats && (step % 2 === 1 || (bar % 4 === 3 && step % 4 === 2))) {
+    if (layers.pad && step === 0) {
+      // Sin una voz sostenida el compás tiene huecos de silencio real. El corte se
+      // abre con el progreso: el pad se destapa a medida que se llena el tablero.
+      const padRoot = this.root() + AudioManager.CHORD_OFFSETS[chord];
+      AudioManager.CHORD_TRIADS[chord].forEach((semitone, position) => {
+        this.sustained(
+          AudioManager.frequency(padRoot + 12 + semitone), time, stepDuration * 16.5,
+          0.05 - position * 0.008, 900 + this.progress * 1600, this.musicBus, 'sawtooth',
+        );
+      });
+    }
+    if (layers.hats && !drop && (step % 2 === 1 || (bar % 4 === 3 && step % 4 === 2))) {
       this.noise(time, 0.035, step % 4 === 3 ? 0.07 : 0.04, 7000);
     }
-    if (layers.arp && step % 2 === 0) {
+    const arpSteps = AudioManager.ARP_PATTERNS[bar % AudioManager.ARP_PATTERNS.length];
+    const slot = arpSteps.indexOf(step);
+    if (layers.arp && slot >= 0 && !drop) {
       const figure = this.melody.length ? this.melody : AudioManager.DEFAULT_MELODY;
+      // 3 es coprimo con MELODY_SLOTS: la figura rota entera a lo largo de la frase
+      // en vez de repetir el mismo compás ocho veces.
+      const read = (bar * 3 + slot) % AudioManager.MELODY_SLOTS;
       // El acorde desplaza el arpegio por grados y no por semitonos: se mueve con el
       // bajo pero no puede salirse de la pentatónica.
-      // El módulo es sobre los grados que devuelve degreeForLine (0..scale*2 inclusive),
-      // así el desplazamiento del acorde vuelve abajo en vez de irse a un agudo chillón.
-      const degree = (figure[(step / 2) % figure.length] + chord) % (scale.length * 2 + 1);
+      const degree = (figure[read % figure.length] + chord) % (scale.length * 2 + 1);
       const frequency = AudioManager.frequency(this.root() + 12 + AudioManager.midiForDegree(degree));
       // El arpegio es cama, no efecto: va al bus de música para que lo atenúe.
       // El analizador cuelga del master, así que ve los dos buses pase lo que pase.
-      this.pluck(frequency, time, stepDuration * 1.6, 0.07, this.gear ? 'sawtooth' : 'square', this.musicBus);
+      this.pluck(frequency, time, stepDuration * 1.6, slot === 0 ? 0.13 : 0.095,
+        this.gear ? 'sawtooth' : 'square', this.musicBus);
     }
     if (layers.lead && step === 0) {
       // Tríada por cuartas rotada con el acorde: consonante sobre los cuatro grados.
@@ -357,6 +467,9 @@ class AudioManager {
   /** @param {string} difficulty */
   setDifficulty(difficulty) {
     this.bpm = AudioManager.BPM_BY_DIFFICULTY[difficulty] ?? AudioManager.DEFAULT_BPM;
+    // Escritura directa segura: GameScene llama aquí antes de startMusic, así que no hay
+    // cola en vuelo. Cambiar delayTime con una cola sonando haría un doppler feísimo.
+    if (this.delay) this.delay.delayTime.value = 3 * this.stepDuration();
   }
 
   /** @param {number} ratio 0..1 de cajas completadas */
@@ -390,19 +503,39 @@ class AudioManager {
     this.pluck(frequency * 2, time + 0.012, 0.1, 0.05, 'sine');
   }
 
-  /** @param {number} chainIndex posición dentro de la cadena de cajas de la jugada */
-  playBoxClaim(chainIndex = 0) {
+  /** @param {number} chainIndex posición en la racha, ya acotada 0..6 @param {number} byPlayer 0 humano, 1 IA */
+  playBoxClaim(chainIndex = 0, byPlayer = 0) {
     if (!this.unlock()) return;
     const index = Number.isFinite(chainIndex) ? Math.min(6, Math.max(0, Math.floor(chainIndex))) : 0;
-    const base = this.root() + 12 + index * 2;
-    // La cadena entera se dispara en el mismo frame: sin este desfase los arpegios
-    // se apilan. 0.045s va justo por debajo del paso interno de 0.055s, así que
-    // encadenan como una sola escalera en vez de sonar como notas repetidas.
-    const time = this.context.currentTime + index * 0.045;
-    AudioManager.SCALE.slice(0, 3).forEach((semitone, position) => {
-      this.pluck(AudioManager.frequency(base + semitone), time + position * 0.055, 0.28, 0.15, 'square');
+    // Sin retraso: la escena ya escalona los golpes de una misma jugada, y sumar aquí el
+    // índice de racha dejaba el remate hasta 270ms detrás de su propio estallido.
+    const time = this.context.currentTime;
+    // El humano sube, la IA baja: el mismo remate se lee como "toma" o como "ay".
+    const degreeBase = byPlayer === 0 ? index : Math.max(0, 6 - index);
+    const boost = 1 + index * 0.1;
+    [0, 2, 4].forEach((offset, position) => {
+      const midi = this.root() + 12 + AudioManager.midiForDegree(degreeBase + offset);
+      this.pluck(AudioManager.frequency(midi), time + position * 0.055, 0.28, 0.15 * boost, 'square');
     });
-    this.noise(time, 0.18, 0.05 + index * 0.01, 4000, this.sfxBus);
+    if (index <= 2) {
+      // Campana FM: dos senos en razón 3.5 dan el brillo metálico del remate. Solo hasta
+      // el tercer eslabón: más arriba la cadena ya apila demasiadas voces.
+      const bell = AudioManager.frequency(this.root() + 12 + AudioManager.midiForDegree(degreeBase + 6));
+      this.pluck(bell, time, 0.5, 0.07, 'sine', this.sfxBus);
+      this.pluck(bell * 3.5, time, 0.22, 0.03, 'sine', this.sfxBus);
+    }
+    // Barrido de ruido ascendente en vez de un golpe plano.
+    [2500, 5000, 9000].forEach((cutoff, position) => {
+      this.noise(time + position * 0.05, 0.12, 0.04 + index * 0.008, cutoff, this.sfxBus);
+    });
+    // El bed se aparta un instante: el contraste de volumen es lo que agranda el premio.
+    // Cada caja de la racha vuelve a llamar aquí, así el duck se estira solo.
+    if (this.musicBus) {
+      const bus = this.musicBus.gain;
+      bus.cancelScheduledValues(time);
+      bus.setValueAtTime(AudioManager.MUSIC_GAIN * AudioManager.DUCK_DEPTH, time);
+      bus.setTargetAtTime(AudioManager.MUSIC_GAIN, time + 0.1, 0.14);
+    }
   }
 
   playInvalid() {
@@ -512,12 +645,19 @@ AudioManager.SCALE = Object.freeze([0, 3, 5, 7, 10]); // pentatónica menor
 AudioManager.DEFAULT_BPM = 96;
 AudioManager.BPM_BY_DIFFICULTY = Object.freeze({ easy: 84, medium: 100, hard: 120 });
 // gear va en la misma tabla que las capas: el final de partida es un umbral más, no otro sistema.
-AudioManager.LAYER_THRESHOLDS = Object.freeze({ pulse: 0, bass: 0.15, hats: 0.4, arp: 0.65, gear: 0.8, lead: 0.85 });
+// Umbrales sobre líneas trazadas, no cajas: con los viejos el arreglo casi nunca llegaba a sonar.
+AudioManager.LAYER_THRESHOLDS = Object.freeze({ pulse: 0, pad: 0, bass: 0, hats: 0.12, arp: 0.3, gear: 0.62, lead: 0.75 });
 AudioManager.BASS_STEPS = Object.freeze([0, 3, 8, 11]);
 // Intervalos sobre la fundamental del acorde: tónica, quinta y octava valen sobre los cuatro.
 AudioManager.BASS_INTERVALS = Object.freeze([0, 7, 0, 12]);
 // Vamp menor i - VI - III - VII (en La: Am F C G), un compás por acorde.
 AudioManager.CHORD_OFFSETS = Object.freeze([0, 8, 3, 10]);
+// Calidad de cada acorde del vamp: i menor, los otros tres mayores. Una tríada menor
+// sobre VI/III/VII metería Ab/Eb/Bb contra el La menor natural del resto.
+AudioManager.CHORD_TRIADS = Object.freeze([
+  Object.freeze([0, 3, 7]), Object.freeze([0, 4, 7]),
+  Object.freeze([0, 4, 7]), Object.freeze([0, 4, 7]),
+]);
 AudioManager.PHRASE_BARS = 8;
 // Bombo por compás: el 0 y el 8 nunca faltan, así getBeat() mantiene el pulso visual.
 AudioManager.KICK_PATTERNS = Object.freeze([
@@ -531,7 +671,28 @@ AudioManager.MELODY_SLOTS = 8;
 AudioManager.DEFAULT_MELODY = Object.freeze([0, 2, 4, 5, 7, 5, 4, 2]);
 // Transposiciones seguras: todo es relativo, pero se limita a una quinta para no perder graves.
 AudioManager.KEY_OFFSETS = Object.freeze([0, 2, 3, 5, 7]);
+// El índice 0 de cada patrón es el acento. Las cuatro figuras comparten el paso 4 y la
+// primera pone el paso 2 en la posición 1: las pruebas fijan ambas cosas.
+AudioManager.ARP_PATTERNS = Object.freeze([
+  Object.freeze([0, 2, 4, 6, 10, 12]),
+  Object.freeze([0, 4, 6, 7, 10, 12, 14]),
+  Object.freeze([2, 4, 8, 11, 12, 14]),
+  Object.freeze([0, 3, 4, 6, 8, 10, 12]),
+]);
+// Compás del bajón. Cae en bar % 4 === 0, o sea el patrón de bombo escaso sobre la
+// tónica: el hueco aterriza en el compás más estable del vamp sin tocar nada más.
+AudioManager.DROP_BAR = 4;
 AudioManager.SWING = 0.1;
 AudioManager.MASTER_GAIN = 0.7;
+AudioManager.MUSIC_GAIN = 0.85;
+// Cuánto se aparta el bed en un remate. No bajar de 0.35 o el tablero parpadea,
+// porque el analizador cuelga del master.
+AudioManager.DUCK_DEPTH = 0.45;
+// Perilla de calibración en un móvil real, no un valor medido: subir satura más grave
+// audible en altavoz pequeño, bajar limpia los agudos.
+AudioManager.SATURATION_DRIVE = 2.2;
+// Único coste real de DSP de la lista (convolución FFT particionada). Si los 60fps
+// aprietan en el 390x844, bajar a 1.1. No inventar un número de CPU: medirlo.
+AudioManager.REVERB_SECONDS = 1.4;
 AudioManager.LOOKAHEAD = 0.12;
 AudioManager.TICK_MS = 25;

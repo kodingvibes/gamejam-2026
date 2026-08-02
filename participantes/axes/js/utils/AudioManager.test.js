@@ -60,25 +60,24 @@ assert.equal(AudioManager.frequency(69), 440);
 
 assert.deepEqual(plain(AudioManager.BPM_BY_DIFFICULTY), { easy: 84, medium: 100, hard: 120 });
 
+// Desde la primera jugada ya hay bombo, bajo y pad: es lo que evita que suene vacío.
 assert.deepEqual(plain(AudioManager.layersForProgress(0)), {
-  pulse: true, bass: false, hats: false, arp: false, gear: false, lead: false,
+  pulse: true, pad: true, bass: true, hats: false, arp: false, gear: false, lead: false,
 });
-assert.deepEqual(plain(AudioManager.layersForProgress(0.15)), {
-  pulse: true, bass: true, hats: false, arp: false, gear: false, lead: false,
+assert.deepEqual(plain(AudioManager.layersForProgress(0.12)), {
+  pulse: true, pad: true, bass: true, hats: true, arp: false, gear: false, lead: false,
 });
-assert.deepEqual(plain(AudioManager.layersForProgress(0.4)), {
-  pulse: true, bass: true, hats: true, arp: false, gear: false, lead: false,
+assert.deepEqual(plain(AudioManager.layersForProgress(0.3)), {
+  pulse: true, pad: true, bass: true, hats: true, arp: true, gear: false, lead: false,
 });
-assert.deepEqual(plain(AudioManager.layersForProgress(0.65)), {
-  pulse: true, bass: true, hats: true, arp: true, gear: false, lead: false,
+// El cambio de marcha entra antes que el lead: 0.62 contra 0.75.
+assert.deepEqual(plain(AudioManager.layersForProgress(0.62)), {
+  pulse: true, pad: true, bass: true, hats: true, arp: true, gear: true, lead: false,
 });
-// El cambio de marcha entra antes que el lead: 0.8 contra 0.85.
-assert.deepEqual(plain(AudioManager.layersForProgress(0.8)), {
-  pulse: true, bass: true, hats: true, arp: true, gear: true, lead: false,
+assert.deepEqual(plain(AudioManager.layersForProgress(0.75)), {
+  pulse: true, pad: true, bass: true, hats: true, arp: true, gear: true, lead: true,
 });
-assert.deepEqual(plain(AudioManager.layersForProgress(1)), {
-  pulse: true, bass: true, hats: true, arp: true, gear: true, lead: true,
-});
+assert.deepEqual(plain(AudioManager.layersForProgress(1)), plain(AudioManager.layersForProgress(0.75)));
 // Valores inválidos o fuera de rango degradan a la capa base sin romper.
 assert.deepEqual(plain(AudioManager.layersForProgress(NaN)), plain(AudioManager.layersForProgress(0)));
 assert.deepEqual(plain(AudioManager.layersForProgress(-1)), plain(AudioManager.layersForProgress(0)));
@@ -126,6 +125,8 @@ bed.bpm = 120;
 bed.newMatch(() => 0);
 
 // El arpegio arranca con la figura por defecto mientras nadie ha trazado nada.
+// En el compás 0 el paso 2 es la posición 1 del patrón, y el pad solo entra en el paso 0.
+assert.equal(AudioManager.ARP_PATTERNS[0].indexOf(2), 1);
 let events = capture();
 bed.scheduleStep(2, 0);
 assert.equal(events.length, 1, `el paso 2 del compás 0 agendó de más: ${events.length}`);
@@ -163,14 +164,31 @@ assert.deepEqual(bassNotes, plain(AudioManager.CHORD_OFFSETS).map(
 assert.equal(new Set(bassNotes).size, 4, 'la progresión no se mueve');
 
 // El arpegio se mueve con el acorde pero por grados: siempre dentro de la escala.
+// Los cuatro patrones contienen el paso 4 y ningún bombo ni hat cae ahí en esos compases.
 bed.melody = [];
 [0, 1, 2, 3].forEach((bar) => {
+  assert.ok(AudioManager.ARP_PATTERNS[bar].includes(4), `el patrón ${bar} no tiene el paso 4`);
   bed.bar = bar;
   const arpEvents = capture();
   bed.scheduleStep(4, 0);
   const midi = Math.round(69 + 12 * Math.log2(arpEvents[0].frequency / 440)) - AudioManager.ROOT_MIDI;
   assert.ok(AudioManager.SCALE.includes(midi % 12), `arpegio fuera de escala en el compás ${bar}`);
 });
+
+// El bajón: en DROP_BAR se caen arpegio y hats, pero el bombo y el pad siguen ahí
+// para que getBeat() y el pulso del tablero no se queden planos.
+bed.bar = AudioManager.DROP_BAR;
+let dropEvents = capture();
+bed.scheduleStep(4, 0);
+assert.equal(dropEvents.length, 0, 'el arpegio sonó durante el bajón');
+dropEvents = capture();
+bed.scheduleStep(1, 0);
+assert.equal(dropEvents.length, 0, 'los hats sonaron durante el bajón');
+dropEvents = capture();
+bed.scheduleStep(0, 0);
+assert.ok(dropEvents.some((event) => event.voice === 'kick'), 'el bombo se fue con el bajón');
+assert.ok(dropEvents.some((event) => event.voice === 'sustained'), 'el bed se quedó mudo en el bajón');
+bed.bar = 0;
 
 // El compás avanza al envolver el paso 15 y el swing retrasa solo los impares.
 bed.bar = 0;
@@ -238,6 +256,38 @@ up.forEach((frequency, index) => {
 });
 bed.newMatch(() => 0);
 bed.progress = 0;
+
+// El remate de caja se construye sobre grados de escala: antes subía en semitonos y a
+// partir del segundo eslabón metía una tercera mayor y un tritono contra un bed menor.
+bed.context = { currentTime: 0 };
+const realUnlock = bed.unlock;
+bed.unlock = () => bed.context;
+[0, 1].forEach((player) => {
+  [0, 1, 2, 3, 4, 5, 6].forEach((index) => {
+    const claim = capture();
+    bed.playBoxClaim(index, player);
+    // La campana FM del final va en razón 3.5, que a propósito no es una nota de la
+    // escala: solo se comprueban los tres plucks principales, que son los tres primeros.
+    claim.filter((event) => event.frequency).slice(0, 3).forEach((event) => {
+      const midi = Math.round(69 + 12 * Math.log2(event.frequency / 440)) - bed.root();
+      assert.ok(AudioManager.SCALE.includes(((midi % 12) + 12) % 12), `remate fuera de escala en ${index}/${player}`);
+    });
+  });
+});
+// El contorno se invierte para la IA: el humano sube, la IA baja.
+const claimHuman = capture();
+bed.playBoxClaim(0, 0);
+const claimAi = capture();
+bed.playBoxClaim(0, 1);
+assert.notEqual(claimHuman[0].frequency, claimAi[0].frequency, 'la IA remata igual que el humano');
+// El índice 3 es el pivote de la inversión (6 - 3 === 3): ahí ambos coinciden a propósito.
+const pivotHuman = capture();
+bed.playBoxClaim(3, 0);
+const pivotAi = capture();
+bed.playBoxClaim(3, 1);
+assert.equal(pivotHuman[0].frequency, pivotAi[0].frequency);
+bed.unlock = realUnlock;
+bed.context = null;
 
 // Secuenciador resincronizado: una pestaña en segundo plano atrasa nextStepTime
 // varios segundos y no debe vaciar de golpe todos los pasos vencidos.

@@ -11,6 +11,7 @@ class Box {
     this.centerY = y + size / 2;
     this.baseColor = baseColor;
     this.activeGlitch = null;
+    this.activePulse = null;
     this.element = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     this.element.classList.add('board-box-fill');
     this.element.setAttribute('x', x);
@@ -40,6 +41,8 @@ class Box {
       this.element.setAttribute('fill-opacity', BOARD_STYLE.cellOpacity);
       this.activeGlitch?.cancel();
       this.activeGlitch = null;
+      this.activePulse?.cancel();
+      this.activePulse = null;
       this.element.classList.remove('box-filled');
       delete this.element.dataset.owner;
       return;
@@ -77,9 +80,25 @@ class Box {
     }
   }
 
+  /**
+   * Latido breve sobre su propio centro. transform-box: fill-box ya está puesto.
+   * @param {number} delay @param {number} scale @param {number} duration
+   */
+  pulse(delay, scale, duration) {
+    if (typeof this.element.animate !== 'function') return;
+    this.activePulse?.cancel();
+    this.activePulse = this.element.animate([
+      { transform: 'scale(1)' },
+      { transform: `scale(${scale})`, offset: 0.4 },
+      { transform: 'scale(1)' },
+    ], { duration, delay, easing: 'ease-out' });
+  }
+
   destroy() {
     this.activeGlitch?.cancel();
     this.activeGlitch = null;
+    this.activePulse?.cancel();
+    this.activePulse = null;
     this.element.remove();
   }
 }

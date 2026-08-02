@@ -107,15 +107,14 @@ body::before {
   to { stroke-dashoffset: 0; }
 }
 
+/* Pico, rebote y asiento. El 100% es idéntico al estado de reposo de siempre:
+   esa es la garantía de legibilidad, la caja termina exactamente donde termina hoy. */
 @keyframes box-filled {
-  from {
-    fill-opacity: 0;
-    transform: scale(var(--box-reveal-initial-scale, 0.02));
-  }
-  to {
-    fill-opacity: var(--box-owner-opacity, 0.28);
-    transform: scale(1);
-  }
+  0%   { fill-opacity: 0;    transform: scale(var(--box-reveal-initial-scale, 0.55)); }
+  16%  { fill-opacity: 0.95; transform: scale(1.13); }
+  38%  { fill-opacity: 0.58; transform: scale(0.965); }
+  62%  { transform: scale(1.035); }
+  100% { fill-opacity: var(--box-owner-opacity, 0.28); transform: scale(1); }
 }
 
 .site-footer {

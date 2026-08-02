@@ -130,6 +130,31 @@ class Board {
     this.state.boxes.forEach((box) => this.boxes.find((view) => view.id === box.id)?.setOwner(box.owner));
   }
 
+  /**
+   * Pulso sobre cajas YA reclamadas. Nunca sobre vacías: una caja vacía que escala
+   * parece recién ganada.
+   * @param {string|null} originId @param {{radius?: number, scale: number, duration: number, stagger: number, maxDelay?: number, exclude?: string[]}} options
+   */
+  pulseOwned(originId, options) {
+    if (!effectsAllowed() || !originId) return;
+    const parse = (id) => {
+      const parts = String(id).split('-');
+      return { row: Number(parts[1]), column: Number(parts[2]) };
+    };
+    const origin = parse(originId);
+    if (!Number.isFinite(origin.row) || !Number.isFinite(origin.column)) return;
+    this.boxes.forEach((box) => {
+      if (box.id === originId || options.exclude?.includes(box.id)) return;
+      if (box.element.dataset.owner === undefined) return;
+      const cell = parse(box.id);
+      const distance = Math.hypot(cell.row - origin.row, cell.column - origin.column);
+      // Con radius 1 las diagonales (1.41) quedan fuera: solo vecinas ortogonales.
+      if (options.radius && distance > options.radius) return;
+      // maxDelay solo acota: sin él manda el escalonado, no un cero que lo anulaba.
+      box.pulse(Math.min(options.maxDelay ?? Infinity, distance * options.stagger), options.scale, options.duration);
+    });
+  }
+
   getActivePlayerColor() {
     return this.activePlayer === 0 ? SVG_COLORS.playerOne : SVG_COLORS.playerTwo;
   }

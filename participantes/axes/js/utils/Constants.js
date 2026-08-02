@@ -94,6 +94,8 @@ const SVG_COLORS = Object.freeze({
   glitchMagenta: '#f626a8',
   glitchGreen: '#55ff99',
   buttonActiveText: '#0a0b10',
+  // Dorado de premio: solo en efectos transitorios, nunca en reposo ni como color de dueño.
+  sugar: '#ffd166',
 });
 
 // Medidas visuales del tablero. Mantiene el mismo espacio jugable entre fases.
@@ -109,13 +111,15 @@ const BOARD_STYLE = Object.freeze({
   cellOpacity: 0.92,
   ownerOpacity: 0.28,
   lineRevealDuration: 240,
-  boxRevealDuration: 220,
-  boxRevealInitialScale: 0.02,
+  boxRevealDuration: 380,
+  boxRevealInitialScale: 0.55,
 });
 
 // Tiempos breves de presentación que no alteran las reglas del juego.
 const GAME_TIMING = Object.freeze({
   gameOverDelay: 650,
+  // Milisegundos extra por paso de racha antes de tapar el tablero con el panel final.
+  gameOverStreakDelay: 90,
 });
 
 const AI_DIFFICULTY = Object.freeze({
@@ -126,6 +130,8 @@ const AI_DIFFICULTY = Object.freeze({
 
 const AI_CONFIG = Object.freeze({
   turnDelay: 550,
+  // Comiendo cadena la IA va rápido. No bajar de 160: HARD ya gasta hasta 120ms síncronos.
+  claimDelay: 240,
   defaultDifficulty: AI_DIFFICULTY.EASY,
   thinkingText: 'IA PENSANDO...',
 });
@@ -150,12 +156,13 @@ const HARD_AI_WEIGHTS = Object.freeze({
 
 // Glitch experimental de cajas. enabled es la única bandera de activación.
 const BOX_CLAIM_GLITCH = Object.freeze({
+  // Ahora es el fotograma de impacto bajo el destello, no el evento completo.
   enabled: true,
-  duration: 320,
+  duration: 170,
   channelOffset: 6,
-  flickerSteps: 5,
-  cloneAlpha: 0.65,
-  jitter: 4,
+  flickerSteps: 3,
+  cloneAlpha: 0.42,
+  jitter: 6,
   scaleX: 1.08,
   scaleY: 0.97,
   cyan: SVG_COLORS.glitchCyan,
@@ -164,14 +171,32 @@ const BOX_CLAIM_GLITCH = Object.freeze({
 
 // Estallido neón al reclamar una caja. Se escala con la posición en la cadena.
 const CLAIM_BURST = Object.freeze({
-  baseCount: 6,
+  baseCount: 7,
   countPerChain: 2,
-  maxCount: 14,
-  radius: 34,
-  radiusPerChain: 8,
-  particleRadius: 3,
+  maxCount: 16,
+  radius: 46,
+  radiusPerChain: 11,
+  particleRadius: 4,
   duration: 420,
   durationJitter: 160,
+  ringColor: '#ffffff',
+  ringDuration: 380,
+  coreColor: '#ffffff',
+  // Más de 4 y el grupo temporal vive ~1.2s: dos reclamos seguidos dejarían dos grupos.
+  sparkleCount: 3,
+  sparkleDuration: 950,
+  sparkleJitter: 300,
+});
+
+// Onda de pulso sobre cajas ya reclamadas. Solo transform: es trabajo de compositor.
+const BOARD_PULSE = Object.freeze({
+  neighborScale: 1.035,   // por encima de ~1.06 una vecina parece recien reclamada
+  neighborDuration: 200,
+  neighborStagger: 40,
+  waveScale: 1.09,
+  waveDuration: 260,
+  waveStagger: 85,
+  waveMaxDelay: 620,      // cabe dentro de GAME_TIMING.gameOverDelay
 });
 
 // Reactividad al audio. Los valores "floor" son los que se ven sin audio disponible.
@@ -184,6 +209,9 @@ const AUDIO_REACTIVE = Object.freeze({
   gridOpacityRange: 0.1,
   boxOpacityFloor: BOARD_STYLE.ownerOpacity,
   boxOpacityRange: 0.07,
+  // El avance de la partida se suma a las expresiones existentes: no añade escrituras.
+  heatRange: 10,
+  heatOpacityRange: 0.05,
 });
 
 // Sacudidas, pop de marcador y aviso de cadena. Todo breve: el juego es por turnos.
@@ -198,9 +226,15 @@ const GAME_FEEL = Object.freeze({
   invalidCooldown: 140,
   scorePopScale: 1.3,
   scorePopDuration: 170,
-  chainPopDuration: 160,
+  chainPopDuration: 200,
   chainHoldDuration: 900,
   chainFadeDuration: 220,
+  streakCap: 6,          // mismo tope que ya aplican playClaimBurst y playBoxClaim
+  streakScaleStep: 0.07,
+  streakStagger: 90,     // separacion visual entre las cajas de una misma jugada
+  flingRiseDuration: 150,
+  flingTravelDuration: 300,
+  flingFontSize: '40px',
 });
 
 // Vibración móvil. navigator.vibrate arranca vibrando: los índices pares son duración.

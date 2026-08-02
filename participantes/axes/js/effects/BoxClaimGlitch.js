@@ -13,9 +13,7 @@ function playBoxClaimGlitch(options) {
   const duration = options.duration ?? BOX_CLAIM_GLITCH.duration;
   const finishedImmediately = Promise.resolve();
 
-  if (!BOX_CLAIM_GLITCH.enabled || !parent || !bounds || typeof Element === 'undefined'
-    || typeof Element.prototype.animate !== 'function'
-    || (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)) {
+  if (!BOX_CLAIM_GLITCH.enabled || !parent || !bounds || !effectsAllowed()) {
     onComplete?.();
     return { cancel() {}, finished: finishedImmediately };
   }
