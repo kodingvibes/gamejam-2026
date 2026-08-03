@@ -61,9 +61,12 @@ function step(name, fn) {
     'js/phaser-compat.js',
     'js/data/classes.js',
     'js/data/cards.js',
+    'js/data/campaign.js',
     'js/ui/card.js',
     'js/ui/crt.js',
     'js/ui/vfx.js',
+    'js/data/tutorial.js',
+    'js/ui/help.js',
     'js/engine/HeroSprite.js',
     'js/data/sprites/heroes/mago.js',
     'js/data/sprites/heroes/necromancer.js',
@@ -94,9 +97,12 @@ function step(name, fn) {
   step('phaser-compat', () => load(ctx, 'js/phaser-compat.js'));
   step('classes', () => load(ctx, 'js/data/classes.js'));
   step('cards', () => load(ctx, 'js/data/cards.js'));
+  step('campaign', () => load(ctx, 'js/data/campaign.js'));
   step('UI/card', () => load(ctx, 'js/ui/card.js'));
   step('UI/crt', () => load(ctx, 'js/ui/crt.js'));
   step('UI/vfx', () => load(ctx, 'js/ui/vfx.js'));
+  step('tutorial', () => load(ctx, 'js/data/tutorial.js'));
+  step('help', () => load(ctx, 'js/ui/help.js'));
   step('sprite/mago', () => load(ctx, 'js/data/sprites/heroes/mago.js'));
   step('sprite/necromancer', () => load(ctx, 'js/data/sprites/heroes/necromancer.js'));
   step('sprite/guerrero', () => load(ctx, 'js/data/sprites/heroes/guerrero.js'));
@@ -116,6 +122,82 @@ function step(name, fn) {
     assert(ctx.window.HeroSprite, 'HeroSprite falta');
     assert(typeof ctx.window.HeroSprite.create === 'function', 'create no es funcion');
     assert(typeof ctx.window.HeroSprite.preload === 'function', 'preload no es funcion');
+  });
+  step('TUTORIAL_GLOSSARY', () => {
+    assert(Array.isArray(ctx.window.TUTORIAL_GLOSSARY) && ctx.window.TUTORIAL_GLOSSARY.length >= 15, 'glosario debe tener >= 15 entradas');
+  });
+  step('TUTORIAL_PAGES', () => {
+    assert(Array.isArray(ctx.window.TUTORIAL_PAGES) && ctx.window.TUTORIAL_PAGES.length === 7, 'tutorial debe tener 7 paginas');
+  });
+  step('HelpSystem API', () => {
+    const hs = ctx.window.HelpSystem;
+    assert(hs, 'HelpSystem falta');
+    assert(typeof hs.register === 'function', 'register no es funcion');
+    assert(typeof hs.showOverlay === 'function', 'showOverlay no es funcion');
+    assert(typeof hs.clearZones === 'function', 'clearZones no es funcion');
+    assert(typeof hs.setEnabled === 'function', 'setEnabled no es funcion');
+  });
+  step('CAMPAIGN_STAGES', () => {
+    const cs = ctx.window.CAMPAIGN_STAGES;
+    const classes = ctx.window.CLASSES || [];
+    assert(Array.isArray(cs) && cs.length >= 3, 'campaña debe tener >= 3 etapas');
+    cs.forEach((st, i) => {
+      assert(st.id && st.name, 'etapa ' + i + ' falta id/name');
+      assert(classes.some(c => c.id === st.classId), 'etapa ' + i + ' classId invalido');
+      assert(st.hp > 0, 'etapa ' + i + ' hp invalido');
+    });
+  });
+  step('balance: m_bola costo 2', () => {
+    const c = (ctx.window.ALL_CARDS.mago || []).find(x => x.id === 'm_bola');
+    assert(c && c.cost === 2, 'm_bola debe costar 2 (era 1 por 3 daño, OP)');
+  });
+  step('balance: g_ataque costo 3', () => {
+    const c = (ctx.window.ALL_CARDS.guerrero || []).find(x => x.id === 'g_ataque');
+    assert(c && c.cost === 3, 'g_ataque debe costar 3 (era 2 por 5 daño, OP)');
+  });
+  step('balance: g_levantar costo 2', () => {
+    const c = (ctx.window.ALL_CARDS.guerrero || []).find(x => x.id === 'g_levantar');
+    assert(c && c.cost === 2, 'g_levantar debe costar 2 (era 1 por 4 armadura, OP)');
+  });
+  step('balance: n_drenar 2 daño + 2 cura', () => {
+    const c = (ctx.window.ALL_CARDS.necromancer || []).find(x => x.id === 'n_drenar');
+    const dmg = (c.effects || []).find(e => e.type === 'damage');
+    const heal = (c.effects || []).find(e => e.type === 'heal');
+    assert(dmg && heal && dmg.amount === 2 && heal.amount === 2, 'n_drenar debe ser 2/2 (era 3/3, OP)');
+  });
+  step('balance: b_nota 2 daño', () => {
+    const c = (ctx.window.ALL_CARDS.bardo || []).find(x => x.id === 'b_nota');
+    const dmg = (c.effects || []).find(e => e.type === 'damage');
+    assert(c && dmg && dmg.amount === 2, 'b_nota debe ser 2 daño (era 1, debil)');
+  });
+
+  // --- 3b. Glosario cubre todos los efectos y keywords ---
+  console.log('\n3b. Glosario cubre efectos y keywords');
+  const glossaryIds = new Set((ctx.window.TUTORIAL_GLOSSARY || []).map(g => g.id));
+  const allEffects = new Set();
+  for (const clsId in (ctx.window.ALL_CARDS || {})) {
+    for (const card of ctx.window.ALL_CARDS[clsId] || []) {
+      (card.effects || []).forEach(e => allEffects.add(e.type));
+    }
+  }
+  const effectToGlossary = {
+    damage: 'mana', heal: 'mana', armor: 'armor', draw: 'draw', venom: 'venom',
+    inspiration: 'inspiration', summon: 'board-slots', damage_all_enemies: 'mana',
+    freeze: 'freeze', weaken: 'weaken', fortify: 'fortify', silence: 'silence',
+    cost_reduction: 'cost-reduction', copy_card: 'deck', swap_hands: 'hand',
+    discard_random: 'discard', consumable: 'consumable', sacrifice: 'sacrifice',
+    board_buff: 'fortify', damage_conditional: 'venom', conditional: 'mana'
+  };
+  step('efectos tienen entrada de glosario', () => {
+    for (const eff of allEffects) {
+      const mapped = effectToGlossary[eff];
+      assert(mapped && glossaryIds.has(mapped), 'efecto "' + eff + '" no tiene entrada de glosario');
+    }
+  });
+  step('keywords tienen entrada de glosario', () => {
+    ['guard', 'evasive', 'celerity', 'consumable'].forEach(k => {
+      assert(glossaryIds.has(k), 'keyword "' + k + '" no tiene entrada de glosario');
+    });
   });
 
   // --- 4. Path crítico: create + setState ---
