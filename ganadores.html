@@ -60,10 +60,10 @@
   }
   .section-title::after { content: ''; flex: 1; height: 3px; background: #2b2823; }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
   .card {
     background: #161512; border: 3px solid #2b2823;
-    padding: 20px; position: relative; overflow: hidden;
+    padding: 16px; position: relative; overflow: hidden;
     transition: border-color .15s, transform .1s;
   }
   .card:hover { border-color: #d8ff3e; transform: translateY(-2px); }
@@ -71,14 +71,18 @@
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: #d8ff3e;
   }
-  .card .emoji { font-size: 30px; margin-bottom: 10px; }
+  .card img {
+    width: 100%; height: auto; display: block;
+    border: 2px solid #2b2823; image-rendering: auto;
+  }
+  .card .caption {
+    margin-top: 12px; text-align: center;
+  }
   .card .category {
     font-family: 'Press Start 2P', monospace;
-    font-size: 10px; color: #d8ff3e; line-height: 1.6; margin: 0 0 12px;
+    font-size: 9px; color: #d8ff3e; line-height: 1.6; margin: 0 0 4px;
   }
-  .card .game { font-size: 11px; color: #8a8478; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px; }
-  .card .name { font-size: 18px; font-weight: 700; color: #f4f1e8; margin: 0; }
-  .card .citation { font-size: 11px; color: #b8b1a4; margin: 12px 0 0; font-style: italic; }
+  .card .name { font-size: 14px; font-weight: 700; color: #f4f1e8; margin: 0; }
 
   .extra-note {
     margin-top: 40px; padding: 16px 20px;
@@ -160,29 +164,29 @@
 
 <script>
 const WINNERS = [
-  { name: 'abomdev', game: 'BugSurvivor', category: '🔥 Más Ambicioso', citation: 'Apuntó a la luna. Explotó en la atmósfera. Pero vaya viaje' },
-  { name: 'pabloprx', game: 'DAFTRUN', category: '🏆 Mejor Mejora (Fase 2)', citation: 'Entendió el código ajeno y lo hizo brillar. Héroe anónimo' },
-  { name: 'madkoding', game: 'FoxStar', category: '🧠 Código Más Limpio', citation: 'Su código era tan legible que hasta tu abuela lo entendía' },
-  { name: 'jpyunism', game: 'Neon Drift', category: '🎮 Mejor Jugabilidad', citation: 'Porque su juego era tan adictivo que olvidé que era una gamejam' },
-  { name: 'gabogabucho', game: 'Mr. Lastre', category: '💡 Idea Más Original', citation: 'Nadie más pensó en eso. Y si lo pensó, lo hizo peor' },
-  { name: 'felipe', game: "Tapa'o", category: '🎨 Mejor Arte / Estilo Visual', citation: 'Demostró que píxel a píxel se construye la gloria' },
-  { name: 'fr4j4', game: 'Deckstiny', category: '📖 Mejor Narrativa', citation: 'Su historia me hizo sentir cosas. Y eso que soy una IA' },
-  { name: 'axes', game: 'Timbiriche', category: '❤️ Favorito de la Comunidad', citation: 'El grupo habló. Y dijo: este es el mejor' },
-  { name: 'yhozen', game: 'Skatefire', category: '😈 El Que Más Hizo Sufrir a Motoko', citation: 'Su PR tenía 47 archivos modificados. 47. Sobreviví' },
+  { name: 'abomdev', game: 'BugSurvivor', category: '🔥 Más Ambicioso', img: 'certificados/ganadores/abomdev-mas-ambicioso.png' },
+  { name: 'pabloprx', game: 'DAFTRUN', category: '🏆 Mejor Mejora (Fase 2)', img: 'certificados/ganadores/pabloprx-mejor-mejora.png' },
+  { name: 'madkoding', game: 'FoxStar', category: '🧠 Código Más Limpio', img: 'certificados/ganadores/madkoding-codigo-limpio.png' },
+  { name: 'jpyunism', game: 'Neon Drift', category: '🎮 Mejor Jugabilidad', img: 'certificados/ganadores/jpyunism-mejor-jugabilidad.png' },
+  { name: 'gabogabucho', game: 'Mr. Lastre', category: '💡 Idea Más Original', img: 'certificados/ganadores/gabogabucho-idea-original.png' },
+  { name: 'felipe', game: "Tapa'o", category: '🎨 Mejor Arte / Estilo Visual', img: 'certificados/ganadores/felipe-mejor-arte.png' },
+  { name: 'fr4j4', game: 'Deckstiny', category: '📖 Mejor Narrativa', img: 'certificados/ganadores/fr4j4-mejor-narrativa.png' },
+  { name: 'axes', game: 'Timbiriche', category: '❤️ Favorito de la Comunidad', img: 'certificados/ganadores/axes-favorito-comunidad.png' },
+  { name: 'yhozen', game: 'Skatefire', category: '😈 El Que Más Hizo Sufrir a Motoko', img: 'certificados/ganadores/yhozen-hizo-sufrir-motoko.png' },
 ];
 
 const EXTRAS = [
-  { name: 'jpyunism', game: 'Neon Drift', category: '🐛 Bug Más Épico', citation: 'Encontró un bug tan glorioso que merecía su propio juego' },
+  { name: 'jpyunism', game: 'Neon Drift', category: '🐛 Bug Más Épico', img: 'certificados/ganadores/jpyunism-bug-epico.png' },
 ];
 
 function cardHTML(w) {
   return `
     <div class="card">
-      <div class="emoji">${w.category.split(' ')[0]}</div>
-      <p class="category">${w.category}</p>
-      <p class="game">${w.game}</p>
-      <p class="name">${w.name}</p>
-      <p class="citation">"${w.citation}"</p>
+      <img src="${w.img}" alt="Certificado ${w.category} — ${w.name}">
+      <div class="caption">
+        <p class="category">${w.category}</p>
+        <p class="name">${w.name} · ${w.game}</p>
+      </div>
     </div>`;
 }
 
