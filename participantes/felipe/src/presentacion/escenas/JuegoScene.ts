@@ -26,6 +26,7 @@ interface DatosJuego {
 
 const PASO_DE_SIMULACION = 1 / 30;
 const MARGEN_DEL_JUGADOR = 90;
+const DURACION_FADE_IN_MS = 650;
 
 export class JuegoScene extends Phaser.Scene {
   private modo: Modo = MODOS.temporal;
@@ -39,6 +40,7 @@ export class JuegoScene extends Phaser.Scene {
   private teclas!: Phaser.Types.Input.Keyboard.CursorKeys;
   private espacio!: Phaser.Input.Keyboard.Key;
   private estabaEnAgua = false;
+  private fadeEnCurso = false;
 
   constructor() {
     super("Juego");
@@ -49,6 +51,7 @@ export class JuegoScene extends Phaser.Scene {
   }
 
   create() {
+    this.iniciarFadeIn();
     this.partida = Partida.comenzar(this.modo, Date.now() >>> 0);
     this.escenario = new Escenario(this, this.partida.alameda);
     this.ventana = new VentanaDeAgua(this);
@@ -70,13 +73,16 @@ export class JuegoScene extends Phaser.Scene {
     this.cameras.main.setScroll(0, 0);
     this.teclas = this.input.keyboard!.createCursorKeys();
     this.espacio = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    this.input.keyboard?.on("keydown-ESC", () => this.scene.start("Menu"));
-    this.input.keyboard?.on("keydown-R", () => this.scene.restart({ modo: this.modo }));
+    this.input.keyboard?.on("keydown-ESC", () => this.volverAlMenu());
+    this.input.keyboard?.on("keydown-R", () => this.reiniciar());
 
     this.registry.set("partida", this.partida);
     this.scene.launch("Hud");
     sonido.encender();
     this.input.keyboard?.on("keydown-P", () => {
+      if (this.fadeEnCurso) {
+        return;
+      }
       this.scene.pause();
       this.scene.launch("Pausa");
     });
@@ -121,6 +127,38 @@ export class JuegoScene extends Phaser.Scene {
     if (this.partida.terminada) {
       this.terminar();
     }
+  }
+
+  private iniciarFadeIn() {
+    const camara = this.cameras.main;
+    this.fadeEnCurso = true;
+    this.tweens.killTweensOf(camara);
+    camara.setAlpha(0);
+    this.tweens.add({
+      targets: camara,
+      alpha: 1,
+      duration: DURACION_FADE_IN_MS,
+      ease: "Sine.easeOut",
+      onComplete: () => {
+        camara.setAlpha(1);
+        this.fadeEnCurso = false;
+      },
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.tweens.killTweensOf(camara);
+      camara.setAlpha(1);
+      this.fadeEnCurso = false;
+    });
+  }
+
+  private reiniciar() {
+    this.scene.stop("Hud");
+    this.scene.restart({ modo: this.modo });
+  }
+
+  private volverAlMenu() {
+    this.scene.stop("Hud");
+    this.scene.start("Menu");
   }
 
   private terminar() {

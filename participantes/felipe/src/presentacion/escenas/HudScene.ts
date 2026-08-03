@@ -6,6 +6,7 @@ import { PALETA } from "../arte/theme";
 import { textoPixel } from "../arte/TextoPixel";
 
 const ALTO_BARRA = 10;
+const DURACION_FADE_IN_MS = 650;
 
 export class HudScene extends Phaser.Scene {
   private partida!: Partida;
@@ -18,10 +19,28 @@ export class HudScene extends Phaser.Scene {
   }
 
   create() {
+    this.iniciarFadeIn();
     this.partida = this.registry.get("partida") as Partida;
     this.barra = this.add.graphics();
     this.titulo = textoPixel(this, 16, 12, "", 16, PALETA.linea);
     this.detalle = textoPixel(this, 16, 42, "", 8, PALETA.texto_suave);
+  }
+
+  private iniciarFadeIn() {
+    const camara = this.cameras.main;
+    this.tweens.killTweensOf(camara);
+    camara.setAlpha(0);
+    this.tweens.add({
+      targets: camara,
+      alpha: 1,
+      duration: DURACION_FADE_IN_MS,
+      ease: "Sine.easeOut",
+      onComplete: () => camara.setAlpha(1),
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.tweens.killTweensOf(camara);
+      camara.setAlpha(1);
+    });
   }
 
   override update() {
