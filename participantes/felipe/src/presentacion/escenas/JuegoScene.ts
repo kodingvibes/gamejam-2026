@@ -12,10 +12,14 @@ import {
   tragoDeRejilla,
 } from "../agua/Balance";
 import { VentanaDeAgua } from "../agua/VentanaDeAgua";
+import {
+  actualizarGeometriaDeFoco,
+  type GeometriaDeFoco,
+} from "../arte/Luces";
 import { PALETA } from "../arte/theme";
 import { textoPixel } from "../arte/TextoPixel";
 import { sonido } from "../audio/Sonido";
-import { CELDA_PX, metroAPixel, pixelAMetro } from "../Escala";
+import { CELDA_PX, metroAPixel, pixelAMetro, SUELO_Y } from "../Escala";
 import { Camioneta } from "../mundo/Camioneta";
 import { Escenario } from "../mundo/Escenario";
 import { Recuerdos } from "../mundo/Recuerdos";
@@ -39,6 +43,7 @@ export class JuegoScene extends Phaser.Scene {
   private acumulado = 0;
   private teclas!: Phaser.Types.Input.Keyboard.CursorKeys;
   private espacio!: Phaser.Input.Keyboard.Key;
+  private readonly foco: GeometriaDeFoco = { x: 0, y: 0, direccion: 1 };
   private estabaEnAgua = false;
   private fadeEnCurso = false;
 
@@ -116,11 +121,18 @@ export class JuegoScene extends Phaser.Scene {
       this.simularAgua();
     }
 
+    const jugadorX = metroAPixel(this.partida.jugador.metro);
+    actualizarGeometriaDeFoco(
+      this.foco,
+      jugadorX,
+      SUELO_Y,
+      this.partida.jugador.rumbo === "izquierda",
+    );
     this.ventana.seguirCamara(this.cameras.main.scrollX);
-    this.ventana.pintar();
+    this.ventana.pintar(this.foco, this.cameras.main.scrollX, this.scale.width);
     this.escenario.actualizarRejillas();
     this.recuerdos.actualizar(segundos, this.partida, this.cameras.main.scrollX, this.scale.width);
-    this.camioneta.actualizar(this.partida.jugador, this.partida.sumideroAlAlcance());
+    this.camioneta.actualizar(this.partida.jugador, this.partida.sumideroAlAlcance(), this.foco);
     sonido.intensidadDeLluvia(this.partida.caudal);
     sonido.talVezGranizo(this.partida.oleada.granizoPorSegundo, segundos);
 

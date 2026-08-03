@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import { DIFICULTAD } from "../../config";
 import { Azar } from "../../dominio/agua/Azar";
 import { CELDA, Granos } from "../../dominio/agua/Granos";
+import { intensidadEnFoco, type GeometriaDeFoco } from "../arte/Luces";
 import { PALETA } from "../arte/theme";
 import { CELDA_PX, FILAS_DE_AGUA, MARGEN_DE_AGUA, SUELO_Y } from "../Escala";
 import { alturaDelPiso, CAIDA_HACIA_LA_REJILLA } from "./PerfilDeCalle";
@@ -18,6 +19,9 @@ const PASOS_PARA_ASENTAR = 20;
 const COLUMNAS_POR_RAFAGA_VISUAL = 4;
 const LARGO_MINIMO_DE_ESTELA = 2;
 const VARIACIONES_DE_LARGO_DE_ESTELA = 4;
+const REFLEJO_DE_SUPERFICIE = 0.28;
+const REFLEJO_DE_GOTA = 0.2;
+const AUMENTO_DE_ALFA_DE_GOTA = 20;
 
 function componentes(color: number): [number, number, number] {
   return [(color >> 16) & 255, (color >> 8) & 255, color & 255];
@@ -188,10 +192,19 @@ export class VentanaDeAgua {
     this.granos.paso();
   }
 
-  pintar() {
+  pintar(foco: GeometriaDeFoco, scrollX: number, anchoVisible: number) {
     const datos = this.imagen.data;
+    const columnaVisibleInicial = Math.max(
+      0,
+      Math.floor(scrollX / CELDA_PX) - this.columnaOrigen,
+    );
+    const columnaVisibleFinal = Math.min(
+      this.columnas,
+      Math.ceil((scrollX + anchoVisible) / CELDA_PX) - this.columnaOrigen,
+    );
     for (let fila = 0; fila < FILAS_DE_AGUA; fila += 1) {
-      for (let columna = 0; columna < this.columnas; columna += 1) {
+      const y = this.alturaTope + (fila + 0.5) * CELDA_PX;
+      for (let columna = columnaVisibleInicial; columna < columnaVisibleFinal; columna += 1) {
         const destino = (fila * this.columnas + columna) * 4;
         if (this.granos.celdaEn(columna, fila) !== CELDA.agua) {
           datos[destino + 3] = 0;
@@ -199,16 +212,23 @@ export class VentanaDeAgua {
         }
         const superficie = this.granos.celdaEn(columna, fila - 1) !== CELDA.agua;
         const estaCayendo = this.granos.celdaEn(columna, fila + 1) === CELDA.aire;
+        const columnaMundo = this.columnaOrigen + columna;
         if (!estaCayendo) {
           const color = superficie ? this.brillo : this.agua;
-          datos[destino] = color[0];
-          datos[destino + 1] = color[1];
-          datos[destino + 2] = color[2];
+          const reflejo = superficie
+            ? intensidadEnFoco(
+                foco,
+                (columnaMundo + 0.5) * CELDA_PX,
+                y,
+              ) * REFLEJO_DE_SUPERFICIE
+            : 0;
+          datos[destino] = color[0] + (255 - color[0]) * reflejo;
+          datos[destino + 1] = color[1] + (244 - color[1]) * reflejo;
+          datos[destino + 2] = color[2] + (198 - color[2]) * reflejo;
           datos[destino + 3] = 255;
           continue;
         }
 
-        const columnaMundo = this.columnaOrigen + columna;
         const firmaDeColumna = firmaVisual(columnaMundo);
         const firmaDeRafaga = firmaVisual(
           Math.floor(columnaMundo / COLUMNAS_POR_RAFAGA_VISUAL),
@@ -222,10 +242,15 @@ export class VentanaDeAgua {
           LARGO_MINIMO_DE_ESTELA + ((variante >>> 11) % VARIACIONES_DE_LARGO_DE_ESTELA);
         const alfaInicialDeEstela = 135 + ((firmaDeRafaga >>> 7) % 46);
 
-        datos[destino] = tono[0];
-        datos[destino + 1] = tono[1];
-        datos[destino + 2] = tono[2];
-        datos[destino + 3] = alfaDeGota;
+        const intensidad = intensidadEnFoco(foco, (columnaMundo + 0.5) * CELDA_PX, y);
+        const reflejo = intensidad * REFLEJO_DE_GOTA;
+        const gotaRoja = tono[0] + (255 - tono[0]) * reflejo;
+        const gotaVerde = tono[1] + (244 - tono[1]) * reflejo;
+        const gotaAzul = tono[2] + (198 - tono[2]) * reflejo;
+        datos[destino] = gotaRoja;
+        datos[destino + 1] = gotaVerde;
+        datos[destino + 2] = gotaAzul;
+        datos[destino + 3] = Math.min(255, alfaDeGota + intensidad * AUMENTO_DE_ALFA_DE_GOTA);
 
         for (let largo = 1; largo <= largoDeEstela && fila - largo >= 0; largo += 1) {
           const filaDeEstela = fila - largo;
@@ -233,9 +258,9 @@ export class VentanaDeAgua {
             break;
           }
           const estela = (filaDeEstela * this.columnas + columna) * 4;
-          datos[estela] = tono[0];
-          datos[estela + 1] = tono[1];
-          datos[estela + 2] = tono[2];
+          datos[estela] = gotaRoja;
+          datos[estela + 1] = gotaVerde;
+          datos[estela + 2] = gotaAzul;
           datos[estela + 3] = Math.round(
             alfaInicialDeEstela * (1 - largo / (largoDeEstela + 1)),
           );
