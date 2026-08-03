@@ -5,6 +5,10 @@ import { createTapaoGame } from "./presentacion/TapaoGame";
 import { mejorPuntaje } from "./presentacion/Records";
 import { sonido } from "./presentacion/audio/Sonido";
 
+if (import.meta.env.DEV) {
+  console.info("[Tapa’o] Build local: feedback rejillas v1");
+}
+
 const contenedor = document.getElementById("tapao");
 
 if (contenedor) {

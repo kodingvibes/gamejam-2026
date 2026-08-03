@@ -11,7 +11,11 @@ import {
   RADIO_DE_TRAGO_FILAS,
   tragoDeRejilla,
 } from "../agua/Balance";
-import { VentanaDeAgua } from "../agua/VentanaDeAgua";
+import {
+  RADIO_DE_CONCENTRACION_EN_REJILLA,
+  type RejillaVisual,
+  VentanaDeAgua,
+} from "../agua/VentanaDeAgua";
 import {
   actualizarGeometriaDeFoco,
   type GeometriaDeFoco,
@@ -44,6 +48,7 @@ export class JuegoScene extends Phaser.Scene {
   private teclas!: Phaser.Types.Input.Keyboard.CursorKeys;
   private espacio!: Phaser.Input.Keyboard.Key;
   private readonly foco: GeometriaDeFoco = { x: 0, y: 0, direccion: 1 };
+  private rejillasVisuales: RejillaVisual[] = [];
   private estabaEnAgua = false;
   private fadeEnCurso = false;
 
@@ -60,8 +65,12 @@ export class JuegoScene extends Phaser.Scene {
     this.partida = Partida.comenzar(this.modo, Date.now() >>> 0);
     this.escenario = new Escenario(this, this.partida.alameda);
     this.ventana = new VentanaDeAgua(this);
+    this.rejillasVisuales = this.partida.alameda.sumideros.map((sumidero) => ({
+      columna: this.escenario.columnaDe(sumidero, CELDA_PX),
+      obstruccion: sumidero.obstruccion,
+    }));
     this.ventana.dondeEstanLasRejillas(
-      this.partida.alameda.sumideros.map((sumidero) => this.escenario.columnaDe(sumidero, CELDA_PX)),
+      this.rejillasVisuales.map((rejilla) => rejilla.columna),
       Math.round(metroAPixel(METROS_ENTRE_SUMIDEROS) / CELDA_PX),
     );
     this.ventana.sembrarCharcos(
@@ -129,7 +138,38 @@ export class JuegoScene extends Phaser.Scene {
       this.partida.jugador.rumbo === "izquierda",
     );
     this.ventana.seguirCamara(this.cameras.main.scrollX);
-    this.ventana.pintar(this.foco, this.cameras.main.scrollX, this.scale.width);
+    const columnaVisibleInicial = Math.floor(this.cameras.main.scrollX / CELDA_PX);
+    const columnaVisibleFinal = Math.ceil(
+      (this.cameras.main.scrollX + this.scale.width) / CELDA_PX,
+    );
+    let primeraRejillaVisible = 0;
+    while (
+      primeraRejillaVisible < this.rejillasVisuales.length &&
+      this.rejillasVisuales[primeraRejillaVisible].columna +
+        RADIO_DE_CONCENTRACION_EN_REJILLA <
+        columnaVisibleInicial
+    ) {
+      primeraRejillaVisible += 1;
+    }
+    let finalRejillasVisibles = primeraRejillaVisible;
+    while (
+      finalRejillasVisibles < this.rejillasVisuales.length &&
+      this.rejillasVisuales[finalRejillasVisibles].columna -
+        RADIO_DE_CONCENTRACION_EN_REJILLA <
+        columnaVisibleFinal
+    ) {
+      this.rejillasVisuales[finalRejillasVisibles].obstruccion =
+        this.partida.alameda.sumideros[finalRejillasVisibles].obstruccion;
+      finalRejillasVisibles += 1;
+    }
+    this.ventana.pintar(
+      this.foco,
+      this.cameras.main.scrollX,
+      this.scale.width,
+      this.rejillasVisuales,
+      primeraRejillaVisible,
+      finalRejillasVisibles,
+    );
     this.escenario.actualizarRejillas();
     this.recuerdos.actualizar(segundos, this.partida, this.cameras.main.scrollX, this.scale.width);
     this.camioneta.actualizar(this.partida.jugador, this.partida.sumideroAlAlcance(), this.foco);
