@@ -7,8 +7,8 @@ import { PALETA } from "../arte/theme";
 import { metroAPixel, SUELO_Y } from "../Escala";
 
 const ANCHO_BARRA = 44;
-const ALCANCE_DEL_FOCO = 78;
-const ALTURA_DEL_FOCO = 26;
+const MORRO_DESDE_EL_CENTRO = 30;
+const ALTURA_DEL_FARO = 18;
 const ALTURA_DE_LA_BALIZA = 52;
 
 export class Camioneta {
@@ -22,8 +22,9 @@ export class Camioneta {
     this.foco = escena.add
       .image(0, SUELO_Y, CONO_DE_FOCO)
       .setOrigin(0, 0.5)
+      .setAlpha(1)
       .setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(48);
+      .setDepth(29);
     this.sprite = escena.add
       .image(0, SUELO_Y, "camioneta_derecha")
       .setOrigin(0.5, 1)
@@ -53,8 +54,8 @@ export class Camioneta {
     const haciaLaIzquierda = jugador.rumbo === "izquierda";
     this.sprite.setTexture(haciaLaIzquierda ? "camioneta_izquierda" : "camioneta_derecha");
 
-    const morro = haciaLaIzquierda ? x - ALCANCE_DEL_FOCO * 0.36 : x + ALCANCE_DEL_FOCO * 0.36;
-    this.foco.setPosition(morro, SUELO_Y - ALTURA_DEL_FOCO);
+    const morro = haciaLaIzquierda ? x - MORRO_DESDE_EL_CENTRO : x + MORRO_DESDE_EL_CENTRO;
+    this.foco.setPosition(morro, SUELO_Y - ALTURA_DEL_FARO);
     this.foco.setFlipX(haciaLaIzquierda);
     this.foco.setOrigin(haciaLaIzquierda ? 1 : 0, 0.5);
     this.baliza.setPosition(

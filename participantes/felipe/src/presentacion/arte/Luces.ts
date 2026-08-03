@@ -3,8 +3,8 @@ import Phaser from "phaser";
 export const CONO_DE_FOCO = "foco-cono";
 export const RESPLANDOR = "resplandor-redondo";
 
-const CONO_ANCHO = 96;
-const CONO_ALTO = 40;
+const CONO_ANCHO = 128;
+const CONO_ALTO = 48;
 const RESPLANDOR_LADO = 32;
 
 function pintarCono(escena: Phaser.Scene) {
@@ -20,15 +20,15 @@ function pintarCono(escena: Phaser.Scene) {
   const centro = CONO_ALTO / 2;
   for (let x = 0; x < CONO_ANCHO; x += 1) {
     const avance = x / (CONO_ANCHO - 1);
-    const media = 2 + avance * (centro - 2);
-    const largo = Math.pow(1 - avance, 1.5);
+    const media = 3 + avance * (centro - 3);
+    const largo = Math.pow(1 - avance, 1.25);
     for (let y = 0; y < CONO_ALTO; y += 1) {
       const distancia = Math.abs(y - centro);
       if (distancia > media) {
         continue;
       }
-      const perfil = Math.pow(1 - distancia / media, 0.9);
-      const alfa = Math.round(largo * perfil * 150);
+      const perfil = Math.pow(1 - distancia / media, 1.05);
+      const alfa = Math.round(largo * perfil * 175);
       if (alfa <= 0) {
         continue;
       }
