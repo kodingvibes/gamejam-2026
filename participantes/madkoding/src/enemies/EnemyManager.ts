@@ -2,11 +2,15 @@
 
 import * as THREE from 'three';
 import { ENEMIES } from '../types/config';
+import { EventBus } from '../core/EventBus';
+import { GameEvent } from '../types/events';
 import { Enemy } from './Enemy';
 import type { EnemyConfig } from './Enemy';
 import { SweepPattern } from './patterns/SweepPattern';
 import { DiveBombPattern } from './patterns/DiveBombPattern';
 import { CirclePattern } from './patterns/CirclePattern';
+import { ZigZagPattern } from './patterns/ZigZagPattern';
+import { DivePattern } from './patterns/DivePattern';
 import type { PatternBase } from './patterns/PatternBase';
 import type { Projectile } from '../weapons/Projectile';
 
@@ -25,6 +29,7 @@ export interface EnemyProjectileDef {
 
 export class EnemyManager {
   private scene: THREE.Scene;
+  private eventBus = EventBus.getInstance();
   private enemies: Enemy[] = [];
   private patterns: Map<string, PatternBase> = new Map();
   private _activeEnemies: Enemy[] = [];
@@ -37,6 +42,8 @@ export class EnemyManager {
     this.patterns.set('SWEEP', new SweepPattern());
     this.patterns.set('DIVE_BOMB', new DiveBombPattern());
     this.patterns.set('CIRCLE', new CirclePattern());
+    this.patterns.set('ZIGZAG', new ZigZagPattern());
+    this.patterns.set('DIVE', new DivePattern());
 
     // Pre-create enemy pool
     for (let idx = 0; idx < poolSize; idx++) {
@@ -106,6 +113,7 @@ export class EnemyManager {
       position: shootPos,
       velocity: dir.clone().multiplyScalar(200),
     });
+    this.eventBus.emit(GameEvent.ENEMY_FIRED, {});
   };
 
   reset(): void {

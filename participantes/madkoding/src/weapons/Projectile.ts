@@ -5,7 +5,6 @@ import { WeaponKind } from './WeaponConfig';
 
 export class Projectile {
   private mesh: THREE.Mesh;
-  private glow: THREE.Mesh;
   private bombRing: THREE.Mesh; // charged energy ring for bombs
   private static readonly _scratchStep = new THREE.Vector3();
   private _velocity = new THREE.Vector3();
@@ -26,23 +25,13 @@ export class Projectile {
     const geo = new THREE.CylinderGeometry(0.18, 0.18, 3.0, 8);
     geo.rotateX(Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x00ffaa, transparent: true, opacity: 1,
+      color: 0x00ffaa,
+      transparent: true, opacity: 1,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.visible = false;
     this.mesh.renderOrder = 999;
-
-    // Light crown (corona) around the laser — a soft additive glow halo.
-    const glowGeo = new THREE.SphereGeometry(0.5, 12, 12);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0x00ffaa, transparent: true, opacity: 0.35,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    this.glow = new THREE.Mesh(glowGeo, glowMat);
-    this.glow.visible = false;
-    this.glow.renderOrder = 998;
-    this.mesh.add(this.glow);
 
     // Charged energy ring for bombs — a bright torus around the core that
     // reads as a circle of powerful, glowing mass.
@@ -58,7 +47,6 @@ export class Projectile {
   }
 
   get object3D(): THREE.Mesh { return this.mesh; }
-  get glowMesh(): THREE.Mesh { return this.glow; }
   get active(): boolean { return this._active; }
   get damage(): number { return this._damage; }
   get kind(): WeaponKind { return this._kind; }
@@ -100,9 +88,7 @@ export class Projectile {
     this._prevPosition.copy(position);
     this._velocity.copy(direction).multiplyScalar(speed);
     (this.mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
-    (this.glow.material as THREE.MeshBasicMaterial).color.setHex(color);
     this.mesh.visible = true;
-    this.glow.visible = true;
 
     if (kind === 'LASER' && this._velocity.length() > 0.01) {
       this.mesh.lookAt(this.mesh.position.clone().add(this._velocity));
@@ -136,14 +122,12 @@ export class Projectile {
     if (this._lifetime >= this._maxLifetime) this.deactivate();
   }
 
-  explode(): void { this._exploded = true; this._active = false; this.mesh.visible = false; this.glow.visible = false; this.bombRing.visible = false; }
-  deactivate(): void { this._active = false; this.mesh.visible = false; this.glow.visible = false; this.bombRing.visible = false; }
+  explode(): void { this._exploded = true; this._active = false; this.mesh.visible = false; this.bombRing.visible = false; }
+  deactivate(): void { this._active = false; this.mesh.visible = false; this.bombRing.visible = false; }
 
   dispose(): void {
     this.mesh.geometry.dispose();
     (this.mesh.material as THREE.Material).dispose();
-    this.glow.geometry.dispose();
-    (this.glow.material as THREE.Material).dispose();
     this.bombRing.geometry.dispose();
     (this.bombRing.material as THREE.Material).dispose();
   }

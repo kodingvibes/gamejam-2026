@@ -106,10 +106,6 @@ export class HUD {
 
   private updateScore(score: number): void {
     this.scoreElement.textContent = score.toLocaleString();
-    // Trigger glitch animation on score change
-    this.scoreElement.classList.remove('score-glitch');
-    void this.scoreElement.offsetWidth; // force reflow to restart animation
-    this.scoreElement.classList.add('score-glitch');
   }
 
   private updateCombo(combo: number): void {

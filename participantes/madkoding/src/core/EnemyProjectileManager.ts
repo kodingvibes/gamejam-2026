@@ -54,11 +54,20 @@ export class EnemyProjectileManager {
     // Orient capsule along travel direction
     const dir = direction.clone().normalize();
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-    this.projectiles.push({
-      position: position.clone(),
-      velocity: dir.multiplyScalar(LASER_SPEED),
-      mesh, active: true,
-    });
+    // Recycle an inactive slot if available to avoid unbounded array growth.
+    const slot = this.projectiles.find(p => !p.active);
+    if (slot) {
+      slot.position.copy(position);
+      slot.velocity.copy(dir).multiplyScalar(LASER_SPEED);
+      slot.mesh = mesh;
+      slot.active = true;
+    } else {
+      this.projectiles.push({
+        position: position.clone(),
+        velocity: dir.multiplyScalar(LASER_SPEED),
+        mesh, active: true,
+      });
+    }
   }
 
   update(dt: number, playerPos: THREE.Vector3): { hit: boolean } {

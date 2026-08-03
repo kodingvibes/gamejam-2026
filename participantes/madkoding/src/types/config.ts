@@ -19,7 +19,7 @@ export const RAIL = {
 export const CAMERA = {
   // Chase lag: higher = camera catches up faster (less parallax).
   // Lower = more lag, ship moves more within the frame (more parallax).
-  CHASE_LAG: 6,
+  CHASE_LAG: 3.5,
   CHASE_UP: 4.0,
   CHASE_BACK: 10,
   LOOK_AHEAD: 20,
@@ -31,10 +31,15 @@ export const PLAYER = {
   MAX_HEALTH: 100,
   STARTING_SHIELDS: 3,
   MAX_SHIELDS: 5,
-  LATERAL_SPEED: 15,
-  VERTICAL_SPEED: 15,
+  LATERAL_SPEED: 22,
+  VERTICAL_SPEED: 16,
   INVINCIBILITY_TIME: 1.5,
   HITBOX_RADIUS: 1.5,
+  // How far the ship can drift in screen NDC space (0..1). 0.85 lets it reach
+  // near the window edges while still leaving a small safety margin.
+  SCREEN_LIMIT: 0.88,
+  // Response when following mouse / keyboard relative movement.
+  SCREEN_LAG: 14,
 } as const;
 
 export const ENEMIES = {
@@ -100,7 +105,7 @@ export const BOSS = {
 
 export const FX = {
   HIT_SPARK_DURATION: 0.15,
-  STARFIELD_COUNT: 2000,
+  STARFIELD_COUNT: 1000,
   STARFIELD_DEPTH: 500,
 } as const;
 
@@ -109,6 +114,6 @@ export const SCREEN = {
 } as const;
 
 export const COLORS = {
-  BACKGROUND: 0x0a0a1a,
-  FOG: 0x0a0a1a,
+  BACKGROUND: 0x1a1a2e,
+  FOG: 0x1a1a2e,
 } as const;

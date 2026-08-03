@@ -28,6 +28,11 @@ html, body {
   user-select: none;
 }
 
+body.cursor-hidden,
+body.cursor-hidden * {
+  cursor: none !important;
+}
+
 #game-container { position: relative; width: 100%; height: 100%; }
 #game-canvas { display: block; width: 100%; height: 100%; }
 
@@ -307,10 +312,10 @@ html, body {
   position: absolute;
   top: 50%;
   left: 50%;
-  margin-left: -22px;
-  margin-top: -22px;
-  width: 44px;
-  height: 44px;
+  margin-left: -44px;
+  margin-top: -44px;
+  width: 88px;
+  height: 88px;
   pointer-events: none;
   z-index: 20;
   transition: left 0.05s linear, top 0.05s linear;
@@ -320,18 +325,18 @@ html, body {
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 4px; height: 4px;
+  width: 14px; height: 14px;
   background: var(--cyan);
   border-radius: 50%;
-  box-shadow: 0 0 8px var(--cyan);
+  box-shadow: 0 0 14px var(--cyan), 0 0 2px #000;
 }
 
 .crosshair-ring {
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 36px; height: 36px;
-  border: 1px solid var(--cyan-dim);
+  width: 72px; height: 72px;
+  border: 4px solid var(--cyan-dim);
   border-radius: 50%;
   animation: crosshairSpin 8s linear infinite;
 }
@@ -340,11 +345,11 @@ html, body {
   content: '';
   position: absolute;
   background: var(--cyan);
-  box-shadow: 0 0 4px var(--cyan);
+  box-shadow: 0 0 6px var(--cyan), 0 0 2px #000;
 }
 
-.crosshair-ring::before  { top: -2px; left: 50%; transform: translateX(-50%); width: 2px; height: 7px; }
-.crosshair-ring::after   { bottom: -2px; left: 50%; transform: translateX(-50%); width: 2px; height: 7px; }
+.crosshair-ring::before  { top: -3px; left: 50%; transform: translateX(-50%); width: 6px; height: 20px; }
+.crosshair-ring::after   { bottom: -3px; left: 50%; transform: translateX(-50%); width: 6px; height: 20px; }
 
 @keyframes crosshairSpin {
   from { transform: translate(-50%, -50%) rotate(0deg); }
@@ -354,13 +359,13 @@ html, body {
 .crosshair-line {
   position: absolute;
   background: var(--cyan-dim);
-  box-shadow: 0 0 4px var(--cyan-dim);
+  box-shadow: 0 0 6px var(--cyan-dim), 0 0 2px #000;
 }
 
-.crosshair-line.top    { top: 0;    left: 50%; transform: translateX(-50%); width: 2px; height: 9px; }
-.crosshair-line.bottom { bottom: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 9px; }
-.crosshair-line.left   { left: 0;   top: 50%; transform: translateY(-50%); width: 9px; height: 2px; }
-.crosshair-line.right  { right: 0;  top: 50%; transform: translateY(-50%); width: 9px; height: 2px; }
+.crosshair-line.top    { top: 0;    left: 50%; transform: translateX(-50%); width: 6px; height: 24px; }
+.crosshair-line.bottom { bottom: 0; left: 50%; transform: translateX(-50%); width: 6px; height: 24px; }
+.crosshair-line.left   { left: 0;   top: 50%; transform: translateY(-50%); width: 24px; height: 6px; }
+.crosshair-line.right  { right: 0;  top: 50%; transform: translateY(-50%); width: 24px; height: 6px; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Screens
@@ -469,6 +474,87 @@ h2 {
 
 .damage-flash.visible { opacity: 1; }
 .damage-flash.hidden  { opacity: 0; }
+
+/* ── Enemy fire flash: quick subtle blue pulse when an enemy shoots ── */
+#enemy-fire-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 49;
+  background: rgba(120, 180, 255, 0.12);
+  opacity: 0;
+}
+
+/* ── Glitch overlay (RGB-split + scanlines) on player damage ── */
+#glitch-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 55;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.04) 3px
+    );
+}
+
+#glitch-overlay::before,
+#glitch-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(255, 0, 60, 0.18) 100%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 6px,
+      rgba(0, 255, 255, 0.05) 6px,
+      rgba(0, 255, 255, 0.05) 7px
+    );
+}
+
+#glitch-overlay::before { background-color: rgba(255, 0, 60, 0.08); }
+#glitch-overlay::after  { background-color: rgba(0, 255, 255, 0.08); }
+
+#glitch-overlay.glitch-active {
+  animation: glitchFlicker 0.22s steps(8, end) 1;
+}
+
+#glitch-overlay.glitch-active::before {
+  animation: glitchShiftRed 0.22s steps(4, end) 1;
+}
+
+#glitch-overlay.glitch-active::after {
+  animation: glitchShiftCyan 0.22s steps(4, end) 1;
+}
+
+@keyframes glitchFlicker {
+  0%, 100% { opacity: 0; }
+  20%, 60% { opacity: 1; }
+  40%, 80% { opacity: 0.6; }
+}
+
+@keyframes glitchShiftRed {
+  0%   { transform: translate(-6px, 0); }
+  25%  { transform: translate( 8px, -2px); }
+  50%  { transform: translate(-4px, 3px); }
+  75%  { transform: translate( 5px,  0); }
+  100% { transform: translate( 0, 0); }
+}
+
+@keyframes glitchShiftCyan {
+  0%   { transform: translate( 6px, 0); }
+  25%  { transform: translate(-8px,  2px); }
+  50%  { transform: translate( 4px, -3px); }
+  75%  { transform: translate(-5px,  0); }
+  100% { transform: translate( 0, 0); }
+}
 
 .hidden { display: none !important; }
 

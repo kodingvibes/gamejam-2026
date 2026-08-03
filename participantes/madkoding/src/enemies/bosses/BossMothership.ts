@@ -11,7 +11,6 @@ export class BossMothership extends BossBase {
   private declare turrets: THREE.Mesh[];
   private declare core: THREE.Mesh;
   private declare shield: THREE.Mesh;
-  private declare engineGlows: THREE.Mesh[];
   private attackTimer = 0;
   private attackInterval = 2;
   private volleyEven = false;
@@ -24,7 +23,6 @@ export class BossMothership extends BossBase {
     // Field initializers run AFTER the base constructor calls buildMesh(),
     // so initialize these arrays here.
     this.turrets = [];
-    this.engineGlows = [];
 
     // ── Main body (large disc-like hull) ──
     const bodyMat = new THREE.MeshPhongMaterial({
@@ -168,21 +166,6 @@ export class BossMothership extends BossBase {
     tip.position.set(0, 0, -this._size * 0.6 - 0.8);
     this.group.add(tip);
 
-    // ── Engine glows ──
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0xff4444,
-      transparent: true,
-      opacity: 0.5,
-    });
-    for (let idx = -2; idx <= 2; idx += 1.5) {
-      const glowGeo = new THREE.CircleGeometry(0.4, 8);
-      const glow = new THREE.Mesh(glowGeo, glowMat);
-      glow.position.set(idx, 0, -this._size * 0.8);
-      glow.rotation.x = Math.PI / 2;
-      this.group.add(glow);
-      this.engineGlows.push(glow);
-    }
-
     // ── Rotating ring (visual flair) ──
     const ring2Mat = new THREE.MeshPhongMaterial({
       color: 0x44aaff,
@@ -262,12 +245,6 @@ export class BossMothership extends BossBase {
     // Shield pulse
     (this.shield.material as THREE.MeshPhongMaterial).opacity =
       Math.sin(this._age * 2) * 0.1 + 0.2;
-
-    // Engine glow pulse
-    for (const glow of this.engineGlows) {
-      (glow.material as THREE.MeshBasicMaterial).opacity =
-        Math.sin(this._age * 4 + glow.position.x) * 0.3 + 0.5;
-    }
 
     // Attack timer
     this.attackTimer += dt;

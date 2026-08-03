@@ -1,10 +1,9 @@
-// ─── Camera Rig (Third-Person Chase with Parallax Lag) ─────────────────────
+// ─── Camera Rig (On-Rails Chase with Free Screen-Space Ship) ───────────────
 //
-// The camera does NOT snap to the ship. It smoothly chases the ship's target
-// position with a lag (CHASE_LAG). When the ship moves laterally/vertically,
-// it shifts within the frame while the camera catches up — this produces the
-// Starfox-style parallax feel (ship moves, background layers drift at
-// different rates). The camera also banks slightly into turns for extra life.
+// The camera rides the rail path independently of the player's screen-space
+// movement. It only knows the rail base position, not the ship's lateral/vertical
+// screen offset. This lets the ship slide freely around the viewport while the
+// camera stays smooth and forward-looking, exactly like Starfox.
 
 import * as THREE from 'three';
 import { CAMERA } from '../types/config';
@@ -16,13 +15,12 @@ export class CameraRig {
   private shakeDuration = 0;
   private shakeTimer = 0;
 
-  // Smoothed chase position (lags behind the ship target).
   private _chasePos = new THREE.Vector3();
   private _chaseLook = new THREE.Vector3();
   private _initialized = false;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
     this.camera.position.set(0, 4, 10);
     this.camera.lookAt(0, 0, -10);
   }
@@ -36,26 +34,27 @@ export class CameraRig {
     this.camera.updateProjectionMatrix();
   }
 
-  setTarget(position: THREE.Vector3, forward: THREE.Vector3, up: THREE.Vector3): void {
-    // Desired camera position: behind & above the ship.
+  // `railPos` is the base rail position WITHOUT the player's screen offset.
+  // `shipOffset` is the player's world-space offset from the rail, used only
+  // for subtle banking feedback.
+  setTarget(railPos: { position: THREE.Vector3; forward: THREE.Vector3; up: THREE.Vector3 }, shipOffsetX = 0, shipOffsetY = 0): void {
+    // Camera stays on the rail path, slightly above and behind.
     const desired = new THREE.Vector3()
-      .copy(position)
-      .addScaledVector(up, CAMERA.CHASE_UP)
-      .addScaledVector(forward, -CAMERA.CHASE_BACK);
+      .copy(railPos.position)
+      .addScaledVector(railPos.up, CAMERA.CHASE_UP)
+      .addScaledVector(railPos.forward, -CAMERA.CHASE_BACK);
 
-    // Desired look-at point: ahead & slightly above the ship.
+    // Look ahead along the rail, never at the ship's screen offset.
     const desiredLook = new THREE.Vector3()
-      .copy(position)
-      .addScaledVector(forward, CAMERA.LOOK_AHEAD)
-      .addScaledVector(up, CAMERA.LOOK_UP);
+      .copy(railPos.position)
+      .addScaledVector(railPos.forward, CAMERA.LOOK_AHEAD)
+      .addScaledVector(railPos.up, CAMERA.LOOK_UP);
 
     if (!this._initialized) {
-      // First frame: snap so there's no initial jump.
       this._chasePos.copy(desired);
       this._chaseLook.copy(desiredLook);
       this._initialized = true;
     } else {
-      // Chase with lag → parallax. Higher CHASE_LAG = faster catch-up.
       const k = Math.min(1, CAMERA.CHASE_LAG * 0.016);
       this._chasePos.lerp(desired, k);
       this._chaseLook.lerp(desiredLook, k);
@@ -64,12 +63,10 @@ export class CameraRig {
     this.camera.position.copy(this._chasePos);
     this.camera.lookAt(this._chaseLook);
 
-    // Bank the camera slightly into lateral turns for a dynamic feel.
-    // Compute lateral drift from the ship's offset relative to the rail.
-    // We approximate by looking at how far the ship is from the camera's
-    // forward axis — a simple roll based on the ship's X offset.
-    const lateral = THREE.MathUtils.clamp(position.x * 0.02, -0.25, 0.25);
-    this.camera.rotation.z = lateral;
+    // Gentle banking based on the ship's offset so the frame leans slightly
+    // toward where the player is on screen, reinforcing the parallax.
+    this.camera.rotation.z = THREE.MathUtils.clamp(shipOffsetX * 0.02, -0.2, 0.2);
+    this.camera.rotation.x = THREE.MathUtils.clamp(shipOffsetY * 0.02, -0.12, 0.12);
   }
 
   shake(intensity: number, duration: number): void {
@@ -79,7 +76,6 @@ export class CameraRig {
   }
 
   update(dt: number): void {
-    // Screen shake only (position/lookAt are set directly in setTarget)
     if (this.shakeTimer < this.shakeDuration) {
       this.shakeTimer += dt;
       const decay = 1 - (this.shakeTimer / this.shakeDuration);

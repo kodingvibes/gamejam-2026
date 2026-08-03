@@ -5,12 +5,12 @@
 
 import * as THREE from 'three';
 
-const TAIL_PARTICLES = 80;
-const TAIL_LENGTH = 4.5;     // how far back the tail extends
-const TAIL_WIDTH_START = 0.15;
-const TAIL_WIDTH_END = 1.2;  // bushy wide tip like a fox tail
+const TAIL_PARTICLES = 40;
+const TAIL_LENGTH = 1.8;     // how far back the tail extends
+const TAIL_WIDTH_START = 0.12;
+const TAIL_WIDTH_END = 0.5;  // bushy wide tip like a fox tail
 const SWAY_FREQ = 4;
-const SWAY_AMP = 0.35;
+const SWAY_AMP = 0.2;
 
 // Color gradient: hot core → orange → red tip (same rgb as the former
 // THREE.Color(0xffffee / 0xff9933 / 0xff3311) constants, stored as Float32Array)
@@ -51,9 +51,21 @@ export class FoxTail {
 
     this.points = new THREE.Points(geo, mat);
     this.points.frustumCulled = false;
-    // Ship's nose is at +Z, rear is at -Z. Tail extends backward (-Z).
-    this.points.position.set(0, 0, -1.5);
+    // Ship's nose is at -Z, rear is at +Z (toward the camera). Tail base sits
+    // just behind the engines, slightly low, and extends toward the camera.
+    this.points.position.set(0, -0.8, -2.5);
     parent.add(this.points);
+
+    // SpotLight at the tail base illuminating the fiery exhaust trail.
+    const tailLight = new THREE.SpotLight(0xff6622, 5000.0);
+    tailLight.position.set(0, -0.8, -2.5);
+    tailLight.target.position.set(0, -0.8, -8);
+    tailLight.angle = Math.PI / 2.2;
+    tailLight.penumbra = 0.7;
+    tailLight.distance = 22;
+    tailLight.decay = 1.5;
+    parent.add(tailLight);
+    parent.add(tailLight.target);
   }
 
   update(dt: number): void {
@@ -111,6 +123,8 @@ export class FoxTail {
   setVisible(v: boolean): void {
     this.points.visible = v;
   }
+
+  get pointsObject(): THREE.Points { return this.points; }
 
   dispose(): void {
     this.points.geometry.dispose();

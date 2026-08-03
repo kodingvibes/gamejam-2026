@@ -217,12 +217,36 @@ export class WaveManager {
     let centerY = THREE.MathUtils.randFloat(-3, 3);
     let origin: THREE.Vector3 | undefined;
 
-    // Emerge from a corvette's hangar (off to the side) and fly to the
-    // formation position near the center of the screen.
-    const validCorvettes = this.corvettePositions.filter(c => c.z < playerPos.z - 30);
-    if (validCorvettes.length > 0) {
-      const corvette = validCorvettes[Math.floor(Math.random() * validCorvettes.length)];
-      origin = corvette.clone();
+    // Pick an entry vector: prefer corvette hangars (sides) but sometimes
+    // spawn from above, below, or diagonals for trajectory variety.
+    const roll = Math.random();
+    if (roll < 0.55) {
+      // Emerge from a corvette's hangar (off to the side) and fly to the
+      // formation position near the center of the screen.
+      const validCorvettes = this.corvettePositions.filter(c => c.z < playerPos.z - 30);
+      if (validCorvettes.length > 0) {
+        const corvette = validCorvettes[Math.floor(Math.random() * validCorvettes.length)];
+        origin = corvette.clone();
+      }
+    } else {
+      // Alternate entry vectors: above, below, or the four diagonals.
+      const xOff = THREE.MathUtils.randFloat(40, 70);
+      const yOff = THREE.MathUtils.randFloat(25, 45);
+      const zOff = THREE.MathUtils.randFloat(15, 35);
+      const side = roll < 0.7 ? 1 : -1;
+      if (roll < 0.62) {
+        // From above
+        origin = new THREE.Vector3(playerPos.x + THREE.MathUtils.randFloat(-15, 15), playerPos.y + yOff, playerPos.z - zOff);
+      } else if (roll < 0.74) {
+        // From below
+        origin = new THREE.Vector3(playerPos.x + THREE.MathUtils.randFloat(-15, 15), playerPos.y - yOff, playerPos.z - zOff);
+      } else if (roll < 0.87) {
+        // From top-left / top-right diagonal
+        origin = new THREE.Vector3(playerPos.x - side * xOff, playerPos.y + yOff * 0.6, playerPos.z - zOff);
+      } else {
+        // From bottom-left / bottom-right diagonal
+        origin = new THREE.Vector3(playerPos.x + side * xOff, playerPos.y - yOff * 0.6, playerPos.z - zOff);
+      }
     }
 
     const spawnPos = new THREE.Vector3(

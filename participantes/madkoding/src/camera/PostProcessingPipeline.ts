@@ -5,14 +5,15 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass.js';
 
 // Vignette + Chromatic Aberration shader
 const VignetteChromaticAberrationShader = {
   uniforms: {
     tDiffuse: { value: null },
     offset: { value: new THREE.Vector2(0.0015, 0.0008) },
-    darkness: { value: 0.6 },
-    radius: { value: 0.75 },
+    darkness: { value: 0.3 },
+    radius: { value: 0.85 },
   },
   vertexShader: `
     varying vec2 vUv;
@@ -59,12 +60,17 @@ export class PostProcessingPipeline {
     this.composer = new EffectComposer(renderer);
     this.composer.addPass(new RenderPass(scene, camera));
 
-    // Bloom
+    // Motion blur (afterimage / trails)
+    const afterimagePass = new AfterimagePass(0.7);
+    this.composer.addPass(afterimagePass);
+
+    // Bloom — high threshold so only bright lights/emissives bloom, not the
+    // whole scene. Low strength keeps the image readable instead of washed.
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(width, height),
-      0.3, // strength
-      0.5, // radius
-      0.1  // threshold
+      0.4, // strength
+      0.4, // radius
+      0.85 // threshold
     );
     this.composer.addPass(bloomPass);
 

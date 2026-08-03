@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { ObjectPool } from '../utils/ObjectPool';
+import { CameraRig } from '../camera/CameraRig';
 
 const PARTICLE_COUNT = 80;
 const COLOR_MID = new THREE.Color(0xffcc44);
@@ -80,13 +81,15 @@ interface Shockwave {
 export class ExplosionSystem {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
+  private cameraRig: CameraRig | null = null;
   private explosions: Explosion[] = [];
   private shockwaves: Shockwave[] = [];
   private pool: ObjectPool<THREE.Points>;
 
-  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, poolSize = 30) {
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, cameraRig?: CameraRig, poolSize = 30) {
     this.scene = scene;
     this.camera = camera;
+    this.cameraRig = cameraRig ?? null;
     this.pool = new ObjectPool<THREE.Points>(
       () => {
         const count = 80;
@@ -108,11 +111,13 @@ export class ExplosionSystem {
 
   spawn(position: THREE.Vector3, size: number = 3, color: number = 0xff8844): void {
     this.spawnParticles(position, size, color, 1.0);
+    this.shakeFromSize(size);
   }
 
   // Epic explosion: same 80 particles but bigger spread + brighter
   spawnEpic(position: THREE.Vector3, color: number = 0xff6600): void {
     this.spawnParticles(position, 8, color, 1.5);
+    this.shakeFromSize(8);
   }
 
   // Nuclear explosion: a massive expanding shockwave ring + blinding flash +
@@ -120,6 +125,15 @@ export class ExplosionSystem {
   spawnNuclear(position: THREE.Vector3, color: number = 0xffaa33): void {
     this.spawnParticles(position, 14, color, 2.2);
     this.spawnShockwave(position, color);
+    this.shakeFromSize(14);
+  }
+
+  // Scale shake to explosion size. Small (size=3) → 0.15 / 0.15s, the biggest
+  // hits (size=14) cap at 0.55 / 0.5s. CameraRig decays the intensity.
+  private shakeFromSize(size: number): void {
+    if (!this.cameraRig) return;
+    const k = Math.min(1, size / 14);
+    this.cameraRig.shake(0.12 + k * 0.4, 0.12 + k * 0.35);
   }
 
   // Expanding shockwave ring + flash for the nuclear blast.

@@ -24,6 +24,9 @@ interface Corvette {
   holdDuration: number;
 }
 
+let _modelTemplate: THREE.Group | null = null;
+let _modelLoadPromise: Promise<THREE.Group | null> | null = null;
+
 export class BackgroundShips {
   private scene: THREE.Scene;
   private corvettes: Corvette[] = [];
@@ -42,111 +45,150 @@ export class BackgroundShips {
       this.corvettes.push(c);
       this.scene.add(c.group);
     }
+    // Kick off async model load. When ready, replace each corvette's body
+    // (procedural mesh) with a clone of the GLB template.
+    this.loadMothershipModel().then((tpl) => {
+      if (!tpl) return;
+      for (const c of this.corvettes) this.swapToModel(c, tpl);
+    });
   }
 
   get positions(): THREE.Vector3[] { return this._positions; }
+
+  private async loadMothershipModel(): Promise<THREE.Group | null> {
+    if (_modelTemplate) return _modelTemplate;
+    if (_modelLoadPromise) return _modelLoadPromise;
+    _modelLoadPromise = (async () => {
+      try {
+        const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+        const { DRACOLoader } = await import('three/examples/jsm/loaders/DRACOLoader.js');
+        const loader = new GLTFLoader();
+        const draco = new DRACOLoader();
+        draco.setDecoderPath('./draco/');
+        loader.setDRACOLoader(draco);
+        const gltf = await loader.loadAsync('./models/mothership.glb');
+        const model = gltf.scene;
+        // The GLB ships a 90°-X node rotation that already orients the model
+        // into the game's +Z-forward / +Y-up convention. We keep that baked
+        // rotation (it maps the model's nose to +Z and the roof to +Y) and
+        // only recenter + scale.
+        // Recenter
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+        // Size the GLB so its longest axis is ~16 units (matches procedural
+        // hull length). The outer group is then scaled by 3 on warp-in/out.
+        const size = box.getSize(new THREE.Vector3());
+        const longest = Math.max(size.x, size.y, size.z) || 1;
+        const s = 16 / longest;
+        model.scale.setScalar(s);
+        _modelTemplate = model;
+        return model;
+      } catch (err) {
+        console.warn('[BackgroundShips] Failed to load mothership GLB, using procedural corvettes:', err);
+        return null;
+      }
+    })();
+    return _modelLoadPromise;
+  }
+
+  // Replace the procedural body inside c.group with a clone of the GLB model.
+  // Keeps the warp-portal + blinking beacon (still children of c.group).
+  private swapToModel(c: Corvette, tpl: THREE.Group): void {
+    const clone = tpl.clone(true);
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.castShadow = false;
+        m.receiveShadow = false;
+        // Three's Object3D.clone() shares material/geometry refs with the
+        // source. Mark them so dispose() doesn't double-free (4 corvettes +
+        // template would all reference the same GPU resources).
+        if (m.geometry) m.geometry.userData.fromGLB = true;
+        const mat = m.material as THREE.Material | THREE.Material[];
+        if (Array.isArray(mat)) mat.forEach(x => { x.userData.fromGLB = true; });
+        else if (mat) mat.userData.fromGLB = true;
+      }
+    });
+    c.group.add(clone);
+    // The procedural body has no marker we can use to find it; the easiest
+    // swap is to leave the procedural meshes in place until dispose is called.
+    // They're small (cone + boxes) and invisible once the model is added at
+    // a similar scale, but a clean replacement is better: drop everything
+    // except the beacon + portal children.
+    const keep = new Set<THREE.Object3D>();
+    for (const child of c.group.children) {
+      if (child.name === 'beacon' || child === clone) keep.add(child);
+    }
+    const removed: THREE.Object3D[] = [];
+    for (const child of [...c.group.children]) {
+      if (!keep.has(child)) { removed.push(child); c.group.remove(child); }
+    }
+    for (const r of removed) {
+      r.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.geometry?.dispose();
+          const mat = m.material as THREE.Material | THREE.Material[];
+          if (Array.isArray(mat)) mat.forEach(x => x.dispose()); else mat?.dispose();
+        }
+      });
+    }
+  }
 
   private createCorvette(index: number): Corvette {
     const group = new THREE.Group();
     const side = index % 2 === 0 ? -1 : 1;
 
-    // Materials — lighter grey with strong emissive so they're visible at distance
     const hullMat = new THREE.MeshPhongMaterial({
       color: 0x8a9bb0, emissive: 0x445566, emissiveIntensity: 0.5, shininess: 50,
     });
     const darkMat = new THREE.MeshPhongMaterial({
       color: 0x6a7a8a, emissive: 0x334455, emissiveIntensity: 0.4, shininess: 40,
     });
-    const accentMat = new THREE.MeshPhongMaterial({
-      color: 0x4466aa, emissive: 0x224488, emissiveIntensity: 0.5, shininess: 50,
-    });
 
-    // ── Angular wedge hull (octahedron stretched) ──
-    const hullGeo = new THREE.ConeGeometry(3, 16, 4); // 4-sided = angular diamond
-    const hull = new THREE.Mesh(hullGeo, hullMat);
-    hull.rotation.x = Math.PI / 2;
-    hull.rotation.z = Math.PI / 4;
-    hull.scale.set(1.2, 1, 1);
+    // ── Single hull: one stretched box (low-poly wedge) ──
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 16), hullMat);
     group.add(hull);
 
-    // ── Angular bow (pyramid front) ──
-    const bowGeo = new THREE.ConeGeometry(3, 6, 4);
-    const bow = new THREE.Mesh(bowGeo, hullMat);
-    bow.rotation.x = Math.PI / 2;
-    bow.rotation.z = Math.PI / 4;
-    bow.position.z = -10;
-    bow.scale.set(1.2, 1, 1);
-    group.add(bow);
-
-    // ── Flat stern panel ──
-    const sternGeo = new THREE.BoxGeometry(4, 1, 3);
-    const stern = new THREE.Mesh(sternGeo, darkMat);
-    stern.position.z = 9.5;
-    group.add(stern);
-
-    // ── Bridge tower (angular box) ──
-    const towerGeo = new THREE.BoxGeometry(2.5, 3, 3.5);
-    const tower = new THREE.Mesh(towerGeo, darkMat);
-    tower.position.set(0, 2, -1);
+    // ── Bridge tower ──
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 3), darkMat);
+    tower.position.set(0, 1.5, -1);
     group.add(tower);
 
-    // Tower top antenna
-    const antGeo = new THREE.BoxGeometry(0.1, 2, 0.1);
-    const ant = new THREE.Mesh(antGeo, darkMat);
-    ant.position.set(0, 4.5, -1);
-    group.add(ant);
-
-    // ── Angular side fins (delta shapes) ──
-    for (const x of [-1, 1]) {
-      const finShape = new THREE.Shape();
-      finShape.moveTo(0, 0);
-      finShape.lineTo(x * 5, 1);
-      finShape.lineTo(x * 5, -2);
-      finShape.lineTo(0, -3);
-      finShape.lineTo(0, 0);
-      const finGeo = new THREE.ExtrudeGeometry(finShape, { depth: 0.3, bevelEnabled: false });
-      finGeo.rotateX(-Math.PI / 2);
-      const fin = new THREE.Mesh(finGeo, darkMat);
-      fin.position.set(x * 2.5, -0.5, 3);
-      group.add(fin);
-    }
-
-    // ── Running lights (row of small glowing dots along the hull) ──
-    const lightGeo = new THREE.SphereGeometry(0.15, 6, 6);
-    const lightColors = [0x00ffff, 0xff4400, 0x00ff00, 0xffaa00];
-    for (let i = 0; i < 8; i++) {
-      const t = i / 7;
+    // ── 4 running lights only (was 16) ──
+    const lightGeo = new THREE.SphereGeometry(0.2, 5, 4);
+    for (let i = 0; i < 4; i++) {
+      const t = i / 3;
       const z = -6 + t * 12;
-      const x = 2.5 * Math.cos(t * Math.PI) * (1 - Math.abs(t - 0.5) * 0.3);
       for (const dir of [-1, 1]) {
-        const c = lightColors[i % lightColors.length];
         const light = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({
-          color: c, transparent: true, opacity: 0.9,
+          color: 0x00ffff, transparent: true, opacity: 0.9,
           blending: THREE.AdditiveBlending, depthWrite: false,
         }));
-        light.position.set(dir * x, 0.3, z);
+        light.position.set(dir * 2, 0.5, z);
         group.add(light);
       }
     }
 
-    // ── Engine glows (bright blue, rear) ──
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: 0x44aaff, transparent: true, opacity: 0.8,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    for (const x of [-1.2, 0, 1.2]) {
-      const g = new THREE.Mesh(new THREE.CircleGeometry(0.6, 8), glowMat.clone());
-      g.position.set(x, 0, 11);
-      g.rotation.y = Math.PI;
-      group.add(g);
-    }
+    // ── Single engine glow ──
+    const glow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.8, 6),
+      new THREE.MeshBasicMaterial({
+        color: 0x44aaff, transparent: true, opacity: 0.8,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      }),
+    );
+    glow.position.set(0, 0, 8.5);
+    glow.rotation.y = Math.PI;
+    group.add(glow);
 
     // ── Blinking red beacon on top ──
     const beacon = new THREE.Mesh(
-      new THREE.SphereGeometry(0.3, 8, 8),
+      new THREE.SphereGeometry(0.3, 6, 4),
       new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
     );
-    beacon.position.set(0, 5, -1);
+    beacon.position.set(0, 3, -1);
     beacon.name = 'beacon';
     group.add(beacon);
 
@@ -183,17 +225,14 @@ export class BackgroundShips {
     };
   }
 
-  // Build a dramatic warp portal: vertical ring facing the camera + swirling
-  // additive disc + a fire ring around the rim with orbiting fire particles.
-  // Sized to match the corvette (~48 units long at 3x scale).
+  // Build a dramatic warp portal: a ring of fire flames pointing outward.
   private createPortal(): THREE.Group {
     const portal = new THREE.Group();
-    const R = 22; // portal radius, comparable to the corvette length
+    const R = 22;
 
-    // Outer ring (torus) — cyan/white energy. Default torus lies in the XY
-    // plane (normal along +Z), so it faces the camera. No rotation.
+    // Inner energy ring (cyan core).
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(R, 1.6, 16, 64),
+      new THREE.TorusGeometry(R, 0.8, 12, 48),
       new THREE.MeshBasicMaterial({
         color: 0x66ccff, transparent: true, opacity: 0.9,
         blending: THREE.AdditiveBlending, depthWrite: false,
@@ -201,62 +240,36 @@ export class BackgroundShips {
     );
     portal.add(ring);
 
-    // Fire ring around the rim — orange/red torus slightly larger.
-    const fire = new THREE.Mesh(
-      new THREE.TorusGeometry(R + 1.2, 1.1, 16, 64),
-      new THREE.MeshBasicMaterial({
-        color: 0xff6622, transparent: true, opacity: 0.85,
-        blending: THREE.AdditiveBlending, depthWrite: false,
-      })
-    );
-    portal.add(fire);
-
-    // Fire particles orbiting the rim — a ring of additive points that look
-    // like flames licking the portal edge.
-    const fireCount = 60;
-    const fireGeo = new THREE.BufferGeometry();
-    const firePos = new Float32Array(fireCount * 3);
-    for (let i = 0; i < fireCount; i++) {
-      const a = (i / fireCount) * Math.PI * 2;
-      const r = R + 1.2 + (Math.random() - 0.5) * 2.5;
-      firePos[i * 3] = Math.cos(a) * r;
-      firePos[i * 3 + 1] = Math.sin(a) * r;
-      firePos[i * 3 + 2] = (Math.random() - 0.5) * 1.5;
+    // Ring of fire flames: cones oriented radially outward, in 3 layers of
+    // decreasing brightness. Each cone points away from the center.
+    const flameLayers = [
+      { count: 48, rOff: 0,  len: 3.5, rad: 0.6, col: 0xffaa44, op: 0.9 },
+      { count: 40, rOff: 2.5, len: 2.8, rad: 0.5, col: 0xff6622, op: 0.75 },
+      { count: 32, rOff: 5.0, len: 2.2, rad: 0.4, col: 0xff2200, op: 0.55 },
+    ];
+    for (const layer of flameLayers) {
+      const group = new THREE.Group();
+      for (let i = 0; i < layer.count; i++) {
+        const a = (i / layer.count) * Math.PI * 2;
+        const cone = new THREE.Mesh(
+          new THREE.ConeGeometry(layer.rad, layer.len, 6),
+          new THREE.MeshBasicMaterial({
+            color: layer.col, transparent: true, opacity: layer.op,
+            blending: THREE.AdditiveBlending, depthWrite: false,
+          })
+        );
+        // Place cone base on the ring, tip pointing outward.
+        const baseR = R + layer.rOff;
+        cone.position.set(Math.cos(a) * (baseR + layer.len / 2), Math.sin(a) * (baseR + layer.len / 2), 0);
+        // Cone default points +Y; rotate so it points radially outward.
+        cone.rotation.z = a - Math.PI / 2;
+        group.add(cone);
+      }
+      portal.add(group);
     }
-    fireGeo.setAttribute('position', new THREE.BufferAttribute(firePos, 3));
-    const fireMat = new THREE.PointsMaterial({
-      color: 0xff8844,
-      size: 1.6,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const firePoints = new THREE.Points(fireGeo, fireMat);
-    firePoints.userData.basePositions = firePos.slice();
-    portal.add(firePoints);
 
     portal.visible = false;
     return portal;
-  }
-
-  // Rotate the orbiting fire particles around the portal rim.
-  private animateFire(portal: THREE.Group, dt: number): void {
-    const firePoints = portal.children.find((c) => c instanceof THREE.Points) as THREE.Points | undefined;
-    if (!firePoints) return;
-    const attr = firePoints.geometry.attributes.position as THREE.BufferAttribute;
-    const pos = attr.array as Float32Array;
-    const base = firePoints.userData.basePositions as Float32Array;
-    const t = performance.now() * 0.001;
-    const R = 22;
-    for (let i = 0; i < pos.length / 3; i++) {
-      const a = (i / (pos.length / 3)) * Math.PI * 2 + t * 1.2;
-      const r = R + 1.2 + Math.sin(t * 3 + i) * 1.2;
-      pos[i * 3] = Math.cos(a) * r;
-      pos[i * 3 + 1] = Math.sin(a) * r;
-      pos[i * 3 + 2] = base[i * 3 + 2] + Math.sin(t * 5 + i) * 0.8;
-    }
-    attr.needsUpdate = true;
   }
 
   update(dt: number, playerPos: THREE.Vector3): void {
@@ -275,9 +288,8 @@ export class BackgroundShips {
         const pulse = 1 + Math.sin(c.portalPulse) * 0.15;
         const expand = THREE.MathUtils.lerp(0.2, 1, Math.min(1, p * 2.2));
         c.portal.scale.setScalar(expand * pulse);
-        this.animateFire(c.portal, dt);
-        const ringMat = c.portal.children[0] as THREE.Mesh;
-        (ringMat.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - p * 0.6);
+        // Flicker the flame cones: scale + opacity per frame.
+        this.animatePortalFlames(c.portal, dt, 1 - p * 0.5);
 
         // Corvette flies from the far background toward the camera (Z grows
         // from very negative to less negative). It scales up uniformly as it
@@ -306,18 +318,7 @@ export class BackgroundShips {
         const f = Math.min(1, c.portalFade);
         // Zoom out (grow) and fade out simultaneously.
         c.portal.scale.setScalar(1 + f * 2.5);
-        for (const child of c.portal.children) {
-          if (child instanceof THREE.Points) {
-            (child.material as THREE.PointsMaterial).opacity = Math.max(0, 0.9 - f);
-          } else {
-            const m = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
-            m.opacity = Math.max(0, m.opacity - dt * 1.2);
-          }
-        }
-        if (f >= 1) {
-          c.portalFading = false;
-          c.portal.visible = false;
-        }
+        this.animatePortalFlames(c.portal, dt, Math.max(0, 1 - f));
       }
 
       // Hold in place for a while after warp-in before drifting forward.
@@ -358,6 +359,29 @@ export class BackgroundShips {
     }
   }
 
+  // Flicker the portal's flame cones: per-frame scale + opacity jitter so the
+  // ring of fire looks alive. `intensity` scales the whole effect (used to
+  // fade out on exit).
+  private animatePortalFlames(portal: THREE.Group, dt: number, intensity: number): void {
+    const t = performance.now() * 0.01;
+    for (let li = 1; li < portal.children.length; li++) {
+      const layer = portal.children[li];
+      if (!layer) continue;
+      for (let ci = 0; ci < layer.children.length; ci++) {
+        const cone = layer.children[ci] as THREE.Mesh;
+        if (!cone) continue;
+        const mat = cone.material as THREE.MeshBasicMaterial;
+        const flicker = 0.7 + Math.sin(t * 3 + ci * 0.7 + li) * 0.3;
+        mat.opacity = mat.opacity * 0.9 + (0.8 * intensity * flicker) * 0.1;
+        const s = 0.8 + Math.sin(t * 4 + ci) * 0.2;
+        cone.scale.setScalar(s);
+      }
+    }
+    // Fade the inner ring too.
+    const ring = portal.children[0] as THREE.Mesh;
+    if (ring) (ring.material as THREE.MeshBasicMaterial).opacity = 0.9 * intensity;
+  }
+
   reset(): void {
     for (let i = 0; i < this.corvettes.length; i++) {
       const c = this.corvettes[i];
@@ -379,21 +403,34 @@ export class BackgroundShips {
   }
 
   dispose(): void {
+    const sharedGeoms = new Set<THREE.BufferGeometry>();
+    const sharedMats = new Set<THREE.Material>();
     for (const c of this.corvettes) {
       this.scene.remove(c.group);
       c.group.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          (child.material as THREE.Material).dispose();
+          if (child.geometry) sharedGeoms.add(child.geometry);
+          const mat = child.material as THREE.Material | THREE.Material[];
+          if (Array.isArray(mat)) mat.forEach(m => sharedMats.add(m));
+          else if (mat) sharedMats.add(mat);
         }
       });
       this.scene.remove(c.portal);
       c.portal.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          (child.material as THREE.Material).dispose();
+          if (child.geometry) sharedGeoms.add(child.geometry);
+          const mat = child.material as THREE.Material | THREE.Material[];
+          if (Array.isArray(mat)) mat.forEach(m => sharedMats.add(m));
+          else if (mat) sharedMats.add(mat);
         }
       });
+    }
+    // Skip GLB-shared resources; only dispose procedurally-created ones.
+    for (const g of sharedGeoms) {
+      if (!g.userData.fromGLB) g.dispose();
+    }
+    for (const m of sharedMats) {
+      if (!m.userData.fromGLB) m.dispose();
     }
     this.corvettes = [];
   }

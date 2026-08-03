@@ -46,6 +46,7 @@ export class Enemy {
   protected _isTelegraphing = false;
   protected _burstCount = 0;   // remaining shots in a burst
   protected _burstTimer = 0;   // time between burst shots
+  protected _burstShotIndex = 0; // which shot in the burst (0,1,2...)
   protected trail: EnemyTrail;
   pattern: PatternBase | null = null;
 
@@ -75,10 +76,9 @@ export class Enemy {
   // The player flies forward along -Z at rail speed. Enemies must fly faster
   // than the rail to actually reach and pass the player (like a plane).
   private _forwardDrift = RAIL.RAIL_SPEED;
-  // Constant flight speed for all states — never reduces. Must exceed the rail
-  // speed so enemies can catch up to and overfly the player. Lower multiplier
-  // = slower approach.
-  private _flightSpeed = RAIL.RAIL_SPEED * 1.15;
+  // Constant flight speed for all states — never reduces. Slightly above the
+  // rail speed so enemies still catch up, but slower so they loiter longer.
+  private _flightSpeed = RAIL.RAIL_SPEED * 0.51;
   // Random per-enemy aim offset so enemies don't all converge on the exact
   // same point — each one picks its own approach target.
   private _approachOffset = new THREE.Vector3();
@@ -100,7 +100,7 @@ export class Enemy {
     this.group = new THREE.Group();
     this.body = EnemyMeshFactory.create(type, this._size, this._color);
     this.group.add(this.body);
-    this.trail = new EnemyTrail(scene, 0xff6622, this._size * 2 / 3);
+    this.trail = new EnemyTrail(scene, this._color, this._size * 2 / 3);
     this.group.visible = false;
   }
 
@@ -158,6 +158,7 @@ export class Enemy {
       });
       this.body = EnemyMeshFactory.create(type, this._size, this._color);
       this.group.add(this.body);
+      this.trail.setColor(this._color);
     }
   }
 
@@ -177,6 +178,7 @@ export class Enemy {
     this._isTelegraphing = false;
     this._burstCount = 0;
     this._burstTimer = 0;
+    this._burstShotIndex = 0;
 
     // Random per-enemy approach offset so each enemy aims at its own point
     // near the player instead of all converging on the exact same spot.
@@ -298,17 +300,29 @@ export class Enemy {
         const dist = dir.length();
         if (dist > 0.1) {
           dir.normalize();
-          this._velocity.copy(dir).multiplyScalar(this._flightSpeed * 1.4);
+          this._velocity.copy(dir).multiplyScalar(this._flightSpeed * 1.05);
         } else {
           this._velocity.set(0, 0, 0);
         }
         this.body.rotation.z = Math.sin(this._stateTimer * 4) * 0.4;
 
-        // Fire at the player.
+        // Fire at the player in 3-shot bursts. Only the 3rd shot is accurate;
+        // the first two are warning shots (high inaccuracy).
         this._shootTimer += dt;
-        if (this.canShoot() && dist < 30) {
-          this.fireLaser(playerPos, onShoot);
+        if (this.canShoot() && dist < 30 && this._burstCount === 0) {
+          this._burstCount = 3;
+          this._burstShotIndex = 0;
+          this._burstTimer = 0;
           this.resetShootTimer();
+        }
+        if (this._burstCount > 0) {
+          this._burstTimer -= dt;
+          if (this._burstTimer <= 0) {
+            this.fireLaser(playerPos, onShoot);
+            this._burstShotIndex++;
+            this._burstCount--;
+            this._burstTimer = 0.18;
+          }
         }
 
         // After the attack window, keep flying straight past the player.
@@ -322,15 +336,34 @@ export class Enemy {
       }
 
       case 'OVERFLY': {
-        // Keep flying straight at constant speed — like a plane passing by.
-        this._velocity.copy(this._overflyDir).multiplyScalar(this._flightSpeed);
+        // Keep flying forward at constant speed. If a movement pattern is
+        // assigned, let it shape the overflight trajectory (zigzag, dive,
+        // circle, sweep); otherwise fly straight along the stored heading.
+        if (this.pattern) {
+          this.pattern.update(this, dt, playerPos, projectiles);
+          this._velocity.set(0, 0, 0);
+          this.group.position.addScaledVector(this._overflyDir, this._flightSpeed * dt);
+        } else {
+          this._velocity.copy(this._overflyDir).multiplyScalar(this._flightSpeed);
+        }
         this.body.rotation.z = Math.sin(this._stateTimer * 3) * 0.4;
 
-        // Fire while overflying.
+        // Fire while overflying in 3-shot bursts (only 3rd is accurate).
         this._shootTimer += dt;
-        if (this.canShoot()) {
-          this.fireLaser(playerPos, onShoot);
+        if (this.canShoot() && this._burstCount === 0) {
+          this._burstCount = 3;
+          this._burstShotIndex = 0;
+          this._burstTimer = 0;
           this.resetShootTimer();
+        }
+        if (this._burstCount > 0) {
+          this._burstTimer -= dt;
+          if (this._burstTimer <= 0) {
+            this.fireLaser(playerPos, onShoot);
+            this._burstShotIndex++;
+            this._burstCount--;
+            this._burstTimer = 0.18;
+          }
         }
 
         // After flying past, turn around and return to the hangar.
@@ -425,10 +458,13 @@ export class Enemy {
     if (!onShoot) return;
     const shootPos = this.getShootPosition();
     const dir = playerPos.clone().sub(shootPos);
-    // Moderate inaccuracy
-    dir.x += (Math.random() - 0.5) * 0.4;
-    dir.y += (Math.random() - 0.5) * 0.4;
-    dir.z += (Math.random() - 0.5) * 0.15;
+    // First two shots in a burst are warning shots (wide miss). Only the 3rd
+    // (burstShotIndex === 2) is accurate and can hit the player.
+    const isFinalShot = this._burstShotIndex >= 2;
+    const spread = isFinalShot ? 0.04 : 0.55;
+    dir.x += (Math.random() - 0.5) * spread;
+    dir.y += (Math.random() - 0.5) * spread;
+    dir.z += (Math.random() - 0.5) * (isFinalShot ? 0.05 : 0.25);
     dir.normalize();
     onShoot(shootPos, dir);
   }
@@ -523,6 +559,7 @@ export class Enemy {
     this._flightState = 'EMERGING';
     this._stateTimer = 0;
     this._loiterPhase = 0;
+    this._burstCount = 0; this._burstTimer = 0; this._burstShotIndex = 0;
     this.group.visible = false;
     this.trail.stop();
   }

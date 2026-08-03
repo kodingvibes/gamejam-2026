@@ -118,6 +118,11 @@ export class EnemyTrail {
     this.count = 0;
   }
 
+  // Update the trail color (used when the enemy is recycled to a new type).
+  setColor(color: number): void {
+    this.color.setHex(color);
+  }
+
   // Fade the trail out quickly (called when the enemy is destroyed).
   fadeOut(): void {
     if (!this.active && !this.fading) return;
@@ -137,13 +142,13 @@ export class EnemyTrail {
         const v = i * 2;
         const fade = (1 - i / MAX_TRAIL_POINTS) * alpha;
         const fade2 = fade * fade;
-        this.colors[v * 3] = this.color.r * fade2;
-        this.colors[v * 3 + 1] = this.color.g * fade2;
-        this.colors[v * 3 + 2] = this.color.b * fade2;
-        this.colors[v * 3 + 3] = this.color.r * fade2;
-        this.colors[v * 3 + 4] = this.color.g * fade2;
-        this.colors[v * 3 + 5] = this.color.b * fade2;
-        const glowFade = fade2 * 0.5 * scale;
+        this.colors[v * 3] = this.color.r * fade2 * 0.3;
+        this.colors[v * 3 + 1] = this.color.g * fade2 * 0.3;
+        this.colors[v * 3 + 2] = this.color.b * fade2 * 0.3;
+        this.colors[v * 3 + 3] = this.color.r * fade2 * 0.3;
+        this.colors[v * 3 + 4] = this.color.g * fade2 * 0.3;
+        this.colors[v * 3 + 5] = this.color.b * fade2 * 0.3;
+        const glowFade = fade2 * 0.15 * scale;
         this.glowColors[v * 3] = this.color.r * glowFade;
         this.glowColors[v * 3 + 1] = this.color.g * glowFade;
         this.glowColors[v * 3 + 2] = this.color.b * glowFade;
@@ -197,7 +202,7 @@ export class EnemyTrail {
   private buildRibbon(count: number): void {
     if (count < 2) return;
     const halfW = this.width / 2;
-    const glowHalfW = this.width * 1.1;
+    const glowHalfW = this.width * 2.2;
 
     for (let i = 0; i < count; i++) {
       // Tangent via central difference (fall back to a single neighbour).
@@ -242,12 +247,13 @@ export class EnemyTrail {
       this.glowPositions[v * 3 + 4] = y - py * glowHalfW;
       this.glowPositions[v * 3 + 5] = z;
 
-      // Quadratic fade: newest bright, oldest transparent.
+      // Quadratic fade: newest bright, oldest transparent. Overall dimmed
+      // so the trail reads as a faint blurred streak, not a solid ribbon.
       const fade = 1 - i / MAX_TRAIL_POINTS;
       const fade2 = fade * fade;
-      const r = this.color.r * fade2;
-      const g = this.color.g * fade2;
-      const b = this.color.b * fade2;
+      const r = this.color.r * fade2 * 0.3;
+      const g = this.color.g * fade2 * 0.3;
+      const b = this.color.b * fade2 * 0.3;
       this.colors[v * 3] = r;
       this.colors[v * 3 + 1] = g;
       this.colors[v * 3 + 2] = b;
@@ -255,8 +261,8 @@ export class EnemyTrail {
       this.colors[v * 3 + 4] = g;
       this.colors[v * 3 + 5] = b;
 
-      // Glow is dimmer.
-      const glowFade = fade2 * 0.5;
+      // Glow is wider and dimmer — the blurred halo around the streak.
+      const glowFade = fade2 * 0.15;
       const gr = this.color.r * glowFade;
       const gg = this.color.g * glowFade;
       const gb = this.color.b * glowFade;
