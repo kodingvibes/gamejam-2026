@@ -52,6 +52,8 @@ class DeckScene extends Phaser.Scene {
     CRT.addScanlines(this);
     this.checkRotationHint();
     this.input.on('pointerdown', (pointer) => this.handleFullscreenTap(pointer));
+    this._helpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H);
+    this._helpKey.on('down', () => this.toggleHelpBubbles());
   }
 
   // ===== PERSISTENCE =====
@@ -112,6 +114,55 @@ class DeckScene extends Phaser.Scene {
     if (n === 2) this.renderStep2();
     if (n === 3) this.renderStep3();
     if (n === 4) this.renderStep4();
+    this.registerStepHelp(n);
+  }
+
+  registerStepHelp(n) {
+    const H = window.HelpSystem;
+    if (!H) return;
+    H.clearZones(this);
+    // Burbujas por defecto SOLO en la primera sesión (y en modo práctica vía H).
+    let seenTutorial = true;
+    try { seenTutorial = !!localStorage.getItem('deckstiny_tutorial_done'); } catch (e) {}
+    const bubblesOn = this.mode === 'test' || !seenTutorial;
+    H.setEnabled(this, bubblesOn);
+    const G = (id) => {
+      const g = (window.TUTORIAL_GLOSSARY || []).find(x => x.id === id);
+      return g || { title: id.toUpperCase(), desc: '' };
+    };
+
+    if (n === 1) {
+      // Hero power panel (right panel)
+      const rightX = 236, rightW = this.W - rightX - 8;
+      const hpY = this.H - 82;
+      H.register(this, { x: rightX + rightW / 2, y: hpY }, G('hero-power').title, G('hero-power').desc, { w: 180, h: 40, above: false });
+    } else if (n === 3) {
+      // DECK LED (top-right panel area)
+      const panelX = this.isMobile ? 8 : 236 + 88 * this.L.gridCols + 40;
+      const panelW = this.isMobile ? this.W - 16 : this.W - panelX - 8;
+      H.register(this, { x: panelX + panelW / 2, y: 68 }, 'DECK', 'Contador de cartas en tu baraja. Mínimo 5 para poder combatir. El LED se enciende al validar.', { w: 160, h: 40, above: false });
+      // Mana curve (below DECK LED)
+      H.register(this, { x: panelX + panelW / 2, y: this.isMobile ? 118 : 130 }, G('mana').title, 'Curva de maná: distribución de costes de tu baraja. Un buen mazo mezcla cartas baratas y caras.', { w: 160, h: 40, above: false });
+      // Card grid
+      const gridX = 8, gridW = this.isMobile ? this.W - 16 : 88 * this.L.gridCols;
+      H.register(this, { x: gridX + gridW / 2, y: 250 }, G('deckbuilder').title, 'Clic en una carta para ver su detalle y agregarla a tu baraja. Respeta el máximo de copias.', { w: 180, h: 40, above: false });
+    } else if (n === 4) {
+      H.register(this, { x: 130, y: 60 }, 'REVIEW', 'Revisa tu baraja antes de guardar. Total, coste promedio, acciones/criaturas y curva de maná.', { w: 160, h: 40, above: false });
+    }
+
+    // Botón visible de ayuda (esquina superior derecha) — se recrea en cada step
+    if (!this.helpBtn || !this.helpBtn.active) {
+      this.helpBtn = this.add.rectangle(this.W - 70, 40, 96, 20, 0x16213e)
+        .setStrokeStyle(1, Phaser.Display.Color.HexStringToColor('#8892a0').color)
+        .setInteractive({ useHandCursor: true });
+      this.uiLayer.add(this.helpBtn);
+      this.helpBtnText = UI.text(this, this.W - 70, 40, 'AYUDA: OFF', {
+        fontFamily: '"Press Start 2P"', fontSize: '7px', color: '#8892a0'
+      }).setOrigin(0.5);
+      this.uiLayer.add(this.helpBtnText);
+      this.helpBtn.on('pointerdown', () => this.toggleHelpBubbles());
+    }
+    this.refreshHelpBtn();
   }
 
   // ===== GRAPHICS HELPERS =====
@@ -908,6 +959,7 @@ class DeckScene extends Phaser.Scene {
   openCardModal(card) {
     if (this.previewOpen) return;
     this.previewOpen = true;
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(true);
     this.clearModalLayer();
     const m = this.add.container(0, 0).setDepth(500);
     this.modalLayer.add(m);
@@ -994,6 +1046,7 @@ class DeckScene extends Phaser.Scene {
   closeCardModal() {
     this.clearModalLayer();
     this.previewOpen = false;
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(false);
   }
 
   adjustCard(cardId, delta) {
@@ -1027,6 +1080,7 @@ class DeckScene extends Phaser.Scene {
   // ===== SLOT CONTEXT MENU (Phaser-native) =====
   openSlotMenu(slotIndex, x, y) {
     this.clearModalLayer();
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(true);
     const m = this.add.container(0, 0).setDepth(500);
     this.modalLayer.add(m);
 
@@ -1046,11 +1100,11 @@ class DeckScene extends Phaser.Scene {
     m.add(bg);
 
     const actions = [
-      { label: 'RENOMBRAR', color: '#e0e0e0', cb: () => { this.closeModalLayer(); this.renameSlot(slotIndex); } },
-      { label: 'DUPLICAR', color: '#e0e0e0', cb: () => { this.closeModalLayer(); this.duplicateSlot(slotIndex); } },
-      { label: 'ELIMINAR', color: '#ff6b6b', cb: () => { this.closeModalLayer(); this.deleteSlot(slotIndex); } }
+      { label: 'RENOMBRAR', color: '#e0e0e0', cb: () => { this.closeSlotModal(); this.renameSlot(slotIndex); } },
+      { label: 'DUPLICAR', color: '#e0e0e0', cb: () => { this.closeSlotModal(); this.duplicateSlot(slotIndex); } },
+      { label: 'ELIMINAR', color: '#ff6b6b', cb: () => { this.closeSlotModal(); this.deleteSlot(slotIndex); } }
     ];
-    overlay.on('pointerdown', () => { this.closeModalLayer(); });
+    overlay.on('pointerdown', () => { this.closeSlotModal(); });
     actions.forEach((a, i) => {
       const by = my + 8 + i * 26;
       const bb = this.add.rectangle(mx + menuW / 2, by + 9, menuW - 8, 22, 0x16213e)
@@ -1071,6 +1125,11 @@ class DeckScene extends Phaser.Scene {
 
   closeModalLayer() {
     this.clearModalLayer();
+  }
+
+  closeSlotModal() {
+    this.clearModalLayer();
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(false);
   }
 
   createSlot() {
@@ -1133,6 +1192,7 @@ class DeckScene extends Phaser.Scene {
     const noLabel = options.noLabel || 'CANCELAR';
     const yesLabel = options.yesLabel || 'SALIR';
     const yesColor = options.yesColor || '#ff6b6b';
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(true);
     this.clearModalLayer();
     const m = this.add.container(0, 0).setDepth(600);
     this.modalLayer.add(m);
@@ -1159,8 +1219,8 @@ class DeckScene extends Phaser.Scene {
     m.add(UI.text(this, px + 50, py + 18, yesLabel, {
       fontFamily: '"Press Start 2P"', fontSize: '7px', color: yesColor
     }).setOrigin(0.5));
-    noBg.on('pointerdown', () => this.clearModalLayer());
-    yesBg.on('pointerdown', () => { this.clearModalLayer(); onYes(); });
+    noBg.on('pointerdown', () => { this.clearModalLayer(); if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(false); });
+    yesBg.on('pointerdown', () => { this.clearModalLayer(); if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(false); onYes(); });
   }
 
   confirmExit() {
@@ -1185,6 +1245,28 @@ class DeckScene extends Phaser.Scene {
       targets: bg, alpha: { from: 1, to: 0 }, duration: 1500, ease: 'Cubic.easeIn',
       onComplete: () => m.destroy(true)
     });
+  }
+
+  toggleHelpBubbles() {
+    const H = window.HelpSystem;
+    if (!H) return;
+    const m = H.getManager(this);
+    const nowOn = !m.isEnabled();
+    m.setEnabled(nowOn);
+    this.refreshHelpBtn();
+    this.showToast(nowOn ? 'AYUDA ACTIVA' : 'AYUDA DESACTIVADA');
+  }
+
+  refreshHelpBtn() {
+    const H = window.HelpSystem;
+    const on = H ? H.getManager(this).isEnabled() : true;
+    if (this.helpBtnText) {
+      this.helpBtnText.setText(on ? 'AYUDA: ON' : 'AYUDA: OFF');
+      this.helpBtnText.setColor(on ? '#bdcd9c' : '#8892a0');
+    }
+    if (this.helpBtn) {
+      this.helpBtn.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(on ? '#bdcd9c' : '#8892a0').color);
+    }
   }
 
   // ===== ROTATION HINT (Phaser-native) =====

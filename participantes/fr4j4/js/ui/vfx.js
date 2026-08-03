@@ -56,34 +56,55 @@ window.UI = {
 
   tooltip(scene, x, y, title, desc, options = {}) {
     const width = options.width || 200;
+    const maxWidth = options.maxWidth || width;
     const colorHex = options.color || '#faba72';
     const color = Phaser.Display.Color.HexStringToColor(colorHex).color;
     const fontSize = options.fontSize || '8px';
     const targetLayer = options.layer || null;
+    const minHeight = options.minHeight || 56;
+    const VIEW_W = 640;
+    const VIEW_H = 360;
 
     const container = scene.add.container(x, y);
 
-    const bg = scene.add.rectangle(0, 0, width, 56, 0x0a0a14, 0.95)
-      .setStrokeStyle(2, color);
-    const hi = scene.add.rectangle(0, -28 + 1, width - 2, 1, 0x3a3a5e).setOrigin(0.5, 0);
-    const lo = scene.add.rectangle(0, 28 - 1, width - 2, 1, 0x050510).setOrigin(0.5, 1);
-
-    const titleTxt = UI.text(scene, 0, -14, title, {
+    const titleTxt = UI.text(scene, 0, 0, title, {
       fontFamily: '"Press Start 2P"', fontSize, color: colorHex
     }).setOrigin(0.5);
 
-    const descTxt = UI.text(scene, 0, 8, desc, {
+    const descTxt = UI.text(scene, 0, 0, desc, {
       fontFamily: '"VT323"', fontSize: '13px', color: '#e0e0e0',
-      align: 'center', wordWrap: { width: width - 16 }
+      align: 'center', wordWrap: { width: maxWidth - 16 }
     }).setOrigin(0.5);
+    const descH = Math.max(20, descTxt.height || 20);
+    const panelH = Math.max(minHeight, descH + 34);
+    const half = panelH / 2;
+    const titleY = -Math.min(16, half - 14);
+    const descY = Math.min(half - 14, 14);
+
+    const bg = scene.add.rectangle(0, 0, width, panelH, 0x0a0a14, 0.95)
+      .setStrokeStyle(2, color);
+    const hi = scene.add.rectangle(0, -half + 1, width - 2, 1, 0x3a3a5e).setOrigin(0.5, 0);
+    const lo = scene.add.rectangle(0, half - 1, width - 2, 1, 0x050510).setOrigin(0.5, 1);
+
+    titleTxt.setY(titleY);
+    descTxt.setY(descY);
 
     container.add([bg, hi, lo, titleTxt, descTxt]);
+
+    // Clamp y flip: mantiene el panel dentro de la vista 640x360
+    let cx = container.x;
+    let cy = container.y;
+    if (cx - width / 2 < 2) cx = width / 2 + 2;
+    if (cx + width / 2 > VIEW_W - 2) cx = VIEW_W - width / 2 - 2;
+    if (cy - half < 2) cy = half + 2;
+    if (cy + half > VIEW_H - 2) cy = VIEW_H - half - 2;
+    container.setPosition(cx, cy);
 
     if (targetLayer) {
       targetLayer.add(container);
     }
 
-    return { container, bg, title: titleTxt, desc: descTxt };
+    return { container, bg, title: titleTxt, desc: descTxt, width, height: panelH };
   }
 };
 
