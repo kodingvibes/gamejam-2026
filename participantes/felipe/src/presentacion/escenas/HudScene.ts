@@ -1,18 +1,24 @@
 import Phaser from "phaser";
 
 import type { Partida } from "../../dominio/partida/Partida";
+import { tramosEntreTransiciones, type Tramo } from "../../dominio/partida/Tramos";
 import { normalizar } from "../arte/fuente";
 import { PALETA } from "../arte/theme";
 import { textoPixel } from "../arte/TextoPixel";
 
 const ALTO_BARRA = 10;
 const DURACION_FADE_IN_MS = 650;
+const DURACION_AVISO_TRAMO_MS = 1800;
 
 export class HudScene extends Phaser.Scene {
   private partida!: Partida;
   private titulo!: Phaser.GameObjects.BitmapText;
   private detalle!: Phaser.GameObjects.BitmapText;
+  private avisoTramo!: Phaser.GameObjects.BitmapText;
   private barra!: Phaser.GameObjects.Graphics;
+  private transicionesEncoladas = 0;
+  private avisosPendientes: Tramo[] = [];
+  private mostrandoAviso = false;
 
   constructor() {
     super("Hud");
@@ -24,6 +30,35 @@ export class HudScene extends Phaser.Scene {
     this.barra = this.add.graphics();
     this.titulo = textoPixel(this, 16, 12, "", 16, PALETA.linea);
     this.detalle = textoPixel(this, 16, 42, "", 8, PALETA.texto_suave);
+    this.avisoTramo = textoPixel(this, this.scale.width / 2, 112, "", 16, PALETA.agua_brillo)
+      .setOrigin(0.5, 0)
+      .setVisible(false);
+    this.transicionesEncoladas = this.partida.transicionesDeTramo;
+    this.avisosPendientes = [];
+    this.mostrandoAviso = false;
+  }
+
+  private mostrarSiguienteAviso() {
+    if (this.mostrandoAviso) {
+      return;
+    }
+    const tramo = this.avisosPendientes.shift();
+    if (!tramo) {
+      return;
+    }
+    this.mostrandoAviso = true;
+    this.avisoTramo.setText(`TRAMO ${tramo}`).setVisible(true).setAlpha(1);
+    this.tweens.add({
+      targets: this.avisoTramo,
+      alpha: 0,
+      delay: DURACION_AVISO_TRAMO_MS,
+      duration: 300,
+      onComplete: () => {
+        this.avisoTramo.setVisible(false);
+        this.mostrandoAviso = false;
+        this.mostrarSiguienteAviso();
+      },
+    });
   }
 
   private iniciarFadeIn() {
@@ -51,11 +86,22 @@ export class HudScene extends Phaser.Scene {
     const avance = Phaser.Math.Clamp(this.partida.avance, 0, 1);
     const agua = Phaser.Math.Clamp(this.partida.inundacion, 0, 1);
 
+    const tramo = this.partida.tramo ? `   TRAMO ${this.partida.tramo}` : "";
     this.titulo.setText(
       normalizar(
-        `${this.partida.puntaje.total} PTS   X${this.partida.puntaje.racha}   ${this.partida.oleada.nombre}`,
+        `${this.partida.puntaje.total} PTS   X${this.partida.puntaje.racha}   ${this.partida.oleada.nombre}${tramo}`,
       ),
     );
+    if (this.partida.transicionesDeTramo > this.transicionesEncoladas) {
+      this.avisosPendientes.push(
+        ...tramosEntreTransiciones(
+          this.transicionesEncoladas,
+          this.partida.transicionesDeTramo,
+        ),
+      );
+      this.transicionesEncoladas = this.partida.transicionesDeTramo;
+      this.mostrarSiguienteAviso();
+    }
     this.detalle.setText(
       normalizar(
         `${Math.round(this.partida.frente.metrosSalvados)} M HASTA LA MONEDA   ·   AGUA ${Math.round(agua * 100)}%   ·   ${this.partida.alameda.tapados} REJILLAS TAPADAS`,

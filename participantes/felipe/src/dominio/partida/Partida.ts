@@ -8,6 +8,11 @@ import type { Sumidero } from "../corredor/Sumidero";
 import { ALCANCE_METROS, Jugador } from "./Jugador";
 import { MODOS, type Modo } from "./Modo";
 import { Puntaje } from "./Puntaje";
+import {
+  factorDePresionTemporal,
+  ProgresionDeTramos,
+  type Tramo,
+} from "./Tramos";
 
 export type Resultado = "jugando" | "ganada" | "perdida";
 
@@ -22,6 +27,7 @@ export class Partida {
   private segundos = 0;
   private inundacionActual = 0;
   private resultadoActual: Resultado = "jugando";
+  private readonly progresion: ProgresionDeTramos | null;
 
   private constructor(
     readonly modo: Modo,
@@ -30,7 +36,9 @@ export class Partida {
     readonly frente: Frente,
     readonly puntaje: Puntaje,
     readonly jugador: Jugador,
-  ) {}
+  ) {
+    this.progresion = modo === MODOS.temporal ? new ProgresionDeTramos() : null;
+  }
 
   static comenzar(modo: Modo, semilla: number = SEMILLA_POR_DEFECTO): Partida {
     const azar = new Azar(semilla);
@@ -83,11 +91,22 @@ export class Partida {
     return this.frente.metro / this.frente.largoMetros;
   }
 
+  get tramo(): Tramo | null {
+    return this.progresion?.actual ?? null;
+  }
+
+  get transicionesDeTramo(): number {
+    return this.progresion?.transiciones ?? 0;
+  }
+
   get caudal(): number {
+    const presionDeTramos =
+      this.modo === MODOS.temporal ? factorDePresionTemporal(this.avance) : 1;
     return (
       this.oleada.caudal *
       envolventeDeCaudal(this.segundos) *
       (1 + this.avance * CRECIDA_CERCA_DE_LA_MONEDA) *
+      presionDeTramos *
       DIFICULTAD
     );
   }
@@ -103,6 +122,7 @@ export class Partida {
     const oleada = this.curva.oleadaEn(this.segundos);
     this.alameda.ensuciarTodos(oleada.obstruccionPorSegundo * segundos * DIFICULTAD);
     this.frente.avanzar(segundos);
+    this.progresion?.actualizar(this.avance);
 
     if (this.inundacionActual >= 1) {
       this.resultadoActual = "perdida";
