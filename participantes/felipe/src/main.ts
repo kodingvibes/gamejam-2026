@@ -6,7 +6,7 @@ import { mejorPuntaje } from "./presentacion/Records";
 import { sonido } from "./presentacion/audio/Sonido";
 
 if (import.meta.env.DEV) {
-  console.info("[Tapa’o] Build local: progresión A-B-C-D v1");
+  console.info("[Tapa’o] Build local: feedback rejillas v1");
 }
 
 const contenedor = document.getElementById("tapao");
@@ -38,7 +38,6 @@ function estadoDelJuego(juego: Phaser.Game) {
     bestScore: mejorPuntaje(partida.modo),
     modo: partida.modo,
     inundacion: partida.inundacion,
-    tramo: partida.tramo,
     tiempoSegundos: partida.tiempoSegundos,
   };
 }

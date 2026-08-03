@@ -30,26 +30,6 @@ describe("Partida", () => {
     correr(partida, 200, 0.3);
     expect(partida.frente.llegoALaMoneda).toBe(true);
     expect(partida.resultado).toBe("jugando");
-    expect(partida.tramo).toBeNull();
-  });
-
-  it("el temporal progresa por A, B, C y termina en D", () => {
-    const partida = Partida.comenzar(MODOS.temporal);
-    expect(partida.tramo).toBe("A");
-    correr(partida, 45, 0.2);
-    expect(partida.tramo).toBe("B");
-    correr(partida, 45, 0.2);
-    expect(partida.tramo).toBe("C");
-    correr(partida, 45, 0.2);
-    expect(partida.tramo).toBe("D");
-    expect(partida.transicionesDeTramo).toBe(3);
-  });
-
-  it("una partida temporal nueva reinicia la progresion en A", () => {
-    const anterior = Partida.comenzar(MODOS.temporal);
-    correr(anterior, 90, 0.2);
-    expect(anterior.tramo).toBe("C");
-    expect(Partida.comenzar(MODOS.temporal).tramo).toBe("A");
   });
 
   it("llueve mas fuerte mientras mas cerca esta La Moneda", () => {
