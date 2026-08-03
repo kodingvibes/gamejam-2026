@@ -16,6 +16,7 @@ export enum GameEvent {
 
   // Enemies
   ENEMY_DESTROYED = 'enemy:destroyed',
+  ENEMY_FIRED = 'enemy:fired',
   BOSS_SPAWNED = 'boss:spawned',
   BOSS_DAMAGED = 'boss:damaged',
   BOSS_DESTROYED = 'boss:destroyed',
@@ -41,6 +42,7 @@ export type EventPayloads = {
   [GameEvent.BOMB_COUNT_CHANGED]: { count: number };
 
   [GameEvent.ENEMY_DESTROYED]: { type: string; score: number; position: { x: number; y: number; z: number } };
+  [GameEvent.ENEMY_FIRED]: {};
   [GameEvent.BOSS_SPAWNED]: { name: string; maxHealth: number };
   [GameEvent.BOSS_DAMAGED]: { health: number; maxHealth: number };
   [GameEvent.BOSS_DESTROYED]: { score: number };

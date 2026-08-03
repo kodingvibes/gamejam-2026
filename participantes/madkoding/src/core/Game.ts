@@ -25,6 +25,7 @@ import { HitSpark } from '../fx/HitSpark';
 import { ScreenEffects } from '../fx/ScreenEffects';
 import { BackgroundShips } from '../fx/BackgroundShips';
 import { PowerUpManager } from '../fx/PowerUpManager';
+import { ObstacleManager } from '../fx/ObstacleManager';
 import { PlayerLifeManager } from '../player/PlayerLifeManager';
 import { AudioManager } from '../audio/AudioManager';
 import { MusicPlayer } from '../audio/MusicPlayer';
@@ -57,6 +58,7 @@ export class Game {
   private screenEffects: ScreenEffects;
   private backgroundShips: BackgroundShips;
   private powerUpManager: PowerUpManager;
+  private obstacleManager: ObstacleManager;
   private lifeManager: PlayerLifeManager;
   private audioManager: AudioManager;
   private musicPlayer: MusicPlayer;
@@ -97,12 +99,13 @@ export class Game {
     this.enemyManager = new EnemyManager(this.scene, 40);
     this.waveManager = new WaveManager(this.scene, this.enemyManager);
 
-    this.explosionSystem = new ExplosionSystem(this.scene, this.cameraRig.camera3D);
+    this.explosionSystem = new ExplosionSystem(this.scene, this.cameraRig.camera3D, this.cameraRig);
     this.particleManager = new ParticleManager(this.scene);
     this.hitSpark = new HitSpark(this.scene);
     this.screenEffects = new ScreenEffects();
     this.backgroundShips = new BackgroundShips(this.scene);
     this.powerUpManager = new PowerUpManager(this.scene);
+    this.obstacleManager = new ObstacleManager(this.scene);
     this.audioManager = new AudioManager();
     this.musicPlayer = new MusicPlayer();
 
@@ -158,6 +161,8 @@ export class Game {
       audioManager: this.audioManager,
       explosionSystem: this.explosionSystem,
       hitSpark: this.hitSpark,
+      screenEffects: this.screenEffects,
+      cameraRig: this.cameraRig,
       weaponSystem: this.weaponSystem,
       waveManager: this.waveManager,
       callbacks: {
@@ -228,6 +233,7 @@ export class Game {
     this.railController.reset();
     this.enemyProjectileMgr.clear();
     this.powerUpManager.reset();
+    this.obstacleManager.reset();
     this.lifeManager.reset();
   }
 
@@ -235,7 +241,6 @@ export class Game {
     const w = window.innerWidth, h = window.innerHeight;
     this.renderer.setSize(w, h);
     this.cameraRig.setAspect(w / h);
-    this.postProcessing.setSize(w, h);
   }
 
   start(): void {
@@ -284,27 +289,84 @@ export class Game {
   }
 
   private updatePlaying(dt: number, input: ReturnType<InputMapper['update']>): void {
-    this.updateRailSpeed(dt);
+    this.railController.speed = this.waveManager.bossActive ? RAIL.RAIL_SPEED_BOSS : RAIL.RAIL_SPEED;
     this.railController.update(dt);
-    this.applyInputToRail(input, dt);
 
-    const railPos = this.railController.getWorldPosition();
+    // Base rail position: what the camera follows. It ignores the player's
+    // screen-space movement so the ship can slide freely around the frame.
+    const railCameraPos = this.railController.getRailPosition();
 
-    // Update crosshair position in HUD
-    this.hud.updateCrosshair(input.aimX, input.aimY);
+    // ── Starfox-style screen-space ship movement ────────────────────────────
+    // The player controls a point on the screen in NDC space (-1..1). That
+    // point is converted to a world-space offset from the rail.
+    let targetScreenX: number;
+    let targetScreenY: number;
 
-    // Calculate fire/aim direction from crosshair
-    const fireDir = this.computeAimDirection(input.aimX, input.aimY, railPos);
+    if (document.body.classList.contains('cursor-hidden')) {
+      targetScreenX = input.moveX;
+      targetScreenY = input.moveY;
+    } else {
+      targetScreenX = this.playerShip.screenX + input.horizontalAxis * PLAYER.SCREEN_LIMIT * dt * PLAYER.SCREEN_LAG;
+      targetScreenY = this.playerShip.screenY + input.verticalAxis * PLAYER.SCREEN_LIMIT * dt * PLAYER.SCREEN_LAG;
+    }
+
+    targetScreenX = THREE.MathUtils.clamp(targetScreenX, -PLAYER.SCREEN_LIMIT, PLAYER.SCREEN_LIMIT);
+    targetScreenY = THREE.MathUtils.clamp(targetScreenY, -PLAYER.SCREEN_LIMIT, PLAYER.SCREEN_LIMIT);
+
+    const newScreenX = THREE.MathUtils.lerp(this.playerShip.screenX, targetScreenX, PLAYER.SCREEN_LAG * dt);
+    const newScreenY = THREE.MathUtils.lerp(this.playerShip.screenY, targetScreenY, PLAYER.SCREEN_LAG * dt);
+    this.playerShip.setScreenPosition(newScreenX, newScreenY, dt);
+
+    // Convert screen NDC to a world-space offset on the rail plane.
+    const screenOffset = this.ndcToWorldOffset(newScreenX, newScreenY, railCameraPos);
+    this.railController.setScreenOffset(screenOffset.x, screenOffset.y);
+
+    // True ship world position: rail base + screen offset.
+    const shipWorldPos = this.railController.getWorldPosition();
+
+    // Banking based on actual screen velocity so the ship leans into movement.
+    this.playerShip.setBankInput(
+      THREE.MathUtils.clamp(this.playerShip.screenVelocityX * 2, -1, 1),
+      THREE.MathUtils.clamp(-this.playerShip.screenVelocityY * 2, -1, 1),
+    );
+
+    // ── Crosshair / aim ──────────────────────────────────────────────────────
+    // With mouse the crosshair is the pointer (ship position). With keyboard
+    // the crosshair drifts from the ship center with the same axes.
+    let aimScreenX: number;
+    let aimScreenY: number;
+    if (document.body.classList.contains('cursor-hidden')) {
+      aimScreenX = newScreenX;
+      aimScreenY = newScreenY;
+    } else {
+      this._keyboardAimX += input.horizontalAxis * this.AIM_DRIFT_SPEED * dt;
+      this._keyboardAimY += input.verticalAxis * this.AIM_DRIFT_SPEED * dt;
+      if (input.horizontalAxis === 0 && input.verticalAxis === 0) {
+        this._keyboardAimX *= 0.92;
+        this._keyboardAimY *= 0.92;
+      }
+      this._keyboardAimX = THREE.MathUtils.clamp(this._keyboardAimX, -0.6, 0.6);
+      this._keyboardAimY = THREE.MathUtils.clamp(this._keyboardAimY, -0.5, 0.5);
+      aimScreenX = newScreenX + this._keyboardAimX;
+      aimScreenY = newScreenY + this._keyboardAimY;
+    }
+
+    this.hud.updateCrosshair(aimScreenX, aimScreenY);
+
+    // Calculate fire/aim direction from crosshair.
+    const fireDir = this.computeAimDirection(aimScreenX, aimScreenY, shipWorldPos);
 
     // Position ship and rotate it toward the aim direction.
-    // Visibility is owned by PlayerLifeManager (death/game-over sequences hide it).
-    this.playerShip.setPosition(railPos.position, railPos.forward, fireDir);
+    this.playerShip.setPosition(shipWorldPos.position, shipWorldPos.forward, fireDir);
     this.playerShip.update(dt);
-    this.cameraRig.setTarget(railPos.position, railPos.forward, railPos.up);
+
+    // Camera rides the rail, not the ship. It only banks slightly with the
+    // ship's offset so the frame leans toward the player's position.
+    this.cameraRig.setTarget(railCameraPos, screenOffset.x, screenOffset.y);
     this.cameraRig.update(dt);
 
-    if (input.fire && this.lifeManager.phase === 'playing') this.weaponSystem.fireLaser(railPos.position.clone(), fireDir.clone());
-    if (input.bomb && this.lifeManager.phase === 'playing') this.weaponSystem.fireBomb(railPos.position.clone(), fireDir.clone());
+    if (input.fire && this.lifeManager.phase === 'playing') this.weaponSystem.fireLaser(shipWorldPos.position.clone(), fireDir.clone(), shipWorldPos.forward.clone());
+    if (input.bomb && this.lifeManager.phase === 'playing') this.weaponSystem.fireBomb(shipWorldPos.position.clone(), fireDir.clone());
 
     this.weaponSystem.update(dt, this.playerShip.position);
     this.backgroundShips.update(dt, this.playerShip.position);
@@ -329,6 +391,17 @@ export class Game {
     if (healthGained > 0) this.playerShip.heal(healthGained);
     if (bombsGained > 0) this.weaponSystem.addBombs(bombsGained);
 
+    // Obstacles (asteroids the player must dodge) — on hit, damage + sparks +
+    // knockback push away from the asteroid.
+    const obs = this.obstacleManager.update(dt, this.playerShip.position);
+    if (obs.hit) {
+      this.playerShip.takeDamage(15);
+      this.hitSpark.spawn(this.playerShip.position.clone(), 0xff8800);
+      this.cameraRig.shake(0.5, 0.35);
+      // Push the player away from the asteroid.
+      this.playerShip.position.add(obs.push);
+    }
+
     this.scoreSystem.update(dt);
   }
 
@@ -338,6 +411,39 @@ export class Game {
   private _raycaster = new THREE.Raycaster();
   private _ndc = new THREE.Vector2();
   private _aimPoint = new THREE.Vector3();
+  private _projVec = new THREE.Vector3();
+  private _keyboardAimX = 0;
+  private _keyboardAimY = 0;
+
+  // Convert a screen NDC position into a world-space offset relative to the
+  // current rail position. Used to make the ship follow the mouse / arrows
+  // across the whole viewport while staying inside the tunnel bounds.
+  // Keyboard crosshair drift speed in NDC units/sec.
+  private readonly AIM_DRIFT_SPEED = 1.6;
+
+  private _ndcToWorldOffset = new THREE.Vector3();
+  private _offsetRight = new THREE.Vector3();
+  private _offsetUp = new THREE.Vector3();
+  private ndcToWorldOffset(x: number, y: number, railPos: { position: THREE.Vector3; forward: THREE.Vector3; up: THREE.Vector3 }): THREE.Vector2 {
+    this._ndcToWorldOffset.set(x, y, 0.5).unproject(this.cameraRig.camera3D);
+    this._ndcToWorldOffset.sub(this.cameraRig.camera3D.position);
+    const dist = railPos.position.distanceTo(this.cameraRig.camera3D.position);
+    this._ndcToWorldOffset.multiplyScalar(dist / this._ndcToWorldOffset.length());
+    const worldPoint = this.cameraRig.camera3D.position.clone().add(this._ndcToWorldOffset);
+
+    const projected = worldPoint.clone().sub(railPos.position);
+    this._offsetRight.copy(railPos.forward).cross(railPos.up).normalize();
+    this._offsetUp.copy(railPos.up).normalize();
+    return new THREE.Vector2(projected.dot(this._offsetRight), projected.dot(this._offsetUp));
+  }
+
+  // Project a world position to NDC (-1..1). Used to anchor the crosshair to
+  // the ship's on-screen position so it follows the ship as it drifts within
+  // the frame (camera parallax lag).
+  private projectToNdc(worldPos: THREE.Vector3): THREE.Vector2 {
+    this._projVec.copy(worldPos).project(this.cameraRig.camera3D);
+    return new THREE.Vector2(this._projVec.x, this._projVec.y);
+  }
 
   private computeAimDirection(aimX: number, aimY: number, railPos: { position: THREE.Vector3; forward: THREE.Vector3 }): THREE.Vector3 {
     // Unproject a point at the crosshair screen position, at a distance ahead
@@ -356,17 +462,7 @@ export class Game {
     return blended;
   }
 
-  private updateRailSpeed(_dt: number): void {
-    // Constant speed — no lerp, no acceleration changes
-    this.railController.speed = this.waveManager.bossActive ? RAIL.RAIL_SPEED_BOSS : RAIL.RAIL_SPEED;
-  }
 
-  private applyInputToRail(input: ReturnType<InputMapper['update']>, dt: number): void {
-    if (input.left || input.horizontalAxis < -0.2) this.railController.addLateralInput(-PLAYER.LATERAL_SPEED * dt);
-    if (input.right || input.horizontalAxis > 0.2) this.railController.addLateralInput(PLAYER.LATERAL_SPEED * dt);
-    if (input.up || input.verticalAxis < -0.2) this.railController.addVerticalInput(PLAYER.VERTICAL_SPEED * dt);
-    if (input.down || input.verticalAxis > 0.2) this.railController.addVerticalInput(-PLAYER.VERTICAL_SPEED * dt);
-  }
 
   private spawnPendingEnemyProjectiles(): void {
     const pending = this.enemyManager.pendingProjectiles;
@@ -399,6 +495,7 @@ export class Game {
     this.screenEffects.dispose();
     this.backgroundShips.dispose();
     this.powerUpManager.dispose();
+    this.obstacleManager.dispose();
     this.audioManager.dispose();
     this.hud.dispose();
     this.menuScreen.dispose();

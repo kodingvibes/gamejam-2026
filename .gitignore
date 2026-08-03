@@ -1,1 +1,8 @@
-(participantes/madkoding/.gitignore - since only source files were modified, no additional ignores are needed beyond what might already exist for a typical TypeScript/JavaScript project, but the current content is not provided so no changes are made)
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# opencode
+.atl/

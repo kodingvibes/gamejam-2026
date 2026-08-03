@@ -7,27 +7,23 @@ export class GameSceneFactory {
   static create(): THREE.Scene {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(COLORS.BACKGROUND);
-    scene.fog = new THREE.FogExp2(COLORS.FOG, 0.0008);
+    scene.fog = new THREE.FogExp2(COLORS.FOG, 0.0003);
     return scene;
   }
 
   static addLights(scene: THREE.Scene): void {
-    // Strong ambient for overall visibility
-    const ambient = new THREE.AmbientLight(0x8899bb, 1.5);
+    const ambient = new THREE.AmbientLight(0x8899aa, 2.0);
     scene.add(ambient);
 
-    // Main directional (sun-like)
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
     dirLight.position.set(10, 20, 10);
     scene.add(dirLight);
 
-    // Fill light from the other side (blue tint)
-    const fillLight = new THREE.DirectionalLight(0x6688ff, 1.0);
+    const fillLight = new THREE.DirectionalLight(0x6688ff, 1.5);
     fillLight.position.set(-10, -5, 10);
     scene.add(fillLight);
 
-    // Back light to rim-light ships from behind
-    const backLight = new THREE.DirectionalLight(0x44aaff, 0.8);
+    const backLight = new THREE.DirectionalLight(0x44aaff, 1.2);
     backLight.position.set(0, 0, -20);
     scene.add(backLight);
   }
@@ -39,7 +35,7 @@ export class GameSceneFactory {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 2.2;
     return renderer;
   }
 }

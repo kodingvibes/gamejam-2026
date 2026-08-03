@@ -9,8 +9,10 @@ import { ScoreSystem } from './ScoreSystem';
 import { AudioManager } from '../audio/AudioManager';
 import { ExplosionSystem } from '../fx/ExplosionSystem';
 import { HitSpark } from '../fx/HitSpark';
+import { ScreenEffects } from '../fx/ScreenEffects';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { WaveManager } from '../waves/WaveManager';
+import { CameraRig } from '../camera/CameraRig';
 
 interface GameCallbacks {
   startLevel: (level: number) => void;
@@ -24,6 +26,8 @@ export class GameEventBinder {
   private audioManager!: AudioManager;
   private explosionSystem!: ExplosionSystem;
   private hitSpark!: HitSpark;
+  private screenEffects!: ScreenEffects;
+  private cameraRig!: CameraRig;
   private weaponSystem!: WeaponSystem;
   private waveManager!: WaveManager;
   private callbacks!: GameCallbacks;
@@ -35,6 +39,8 @@ export class GameEventBinder {
     audioManager: AudioManager;
     explosionSystem: ExplosionSystem;
     hitSpark: HitSpark;
+    screenEffects: ScreenEffects;
+    cameraRig: CameraRig;
     weaponSystem: WeaponSystem;
     waveManager: WaveManager;
     callbacks: GameCallbacks;
@@ -44,6 +50,8 @@ export class GameEventBinder {
     this.audioManager = deps.audioManager;
     this.explosionSystem = deps.explosionSystem;
     this.hitSpark = deps.hitSpark;
+    this.screenEffects = deps.screenEffects;
+    this.cameraRig = deps.cameraRig;
     this.weaponSystem = deps.weaponSystem;
     this.waveManager = deps.waveManager;
     this.callbacks = deps.callbacks;
@@ -110,6 +118,10 @@ export class GameEventBinder {
 
   private bindPlayerDamage(): void {
     this.eventBus.on(GameEvent.PLAYER_SHIELD_LOST, () => this.audioManager.playShieldHit());
-    this.eventBus.on(GameEvent.PLAYER_DAMAGED, () => this.audioManager.playHit());
+    this.eventBus.on(GameEvent.PLAYER_DAMAGED, () => {
+      this.audioManager.playHit();
+      this.screenEffects.triggerGlitch();
+      this.cameraRig.shake(0.6, 0.4);
+    });
   }
 }

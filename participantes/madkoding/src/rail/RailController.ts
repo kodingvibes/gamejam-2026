@@ -19,6 +19,9 @@ export class RailController {
   private _targetVertical = 0;
   private _speed: number;
   private totalLength: number;
+  // Camera-driven parallax offset in world units; set by Game from PlayerShip.
+  private _screenOffsetX = 0;
+  private _screenOffsetY = 0;
 
   constructor(waypoints: THREE.Vector3[], speed = RAIL.RAIL_SPEED) {
     this.curve = new THREE.CatmullRomCurve3(waypoints);
@@ -50,14 +53,32 @@ export class RailController {
     );
   }
 
+  /**
+   * Camera parallax offset in world units. This lets the ship appear to move
+   * across the screen even though the rail curve is the true travel path.
+   */
+  setScreenOffset(x: number, y: number): void {
+    this._screenOffsetX = x;
+    this._screenOffsetY = y;
+  }
+
   update(dt: number): void {
     this._progress += (this._speed * dt) / this.totalLength;
     this._progress = THREE.MathUtils.clamp(this._progress, 0, 1);
-    this._lateralOffset = THREE.MathUtils.lerp(this._lateralOffset, this._targetLateral, RAIL.LATERAL_LERP_SPEED * dt);
-    this._verticalOffset = THREE.MathUtils.lerp(this._verticalOffset, this._targetVertical, RAIL.VERTICAL_LERP_SPEED * dt);
   }
 
+  // Rail base position WITHOUT screen offset — used by the camera so it
+  // advances smoothly and doesn't chase the player's screen movement.
+  getRailPosition(): RailPosition {
+    return this._getPosition(0, 0);
+  }
+
+  // Full ship world position WITH screen offset applied.
   getWorldPosition(): RailPosition {
+    return this._getPosition(this._screenOffsetX, this._screenOffsetY);
+  }
+
+  private _getPosition(offsetX: number, offsetY: number): RailPosition {
     const point = this.curve.getPoint(this._progress);
     const tangent = this.curve.getTangent(this._progress).normalize();
 
@@ -66,11 +87,10 @@ export class RailController {
     const right = new THREE.Vector3().crossVectors(tangent, worldUp).normalize();
     const up = new THREE.Vector3().crossVectors(right, tangent).normalize();
 
-    // Apply lateral offset along the right vector and vertical offset along the up vector
     const position = point
       .clone()
-      .add(right.clone().multiplyScalar(this._lateralOffset))
-      .add(up.clone().multiplyScalar(this._verticalOffset));
+      .add(right.clone().multiplyScalar(offsetX))
+      .add(up.clone().multiplyScalar(offsetY));
 
     return {
       position,
@@ -82,9 +102,7 @@ export class RailController {
 
   reset(): void {
     this._progress = 0;
-    this._lateralOffset = 0;
-    this._targetLateral = 0;
-    this._verticalOffset = 0;
-    this._targetVertical = 0;
+    this._screenOffsetX = 0;
+    this._screenOffsetY = 0;
   }
 }

@@ -51,17 +51,23 @@ export class WeaponSystem {
     return this.projectiles.find(p => !p.active) ?? null;
   }
 
-  fireLaser(position: THREE.Vector3, direction: THREE.Vector3): void {
+  fireLaser(position: THREE.Vector3, direction: THREE.Vector3, shipForward?: THREE.Vector3): void {
     if (!this._canLaser) return;
     const weapon = WEAPON_LIST[0];
     this._laserTimer = weapon.fireRate;
     this._canLaser = false;
 
-    const right = new THREE.Vector3().crossVectors(direction, new THREE.Vector3(0, 1, 0)).normalize();
+    const fwd = shipForward ? shipForward.clone().normalize() : direction.clone().normalize();
+    const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+    const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
     for (const side of [-1, 1]) {
       const proj = this.acquireProj();
       if (!proj) continue;
-      const firePos = position.clone().add(right.clone().multiplyScalar(side * 1.8));
+      // Offset in ship-local space: side, down, forward(+Z = nose of model).
+      const firePos = position.clone()
+        .add(right.clone().multiplyScalar(side * 1.6))
+        .add(up.clone().multiplyScalar(-1.2))
+        .add(fwd.clone().multiplyScalar(3.0));
       proj.init(firePos, direction, weapon.speed, weapon.damage, weapon.color, 'LASER', true, weapon.radius, weapon.length);
       if (!proj.object3D.parent) this.scene.add(proj.object3D);
     }
