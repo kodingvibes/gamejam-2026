@@ -100,24 +100,29 @@ class MenuScene extends Phaser.Scene {
   createButtons() {
     const W = 640;
     const btnData = [
+      { label: 'CAMPAÑA', scene: 'DeckPickerScene', mode: 'campaign', color: '#ff6b6b' },
       { label: 'VS IA', scene: 'DeckPickerScene', mode: 'ai', color: '#faba72' },
       { label: 'Deckbuilder', scene: 'DeckScene', mode: null, color: '#9fcafd' },
-      { label: 'Practice', scene: 'DeckPickerScene', mode: 'test', color: '#bdcd9c' }
+      { label: 'Practice', scene: 'DeckPickerScene', mode: 'test', color: '#bdcd9c' },
+      { label: '¿CÓMO JUGAR?', scene: null, mode: null, color: '#b388ff' }
     ];
 
-    const startY = 188;
-    const gap = 42;
+    const startY = 150;
+    const gap = 36;
     btnData.forEach((btn, i) => {
       const y = startY + i * gap;
       const result = UI.button(this, W / 2, y, btn.label, btn.color, () => {
         ensureStarterDecks();
-        let targetScene = btn.scene;
-        let payload = btn.mode ? { mode: btn.mode } : {};
-
-        this.cameras.main.fadeOut(200, 13, 13, 26);
-        this.time.delayedCall(220, () => {
-          this.scene.start(targetScene, payload);
-        });
+        if (btn.scene) {
+          let targetScene = btn.scene;
+          let payload = btn.mode ? { mode: btn.mode } : {};
+          this.cameras.main.fadeOut(200, 13, 13, 26);
+          this.time.delayedCall(220, () => {
+            this.scene.start(targetScene, payload);
+          });
+        } else {
+          this.openTutorial();
+        }
       }, { minWidth: 240, height: 34, fontSize: '8px' });
 
       result.container.setAlpha(0);
@@ -127,6 +132,21 @@ class MenuScene extends Phaser.Scene {
         targets: result.container, alpha: 1, duration: 400, delay: 300 + i * 120, ease: 'Linear'
       });
     });
+
+    // Auto-mostrar tutorial en la primera visita (flag se marca AL abrir,
+    // para que nunca vuelva a interrumpir aunque se cierre sin cerrar el overlay)
+    const params = new URLSearchParams(window.location.search);
+    const done = localStorage.getItem('deckstiny_tutorial_done');
+    if (params.get('tutorial') === '1' || (!done && params.get('tutorial') !== '0')) {
+      try { localStorage.setItem('deckstiny_tutorial_done', '1'); } catch (e) {}
+      this.time.delayedCall(700, () => this.openTutorial());
+    }
+  }
+
+  openTutorial() {
+    const H = window.HelpSystem;
+    if (!H) return;
+    H.showOverlay(this, window.TUTORIAL_PAGES);
   }
 }
 

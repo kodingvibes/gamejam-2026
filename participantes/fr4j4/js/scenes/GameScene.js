@@ -8,6 +8,9 @@ class GameScene extends Phaser.Scene {
     this.mode = data.mode || 'test';
     this.classId = data.classId || null;
     this.slotIndex = data.slotIndex || 0;
+    // Modo campaña: etapa actual + HP persistente entre batallas
+    this.campaignStage = data.campaignStage !== undefined ? data.campaignStage : 0;
+    this.campaignHp = data.campaignHp !== undefined ? data.campaignHp : null;
     this.endTurnBtn = null;
     this.menuBtn = null;
     this.handCards = [];
@@ -48,9 +51,13 @@ class GameScene extends Phaser.Scene {
     this.renderLayout();
     CRT.addScanlines(this);
     this.startPlayerTurn();
+    this.registerHelp();
+    this.refreshHelpBtn();
     this.input.keyboard.on('keydown-E', () => this.tryEndTurn());
     this.input.keyboard.on('keydown-ENTER', () => this.tryEndTurn());
     this.input.keyboard.on('keydown-ESC', () => this.toggleMenu());
+    this._helpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H);
+    this._helpKey.on('down', () => this.toggleHelpBubbles());
 
     this.input.on('pointerdown', (pointer, gameObjects) => {
       if (this.state.targetingMode && gameObjects.length === 0) {
@@ -83,6 +90,89 @@ class GameScene extends Phaser.Scene {
     if (this.pHero) { this.pHero.destroy(); this.pHero = null; }
     if (this.eHero) { this.eHero.destroy(); this.eHero = null; }
     // per-card input listeners are destroyed with their zones
+  }
+
+  registerHelp() {
+    const H = window.HelpSystem;
+    if (!H) return;
+    const G = (id) => {
+      const g = (window.TUTORIAL_GLOSSARY || []).find(x => x.id === id);
+      return g || { title: id.toUpperCase(), desc: '' };
+    };
+
+    // Burbujas por defecto SOLO en la primera sesión o en modo Práctica.
+    // En cualquier momento se activan/desactivan con la tecla H.
+    let seenTutorial = true;
+    try { seenTutorial = !!localStorage.getItem('deckstiny_tutorial_done'); } catch (e) {}
+    const bubblesOn = this.mode === 'test' || !seenTutorial;
+    H.setEnabled(this, bubblesOn);
+
+    H.register(this, { x: 460, y: 15 }, G('timer').title, G('timer').desc, { w: 64, h: 22, above: true });
+    H.register(this, { x: 72, y: 176 }, G('mana').title, G('mana').desc, { w: 120, h: 20, above: false });
+    H.register(this, { x: 72, y: 188 }, G('venom').title, G('venom').desc, { w: 120, h: 16, above: false });
+    H.register(this, { x: 72, y: 212 }, G('hero-power').title, G('hero-power').desc, { w: 110, h: 22, above: false });
+    H.register(this, { x: 564, y: 338 }, 'FIN DE TURNO', 'Termina tu turno con el botón FIN DE TURNO o la tecla E. Luego ataca la IA.', { w: 120, h: 32, above: false });
+    H.register(this, { x: 320, y: 210 }, G('discard').title, 'Registro de todo lo que pasa en la batalla. Usa la rueda para desplazarte.', { w: 264, h: 66, above: false });
+    H.register(this, { x: 320, y: 172 }, G('board-slots').title, G('board-slots').desc, { w: 264, h: 32, above: false });
+
+    this.onHelpClosed = () => {
+      if (this.state.phase === 'player' && !this.state.gameOver && this.mode !== 'test') {
+        this.startTimer();
+      }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tutorial') === '1') {
+      this.time.delayedCall(400, () => this.openTutorialOverlay());
+    }
+  }
+
+  openTutorialOverlay() {
+    const H = window.HelpSystem;
+    if (!H) return;
+    if (this.state.timerEvent) { this.state.timerEvent.remove(); this.state.timerEvent = null; }
+    this.hideCreatureCard();
+    H.showOverlay(this, window.TUTORIAL_PAGES);
+  }
+
+  toggleHelpBubbles() {
+    const H = window.HelpSystem;
+    if (!H) return;
+    const m = H.getManager(this);
+    const nowOn = !m.isEnabled();
+    m.setEnabled(nowOn);
+    this.refreshHelpBtn();
+    this.showBubbleToast(nowOn);
+  }
+
+  refreshHelpBtn() {
+    const H = window.HelpSystem;
+    const on = H ? H.getManager(this).isEnabled() : true;
+    if (this.helpBtnText) {
+      this.helpBtnText.setText(on ? 'AYUDA: ON' : 'AYUDA: OFF');
+      this.helpBtnText.setColor(on ? '#bdcd9c' : '#8892a0');
+    }
+    if (this.helpBtn) {
+      this.helpBtn.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(on ? '#bdcd9c' : '#8892a0').color);
+    }
+    if (this._menuHelpBtn) {
+      this._menuHelpBtn.text.setText(on ? 'BURBUJAS: ON' : 'BURBUJAS: OFF');
+      this._menuHelpBtn.text.setColor(on ? '#bdcd9c' : '#8892a0');
+    }
+  }
+
+  showBubbleToast(on) {
+    const msg = on ? 'AYUDA ACTIVA' : 'AYUDA DESACTIVADA';
+    const color = on ? '#bdcd9c' : '#8892a0';
+    const t = UI.text(this, this.W / 2, 40, msg, {
+      fontFamily: '"Press Start 2P"', fontSize: '7px', color,
+      backgroundColor: '#000000aa', padding: { x: 8, y: 4 }
+    }).setOrigin(0.5);
+    this.uiLayer.add(t);
+    this.tweens.add({
+      targets: t, alpha: 0, delay: 1400, duration: 400,
+      onComplete: () => { if (t.active) t.destroy(); }
+    });
   }
 
   toggleFullscreen() {
@@ -122,6 +212,7 @@ class GameScene extends Phaser.Scene {
 
   initState() {
     const isTest = this.mode === 'test';
+    const isCampaign = this.mode === 'campaign';
     this.state = { turn: 1, phase: 'player', gameOver: false, log: [], timer: 60, timerEvent: null };
 
     this.player = {
@@ -130,13 +221,20 @@ class GameScene extends Phaser.Scene {
       venom: 0, inspiration: 0, discardPile: [], heroUsed: false, cardsPlayed: 0, costReduction: 0
     };
 
+    // En campaña el jugador conserva el HP que trae de la etapa anterior (con curación aplicada)
+    if (isCampaign && this.campaignHp !== null) {
+      this.player.hp = Math.max(1, Math.min(this.campaignHp, this.cls.hp));
+    }
+
     this.opponent = isTest ? {
       classId: 'dummy', hp: 100, maxHp: 100, armor: 100, mana: 0, maxMana: 0,
       deck: [], hand: [], board: [], venom: 0, inspiration: 0, discardPile: [],
       heroUsed: false, cardsPlayed: 0, isDummy: true
     } : (() => {
       const otherClasses = CLASSES.filter(c => c.id !== this.classId);
-      const aiCls = otherClasses[Phaser.Math.Between(0, otherClasses.length - 1)];
+      const aiCls = isCampaign
+        ? (CLASSES.find(c => c.id === (window.CAMPAIGN_STAGES[this.campaignStage] || {}).classId) || otherClasses[0])
+        : otherClasses[Phaser.Math.Between(0, otherClasses.length - 1)];
       const aiCards = ALL_CARDS[aiCls.id] || [];
       const targetTotal = Phaser.Math.Between(20, 30);
       const maxPossible = aiCards.reduce((s, c) => s + (c.maxCopies || 2), 0);
@@ -160,8 +258,10 @@ class GameScene extends Phaser.Scene {
           aiDeckList.push({ ...card, uid: Math.random().toString(36).slice(2, 8) });
       }
       this.shuffle(aiDeckList);
+      const stageHp = isCampaign ? (window.CAMPAIGN_STAGES[this.campaignStage] || {}).hp : aiCls.hp;
+      const stageArmor = isCampaign ? (window.CAMPAIGN_STAGES[this.campaignStage] || {}).armor || 0 : aiCls.armor;
       return {
-        classId: aiCls.id, hp: aiCls.hp, maxHp: aiCls.hp, armor: aiCls.armor,
+        classId: aiCls.id, hp: stageHp, maxHp: stageHp, armor: stageArmor,
         mana: 1, maxMana: 1, deck: aiDeckList,
         hand: [], board: [], venom: 0, inspiration: 0, discardPile: [],
         heroUsed: false, cardsPlayed: 0, costReduction: 0, isDummy: false
@@ -263,6 +363,17 @@ class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.uiLayer.add(this.endTurnText);
     this.endTurnBtn.on('pointerdown', () => this.endTurn());
+
+    // --- AYUDA (burbujas) ---
+    this.helpBtn = this.add.rectangle(70, H - 22, 96, 20, 0x16213e)
+      .setStrokeStyle(1, Phaser.Display.Color.HexStringToColor('#8892a0').color)
+      .setInteractive({ useHandCursor: true });
+    this.uiLayer.add(this.helpBtn);
+    this.helpBtnText = UI.text(this, 70, H - 22, 'AYUDA: OFF', {
+      fontFamily: '"Press Start 2P"', fontSize: '7px', color: '#8892a0'
+    }).setOrigin(0.5);
+    this.uiLayer.add(this.helpBtnText);
+    this.helpBtn.on('pointerdown', () => this.toggleHelpBubbles());
 
     this.renderAll();
   }
@@ -1273,13 +1384,30 @@ class GameScene extends Phaser.Scene {
       if (this.state.timerEvent) this.state.timerEvent.remove();
       if (this.pHero && this.pHero.available) this.pHero.setState(playerWon ? 'victory' : 'defeat');
       if (this.eHero && this.eHero.available) this.eHero.setState(playerWon ? 'defeat' : 'victory');
+      const payload = {
+        win: playerWon, turn: this.state.turn,
+        damageTaken: this.player.maxHp - this.player.hp,
+        cardsPlayed: this.player.cardsPlayed, hpLeft: Math.max(0, this.player.hp), mode: this.mode,
+        classId: this.selectedClass, slotIndex: this.slotIndex || 0
+      };
+      if (this.mode === 'campaign') {
+        const stages = window.CAMPAIGN_STAGES || [];
+        const stage = stages[this.campaignStage] || {};
+        payload.campaignStage = this.campaignStage;
+        payload.campaignName = stage.name;
+        payload.campaignTotal = stages.length;
+        if (playerWon) {
+          const isLast = this.campaignStage >= stages.length - 1;
+          payload.campaignWon = true;
+          payload.campaignLast = isLast;
+          // curación entre etapas (nunca sobre el maxHp)
+          const healed = Math.min(this.player.hp + (window.CAMPAIGN_HEAL || 5), this.player.maxHp);
+          payload.campaignNextStage = this.campaignStage + 1;
+          payload.campaignHp = healed;
+        }
+      }
       this.time.delayedCall(500, () => {
-        this.scene.start('GameOverScene', {
-          win: playerWon, turn: this.state.turn,
-          damageTaken: this.player.maxHp - this.player.hp,
-          cardsPlayed: this.player.cardsPlayed, hpLeft: Math.max(0, this.player.hp), mode: this.mode,
-          classId: this.selectedClass
-        });
+        this.scene.start('GameOverScene', payload);
       });
       return true;
     }
@@ -1405,6 +1533,11 @@ class GameScene extends Phaser.Scene {
 
   toggleMenu() {
     if (this.state.gameOver) return;
+    if (this.helpBusy) {
+      const H = window.HelpSystem;
+      if (H && H.getManager(this)) H.getManager(this).closeOverlay();
+      return;
+    }
     if (this.menuOpen) this.closeMenu();
     else this.openMenu();
   }
@@ -1413,6 +1546,7 @@ class GameScene extends Phaser.Scene {
     if (this.menuOpen) return;
     this.menuOpen = true;
     if (this.state.timerEvent) { this.state.timerEvent.remove(); this.state.timerEvent = null; }
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(true);
     this.hideCreatureCard();
     this.tweens.killTweensOf(this.handContainer.list);
     this.collapseHand();
@@ -1428,28 +1562,46 @@ class GameScene extends Phaser.Scene {
     dim.on('pointerdown', () => this.closeMenu());
     layer.add(dim);
 
-    const panel = this.add.rectangle(0, 0, 240, 150, 0x16213e)
+    const panel = this.add.rectangle(0, 0, 240, 200, 0x16213e)
       .setStrokeStyle(2, 0xfaba72);
     layer.add(panel);
 
-    const titleTxt = UI.text(this, 0, -56, 'MENU', {
+    const titleTxt = UI.text(this, 0, -80, 'MENU', {
       fontFamily: '"Press Start 2P"', fontSize: '12px', color: '#faba72'
     }).setOrigin(0.5);
     layer.add(titleTxt);
 
-    const continueBtn = UI.button(this, 0, -16, 'CONTINUAR', '#bdcd9c',
+    const continueBtn = UI.button(this, 0, -34, 'CONTINUAR', '#bdcd9c',
       () => this.closeMenu(), { layer: this.uiLayer, minWidth: 160, height: 26, fontSize: '8px' });
     layer.add(continueBtn.container);
 
-    const surrenderBtn = UI.button(this, 0, 30, 'RENDIRSE', '#ff6b6b',
+    const surrenderBtn = UI.button(this, 0, 6, 'RENDIRSE', '#ff6b6b',
       () => this.surrender(), { layer: this.uiLayer, minWidth: 160, height: 26, fontSize: '8px' });
     layer.add(surrenderBtn.container);
+
+    // Botón de ayuda: alterna las burbujas de ayuda (también tecla H)
+    const helpOn = window.HelpSystem ? window.HelpSystem.getManager(this).isEnabled() : true;
+    const helpBtn = UI.button(this, 0, 48, helpOn ? 'BURBUJAS: ON' : 'BURBUJAS: OFF',
+      helpOn ? '#bdcd9c' : '#8892a0',
+      () => { this.toggleHelpBubbles(); this.refreshMenuHelpBtn(helpBtn); },
+      { layer: this.uiLayer, minWidth: 160, height: 22, fontSize: '7px' });
+    layer.add(helpBtn.container);
+    this._menuHelpBtn = helpBtn;
+  }
+
+  refreshMenuHelpBtn(btn) {
+    if (!btn) return;
+    const on = window.HelpSystem ? window.HelpSystem.getManager(this).isEnabled() : true;
+    btn.text.setText(on ? 'BURBUJAS: ON' : 'BURBUJAS: OFF');
+    btn.bg.setFillStyle(on ? 0x16213e : 0x16213e);
+    btn.text.setColor(on ? '#bdcd9c' : '#8892a0');
   }
 
   closeMenu() {
     if (!this.menuOpen) return;
     this.menuOpen = false;
     if (this.menuOverlay) { this.menuOverlay.destroy(true); this.menuOverlay = null; }
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(false);
     this.handZones.forEach((z, i) => {
       const entry = this.handCards[i];
       if (entry && entry.canPlay) z.setInteractive({ useHandCursor: true });
@@ -1463,18 +1615,28 @@ class GameScene extends Phaser.Scene {
     if (this.state.timerEvent) { this.state.timerEvent.remove(); this.state.timerEvent = null; }
     if (this.menuOverlay) { this.menuOverlay.destroy(true); this.menuOverlay = null; }
     this.menuOpen = false;
+    if (window.HelpSystem) window.HelpSystem.getManager(this).setModal(false);
     if (this.mode === 'test') {
       this.scene.start('MenuScene');
     } else {
-      this.scene.start('GameOverScene', {
+      const payload = {
         win: false,
         turn: this.state.turn,
         damageTaken: this.player.maxHp - this.player.hp,
         cardsPlayed: this.player.cardsPlayed,
         hpLeft: 0,
         mode: this.mode,
-        classId: this.selectedClass
-      });
+        classId: this.selectedClass,
+        slotIndex: this.slotIndex || 0
+      };
+      if (this.mode === 'campaign') {
+        const stages = window.CAMPAIGN_STAGES || [];
+        const stage = stages[this.campaignStage] || {};
+        payload.campaignStage = this.campaignStage;
+        payload.campaignName = stage.name;
+        payload.campaignTotal = stages.length;
+      }
+      this.scene.start('GameOverScene', payload);
     }
   }
 }

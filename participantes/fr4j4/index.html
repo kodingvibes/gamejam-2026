@@ -28,26 +28,29 @@ document.addEventListener('contextmenu', function(e) {
 <body>
 <div id="game-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@4.2.1/dist/phaser.min.js"></script>
-<script src="js/phaser-compat.js"></script>
-<script src="js/data/classes.js"></script>
-<script src="js/data/cards.js"></script>
-<script src="js/ui/card.js"></script>
-<script src="js/ui/crt.js"></script>
-<script src="js/ui/vfx.js"></script>
-<script src="js/data/sprites/heroes/mago.js"></script>
-<script src="js/data/sprites/heroes/necromancer.js"></script>
-<script src="js/data/sprites/heroes/guerrero.js"></script>
-<script src="js/data/sprites/heroes/asesino.js"></script>
-<script src="js/data/sprites/heroes/bardo.js"></script>
-<script src="js/data/sprites/heroes/dummy.js"></script>
-<script src="js/engine/HeroSprite.js"></script>
-<script src="js/scenes/BootScene.js"></script>
-<script src="js/scenes/MenuScene.js"></script>
-<script src="js/scenes/DeckScene.js"></script>
-<script src="js/scenes/GameScene.js"></script>
-<script src="js/scenes/GameOverScene.js"></script>
-<script src="js/scenes/DeckPickerScene.js"></script>
-<script src="js/main.js"></script>
+<script src="js/phaser-compat.js?v=2"></script>
+<script src="js/data/classes.js?v=2"></script>
+<script src="js/data/cards.js?v=2"></script>
+<script src="js/data/campaign.js?v=2"></script>
+<script src="js/ui/card.js?v=2"></script>
+<script src="js/ui/crt.js?v=2"></script>
+<script src="js/ui/vfx.js?v=2"></script>
+<script src="js/data/tutorial.js?v=2"></script>
+<script src="js/ui/help.js?v=2"></script>
+<script src="js/data/sprites/heroes/mago.js?v=2"></script>
+<script src="js/data/sprites/heroes/necromancer.js?v=2"></script>
+<script src="js/data/sprites/heroes/guerrero.js?v=2"></script>
+<script src="js/data/sprites/heroes/asesino.js?v=2"></script>
+<script src="js/data/sprites/heroes/bardo.js?v=2"></script>
+<script src="js/data/sprites/heroes/dummy.js?v=2"></script>
+<script src="js/engine/HeroSprite.js?v=2"></script>
+<script src="js/scenes/BootScene.js?v=2"></script>
+<script src="js/scenes/MenuScene.js?v=2"></script>
+<script src="js/scenes/DeckScene.js?v=2"></script>
+<script src="js/scenes/GameScene.js?v=2"></script>
+<script src="js/scenes/GameOverScene.js?v=2"></script>
+<script src="js/scenes/DeckPickerScene.js?v=2"></script>
+<script src="js/main.js?v=2"></script>
 <script>
 (function() {
   const params = new URLSearchParams(window.location.search);
@@ -55,16 +58,21 @@ document.addEventListener('contextmenu', function(e) {
   const autoFill = params.get('autofill') === '1';
   const openModal = params.get('modal') === '1';
   const scrollTo = parseInt(params.get('scroll') || '0');
-  if (!targetStep) return;
+  const startCampaign = params.get('campaign') === '1';
+  if (!targetStep && !startCampaign) return;
   function start() {
     if (typeof game === 'undefined') { setTimeout(start, 100); return; }
     setTimeout(() => {
-      if (autoFill) {
+      if (autoFill || startCampaign) {
         const cards = ALL_CARDS.mago || [];
         const deck = {};
         cards.forEach(c => deck[c.id] = c.maxCopies);
         const slots = [{ name: 'TEST DECK', cards: deck }];
         localStorage.setItem('deckstiny_decks', JSON.stringify({ mago: slots }));
+      }
+      if (startCampaign) {
+        game.scene.start('GameScene', { mode: 'campaign', classId: 'mago', slotIndex: 0, campaignStage: 0 });
+        return;
       }
       game.scene.start('DeckScene');
       setTimeout(() => {
