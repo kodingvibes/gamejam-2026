@@ -15,9 +15,26 @@ const FILAS_DE_CHARCO_INICIAL = 1;
 const RADIO_DE_CHARCO_SUCIO = 11;
 const FILAS_DE_CHARCO_SUCIO = 10;
 const PASOS_PARA_ASENTAR = 20;
+const COLUMNAS_POR_RAFAGA_VISUAL = 4;
+const LARGO_MINIMO_DE_ESTELA = 2;
+const VARIACIONES_DE_LARGO_DE_ESTELA = 4;
 
 function componentes(color: number): [number, number, number] {
   return [(color >> 16) & 255, (color >> 8) & 255, color & 255];
+}
+
+function mezclar(desde: readonly number[], hasta: readonly number[]): [number, number, number] {
+  return [
+    Math.round((desde[0] + hasta[0]) / 2),
+    Math.round((desde[1] + hasta[1]) / 2),
+    Math.round((desde[2] + hasta[2]) / 2),
+  ];
+}
+
+function firmaVisual(posicion: number): number {
+  let firma = Math.imul(posicion ^ (posicion >>> 16), 0x45d9f3b);
+  firma = Math.imul(firma ^ (firma >>> 16), 0x45d9f3b);
+  return (firma ^ (firma >>> 16)) >>> 0;
 }
 
 export class VentanaDeAgua {
@@ -28,6 +45,7 @@ export class VentanaDeAgua {
   private readonly imagen: ImageData;
   private readonly agua = componentes(PALETA.agua);
   private readonly brillo = componentes(PALETA.agua_brillo);
+  private readonly lluviaMedia = mezclar(this.agua, this.brillo);
   private columnaOrigen = 0;
   private rejillas: readonly number[] = [];
   private medioTramo = 25;
@@ -180,20 +198,47 @@ export class VentanaDeAgua {
           continue;
         }
         const superficie = this.granos.celdaEn(columna, fila - 1) !== CELDA.agua;
-        const color = superficie ? this.brillo : this.agua;
-        datos[destino] = color[0];
-        datos[destino + 1] = color[1];
-        datos[destino + 2] = color[2];
-        datos[destino + 3] = 255;
+        const estaCayendo = this.granos.celdaEn(columna, fila + 1) === CELDA.aire;
+        if (!estaCayendo) {
+          const color = superficie ? this.brillo : this.agua;
+          datos[destino] = color[0];
+          datos[destino + 1] = color[1];
+          datos[destino + 2] = color[2];
+          datos[destino + 3] = 255;
+          continue;
+        }
 
-        if (this.granos.celdaEn(columna, fila + 1) === CELDA.aire) {
-          for (let largo = 1; largo <= 4 && fila - largo >= 0; largo += 1) {
-            const estela = ((fila - largo) * this.columnas + columna) * 4;
-            datos[estela] = this.agua[0];
-            datos[estela + 1] = this.agua[1];
-            datos[estela + 2] = this.agua[2];
-            datos[estela + 3] = 170 - largo * 34;
+        const columnaMundo = this.columnaOrigen + columna;
+        const firmaDeColumna = firmaVisual(columnaMundo);
+        const firmaDeRafaga = firmaVisual(
+          Math.floor(columnaMundo / COLUMNAS_POR_RAFAGA_VISUAL),
+        );
+        const variante = (firmaDeColumna ^ (firmaDeRafaga >>> 1)) >>> 0;
+        const varianteDeTono = variante % 3;
+        const tono =
+          varianteDeTono === 0 ? this.agua : varianteDeTono === 1 ? this.lluviaMedia : this.brillo;
+        const alfaDeGota = 208 + ((variante >>> 5) % 48);
+        const largoDeEstela =
+          LARGO_MINIMO_DE_ESTELA + ((variante >>> 11) % VARIACIONES_DE_LARGO_DE_ESTELA);
+        const alfaInicialDeEstela = 135 + ((firmaDeRafaga >>> 7) % 46);
+
+        datos[destino] = tono[0];
+        datos[destino + 1] = tono[1];
+        datos[destino + 2] = tono[2];
+        datos[destino + 3] = alfaDeGota;
+
+        for (let largo = 1; largo <= largoDeEstela && fila - largo >= 0; largo += 1) {
+          const filaDeEstela = fila - largo;
+          if (this.granos.celdaEn(columna, filaDeEstela) !== CELDA.aire) {
+            break;
           }
+          const estela = (filaDeEstela * this.columnas + columna) * 4;
+          datos[estela] = tono[0];
+          datos[estela + 1] = tono[1];
+          datos[estela + 2] = tono[2];
+          datos[estela + 3] = Math.round(
+            alfaInicialDeEstela * (1 - largo / (largoDeEstela + 1)),
+          );
         }
       }
     }
