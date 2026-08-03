@@ -19,6 +19,16 @@ export class PlayerShip {
   private _invincibilityTimer = 0;
   private eventBus: EventBus;
 
+  // Starfox-style banking: ship rolls into lateral turns and pitches
+  // slightly with vertical input. Lerped toward targets each frame.
+  private _bankTarget = 0;
+  private _pitchTarget = 0;
+  private _bank = 0;
+  private _pitch = 0;
+  private _baseQuat = new THREE.Quaternion();
+  private _tmpQuat = new THREE.Quaternion();
+  private _euler = new THREE.Euler();
+
   constructor(scene: THREE.Scene) {
     this.eventBus = EventBus.getInstance();
     this._health = PLAYER.STARTING_HEALTH;
@@ -44,6 +54,16 @@ export class PlayerShip {
     // Rotate toward aim direction if provided, otherwise just forward
     const target = aimDir ? pos.clone().add(aimDir) : pos.clone().add(forward);
     this.group.lookAt(target);
+    // Capture the base orientation (before banking) so we can compose roll/pitch.
+    this._baseQuat.copy(this.group.quaternion);
+  }
+
+  // Set banking targets from lateral (-1..1) and vertical (-1..1) input.
+  // Positive lateral = moving right → roll right (negative Z rotation).
+  // Positive vertical = moving down → pitch nose down.
+  setBankInput(lateral: number, vertical: number): void {
+    this._bankTarget = THREE.MathUtils.clamp(-lateral * 0.6, -0.6, 0.6);
+    this._pitchTarget = THREE.MathUtils.clamp(vertical * 0.35, -0.35, 0.35);
   }
 
   takeDamage(amount: number): boolean {
@@ -75,6 +95,16 @@ export class PlayerShip {
     const pulse = Math.sin(performance.now() * 0.01) * 0.2 + 0.6;
     (this.engineGlow.material as THREE.MeshBasicMaterial).opacity = pulse;
     this.foxTail.update(dt);
+
+    // Apply banking: lerp current bank/pitch toward targets, then compose
+    // onto the base orientation (which already faces the aim direction).
+    this._bank = THREE.MathUtils.lerp(this._bank, this._bankTarget, 8 * dt);
+    this._pitch = THREE.MathUtils.lerp(this._pitch, this._pitchTarget, 8 * dt);
+    if (Math.abs(this._bank) > 0.001 || Math.abs(this._pitch) > 0.001) {
+      this._euler.set(this._pitch, 0, this._bank, 'YXZ');
+      this._tmpQuat.setFromEuler(this._euler);
+      this.group.quaternion.copy(this._baseQuat).multiply(this._tmpQuat);
+    }
   }
 
   heal(amount: number): void {

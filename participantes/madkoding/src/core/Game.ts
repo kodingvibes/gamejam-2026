@@ -290,11 +290,20 @@ export class Game {
 
     const railPos = this.railController.getWorldPosition();
 
-    // Update crosshair position in HUD
-    this.hud.updateCrosshair(input.aimX, input.aimY);
+    // Starfox-style banking: feed lateral/vertical input to the ship so it
+    // rolls and pitches as it moves within the frame.
+    this.playerShip.setBankInput(input.horizontalAxis, input.verticalAxis);
 
-    // Calculate fire/aim direction from crosshair
-    const fireDir = this.computeAimDirection(input.aimX, input.aimY, railPos);
+    // Update crosshair position in HUD. The crosshair is anchored to the
+    // ship's on-screen position (which now drifts within the frame thanks to
+    // camera parallax lag) plus the aim offset from mouse/arrows.
+    const shipNdc = this.projectToNdc(railPos.position);
+    this.hud.updateCrosshair(shipNdc.x + input.aimX, shipNdc.y + input.aimY);
+
+    // Calculate fire/aim direction from crosshair. The crosshair sits at the
+    // ship's projected screen position plus the aim offset, so we pass the
+    // combined NDC to the raycaster.
+    const fireDir = this.computeAimDirection(shipNdc.x + input.aimX, shipNdc.y + input.aimY, railPos);
 
     // Position ship and rotate it toward the aim direction.
     // Visibility is owned by PlayerLifeManager (death/game-over sequences hide it).
@@ -338,6 +347,15 @@ export class Game {
   private _raycaster = new THREE.Raycaster();
   private _ndc = new THREE.Vector2();
   private _aimPoint = new THREE.Vector3();
+  private _projVec = new THREE.Vector3();
+
+  // Project a world position to NDC (-1..1). Used to anchor the crosshair to
+  // the ship's on-screen position so it follows the ship as it drifts within
+  // the frame (camera parallax lag).
+  private projectToNdc(worldPos: THREE.Vector3): THREE.Vector2 {
+    this._projVec.copy(worldPos).project(this.cameraRig.camera3D);
+    return new THREE.Vector2(this._projVec.x, this._projVec.y);
+  }
 
   private computeAimDirection(aimX: number, aimY: number, railPos: { position: THREE.Vector3; forward: THREE.Vector3 }): THREE.Vector3 {
     // Unproject a point at the crosshair screen position, at a distance ahead

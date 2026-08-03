@@ -146,11 +146,15 @@ export class HUD {
     this.container.style.display = visible ? 'block' : 'none';
   }
 
-  // Move crosshair to the mouse position in screen coords (NDC -1..1)
+  // Move crosshair to the mouse position in screen coords (NDC -1..1).
+  // Clamp so it never leaves the visible viewport even when the ship drifts
+  // within the frame (camera parallax lag).
   updateCrosshair(aimX: number, aimY: number): void {
     if (!this._crosshair) return;
-    const px = (aimX * 0.5 + 0.5) * 100;
-    const py = (-aimY * 0.5 + 0.5) * 100;
+    const cx = Math.max(-1, Math.min(1, aimX));
+    const cy = Math.max(-1, Math.min(1, aimY));
+    const px = (cx * 0.5 + 0.5) * 100;
+    const py = (-cy * 0.5 + 0.5) * 100;
     this._crosshair.style.left = `${px}%`;
     this._crosshair.style.top = `${py}%`;
   }

@@ -16,6 +16,16 @@ export const RAIL = {
   RAIL_SPEED_BOSS: 6,
 } as const;
 
+export const CAMERA = {
+  // Chase lag: higher = camera catches up faster (less parallax).
+  // Lower = more lag, ship moves more within the frame (more parallax).
+  CHASE_LAG: 6,
+  CHASE_UP: 4.0,
+  CHASE_BACK: 10,
+  LOOK_AHEAD: 20,
+  LOOK_UP: 2.0,
+} as const;
+
 export const PLAYER = {
   STARTING_HEALTH: 100,
   MAX_HEALTH: 100,

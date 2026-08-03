@@ -1,6 +1,13 @@
-// ─── Camera Rig (Third-Person Chase) ────────────────────────────────────────
+// ─── Camera Rig (Third-Person Chase with Parallax Lag) ─────────────────────
+//
+// The camera does NOT snap to the ship. It smoothly chases the ship's target
+// position with a lag (CHASE_LAG). When the ship moves laterally/vertically,
+// it shifts within the frame while the camera catches up — this produces the
+// Starfox-style parallax feel (ship moves, background layers drift at
+// different rates). The camera also banks slightly into turns for extra life.
 
 import * as THREE from 'three';
+import { CAMERA } from '../types/config';
 
 export class CameraRig {
   private camera: THREE.PerspectiveCamera;
@@ -9,7 +16,10 @@ export class CameraRig {
   private shakeDuration = 0;
   private shakeTimer = 0;
 
-  private _offset = new THREE.Vector3();
+  // Smoothed chase position (lags behind the ship target).
+  private _chasePos = new THREE.Vector3();
+  private _chaseLook = new THREE.Vector3();
+  private _initialized = false;
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
@@ -27,22 +37,39 @@ export class CameraRig {
   }
 
   setTarget(position: THREE.Vector3, forward: THREE.Vector3, up: THREE.Vector3): void {
-    // Third-person chase: camera behind & above the ship.
-    // forward is the direction of travel (tangent), so -forward is "back".
-    // Ship should appear in the LOWER part of the screen, so we look at a
-    // point slightly above the ship (so the ship sits low in frame).
-    this._offset.set(0, 0, 0)
-      .addScaledVector(up, 4.0)       // up above the ship
-      .addScaledVector(forward, -10); // behind the ship
+    // Desired camera position: behind & above the ship.
+    const desired = new THREE.Vector3()
+      .copy(position)
+      .addScaledVector(up, CAMERA.CHASE_UP)
+      .addScaledVector(forward, -CAMERA.CHASE_BACK);
 
-    this.camera.position.copy(position).add(this._offset);
+    // Desired look-at point: ahead & slightly above the ship.
+    const desiredLook = new THREE.Vector3()
+      .copy(position)
+      .addScaledVector(forward, CAMERA.LOOK_AHEAD)
+      .addScaledVector(up, CAMERA.LOOK_UP);
 
-    // Look at a point well ahead and slightly above the ship → ship is low
-    this.camera.lookAt(
-      position.x + forward.x * 20,
-      position.y + forward.y * 20 + up.y * 2.0,
-      position.z + forward.z * 20
-    );
+    if (!this._initialized) {
+      // First frame: snap so there's no initial jump.
+      this._chasePos.copy(desired);
+      this._chaseLook.copy(desiredLook);
+      this._initialized = true;
+    } else {
+      // Chase with lag → parallax. Higher CHASE_LAG = faster catch-up.
+      const k = Math.min(1, CAMERA.CHASE_LAG * 0.016);
+      this._chasePos.lerp(desired, k);
+      this._chaseLook.lerp(desiredLook, k);
+    }
+
+    this.camera.position.copy(this._chasePos);
+    this.camera.lookAt(this._chaseLook);
+
+    // Bank the camera slightly into lateral turns for a dynamic feel.
+    // Compute lateral drift from the ship's offset relative to the rail.
+    // We approximate by looking at how far the ship is from the camera's
+    // forward axis — a simple roll based on the ship's X offset.
+    const lateral = THREE.MathUtils.clamp(position.x * 0.02, -0.25, 0.25);
+    this.camera.rotation.z = lateral;
   }
 
   shake(intensity: number, duration: number): void {
@@ -74,5 +101,6 @@ export class CameraRig {
     this.shakeOffset.set(0, 0, 0);
     this.shakeIntensity = 0;
     this.shakeTimer = 0;
+    this._initialized = false;
   }
 }
