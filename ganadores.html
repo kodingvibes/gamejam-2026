@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ganadores — GameJam 2026 kodingvibes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127942;</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: #0e0d0b; color: #f4f1e8;
+    font-family: 'IBM Plex Mono', monospace;
+    background-image: radial-gradient(ellipse at 50% 0%, #161512 0%, #0e0d0b 70%);
+  }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: #0e0d0b; border-bottom: 3px solid #2b2823;
+  }
+  .header-inner {
+    max-width: 1040px; margin: 0 auto; padding: 13px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .header-inner a { text-decoration: none; color: #f4f1e8; display: flex; align-items: center; gap: 10px; }
+  .nav { display: flex; align-items: center; gap: 16px; font-size: 10px; font-weight: 500; letter-spacing: 1.2px; text-transform: uppercase; color: #8f897c; }
+  .nav a { color: #8f897c; text-decoration: none; transition: color .15s; }
+  .nav a:hover { color: #d8ff3e; }
+  .nav a.active { color: #d8ff3e; }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 18px 80px; }
+
+  h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 20px; color: #d8ff3e; text-align: center;
+    margin: 0 0 8px;
+    text-shadow: 0 0 0.3em rgba(216,255,62,0.3), 0 0 0.9em rgba(216,255,62,0.1);
+  }
+  .subtitle { font-size: 12px; color: #8a8478; text-align: center; margin: 0 0 40px; }
+
+  @keyframes marquee { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+  .marquee-bar {
+    position: relative; z-index: 1;
+    border-top: 3px solid #2b2823; border-bottom: 3px solid #2b2823;
+    color: #0e0d0b; overflow: hidden; white-space: nowrap;
+    background: #d8ff3e; width: 100%;
+  }
+  .marquee-bar-inner {
+    display: inline-flex; gap: 34px; padding: 10px 0;
+    font-family: 'Press Start 2P', monospace; font-size: 10px;
+    will-change: transform; animation: marquee 30s linear infinite;
+  }
+
+  .section-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 13px; color: #d8ff3e; margin: 48px 0 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 3px; background: #2b2823; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+  .card {
+    background: #161512; border: 3px solid #2b2823;
+    padding: 16px; position: relative; overflow: hidden;
+    transition: border-color .15s, transform .1s;
+  }
+  .card:hover { border-color: #d8ff3e; transform: translateY(-2px); }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: #d8ff3e;
+  }
+  .card img {
+    width: 100%; height: auto; display: block;
+    border: 2px solid #2b2823; image-rendering: auto;
+  }
+  .card .caption {
+    margin-top: 12px; text-align: center;
+  }
+  .card .category {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px; color: #d8ff3e; line-height: 1.6; margin: 0 0 4px;
+  }
+  .card .name { font-size: 14px; font-weight: 700; color: #f4f1e8; margin: 0; }
+
+  .extra-note {
+    margin-top: 40px; padding: 16px 20px;
+    background: #161512; border: 3px solid #2b2823;
+    font-size: 11px; color: #8a8478;
+  }
+  .extra-note strong { color: #d8ff3e; }
+
+  footer {
+    border-top: 3px solid #2b2823; padding: 24px 18px;
+    text-align: center; font-size: 10px; color: #3a3730;
+  }
+  footer a { color: #8f897c; text-decoration: none; }
+  footer a:hover { color: #d8ff3e; }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; }
+    h1 { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="https://kodingvibes.com" target="_blank" rel="noopener">
+      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="2" fill="none"></circle>
+        <path d="M14 14L10 20L14 26" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+        <path d="M26 14L30 20L26 26" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+        <path d="M18 28L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"></path>
+        <defs>
+          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366f1"></stop>
+            <stop offset="100%" stop-color="#a855f7"></stop>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span style="font-weight: 700; font-size: 18px; letter-spacing: -0.02em; font-family: system-ui, sans-serif">Koding<span style="background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text">Vibes</span></span>
+    </a>
+    <div class="nav">
+      <a href="index.html">Juegos</a>
+      <a href="opencode.html">opencode + ollama</a>
+      <a href="ganadores.html" class="active">🏆 Ganadores</a>
+      <span>gamejam ia 2026</span>
+    </div>
+  </div>
+</header>
+
+<div class="marquee-bar">
+  <div class="marquee-bar-inner">
+    <span>🏆 GANADORES 2026</span><span>*</span><span>9 PARTICIPANTES</span><span>*</span><span>48H NON STOP</span><span>*</span><span>POWNED BY MOTOKO</span><span>*</span>
+    <span>🏆 GANADORES 2026</span><span>*</span><span>9 PARTICIPANTES</span><span>*</span><span>48H NON STOP</span><span>*</span><span>POWNED BY MOTOKO</span><span>*</span>
+  </div>
+</div>
+
+<main>
+  <h1>🏆 GANADORES 2026</h1>
+  <p class="subtitle">Certificados simbólicos — no hay ranking, cada participante se lleva el suyo · Powned by Motoko 🐈‍⬛</p>
+
+  <div class="section-title">CERTIFICADOS PRINCIPALES</div>
+  <div class="grid" id="main-grid"></div>
+
+  <div class="section-title">EXTRAS</div>
+  <div class="grid" id="extra-grid"></div>
+
+  <div class="extra-note">
+    <strong>Nota:</strong> los certificados son simbólicos y no jerárquicos. Cada participante recibe el suyo.
+    Los extras pueden repetirse entre participantes. Generador de certificados en
+    <a href="certificados/index.html" style="color:#d8ff3e">certificados/</a>.
+  </div>
+</main>
+
+<footer>
+  <span>Organizado por <a href="https://kodingvibes.com" target="_blank">kodingvibes</a></span>
+  &nbsp;·&nbsp;
+  <span>Repo: <a href="https://github.com/kodingvibes/gamejam-2026" target="_blank">kodingvibes/gamejam-2026</a></span>
+</footer>
+
+<script>
+const WINNERS = [
+  { name: 'abomdev', game: 'BugSurvivor', category: '🔥 Más Ambicioso', img: 'certificados/ganadores/abomdev-mas-ambicioso.png' },
+  { name: 'pabloprx', game: 'DAFTRUN', category: '🏆 Mejor Mejora (Fase 2)', img: 'certificados/ganadores/pabloprx-mejor-mejora.png' },
+  { name: 'madkoding', game: 'FoxStar', category: '🧠 Código Más Limpio', img: 'certificados/ganadores/madkoding-codigo-limpio.png' },
+  { name: 'jpyunism', game: 'Neon Drift', category: '🎮 Mejor Jugabilidad', img: 'certificados/ganadores/jpyunism-mejor-jugabilidad.png' },
+  { name: 'gabogabucho', game: 'Mr. Lastre', category: '💡 Idea Más Original', img: 'certificados/ganadores/gabogabucho-idea-original.png' },
+  { name: 'felipe', game: "Tapa'o", category: '🎨 Mejor Arte / Estilo Visual', img: 'certificados/ganadores/felipe-mejor-arte.png' },
+  { name: 'fr4j4', game: 'Deckstiny', category: '📖 Mejor Narrativa', img: 'certificados/ganadores/fr4j4-mejor-narrativa.png' },
+  { name: 'axes', game: 'Timbiriche', category: '❤️ Favorito de la Comunidad', img: 'certificados/ganadores/axes-favorito-comunidad.png' },
+  { name: 'yhozen', game: 'Skatefire', category: '😈 El Que Más Hizo Sufrir a Motoko', img: 'certificados/ganadores/yhozen-hizo-sufrir-motoko.png' },
+];
+
+const EXTRAS = [
+  { name: 'jpyunism', game: 'Neon Drift', category: '🐛 Bug Más Épico', img: 'certificados/ganadores/jpyunism-bug-epico.png' },
+];
+
+function cardHTML(w) {
+  return `
+    <div class="card">
+      <img src="${w.img}" alt="Certificado ${w.category} — ${w.name}">
+      <div class="caption">
+        <p class="category">${w.category}</p>
+        <p class="name">${w.name} · ${w.game}</p>
+      </div>
+    </div>`;
+}
+
+document.getElementById('main-grid').innerHTML = WINNERS.map(cardHTML).join('');
+document.getElementById('extra-grid').innerHTML = EXTRAS.map(cardHTML).join('');
+</script>
+</body>
+</html>
