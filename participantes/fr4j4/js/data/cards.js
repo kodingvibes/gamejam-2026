@@ -8,7 +8,7 @@
 const ALL_CARDS = {
   mago: [
     {
-      id: 'm_bola', name: 'Bola de Fuego', cost: 1, type: 'accion', maxCopies: 3,
+      id: 'm_bola', name: 'Bola de Fuego', cost: 2, type: 'accion', maxCopies: 3,
       desc: '3 de daño directo',
       effects: [{ type: 'damage', target: 'enemy_hero', amount: 3 }]
     },
@@ -74,10 +74,10 @@ const ALL_CARDS = {
     },
     {
       id: 'n_drenar', name: 'Drenar Vida', cost: 2, type: 'accion', maxCopies: 3,
-      desc: 'Drenar 3',
+      desc: 'Drenar 2',
       effects: [
-        { type: 'damage', target: 'enemy_hero', amount: 3 },
-        { type: 'heal', target: 'self', amount: 3 }
+        { type: 'damage', target: 'enemy_hero', amount: 2 },
+        { type: 'heal', target: 'self', amount: 2 }
       ]
     },
     {
@@ -140,12 +140,12 @@ const ALL_CARDS = {
       ]
     },
     {
-      id: 'g_ataque', name: 'Ataque Poderoso', cost: 2, type: 'accion', maxCopies: 3,
+      id: 'g_ataque', name: 'Ataque Poderoso', cost: 3, type: 'accion', maxCopies: 3,
       desc: '5 de daño directo',
       effects: [{ type: 'damage', target: 'enemy_hero', amount: 5 }]
     },
     {
-      id: 'g_levantar', name: 'Levantar Armadura', cost: 1, type: 'accion', maxCopies: 3,
+      id: 'g_levantar', name: 'Levantar Armadura', cost: 2, type: 'accion', maxCopies: 3,
       desc: 'Gana 4 de armadura',
       effects: [{ type: 'armor', target: 'self', amount: 4 }]
     },
@@ -276,8 +276,8 @@ const ALL_CARDS = {
   bardo: [
     {
       id: 'b_nota', name: 'Nota Molesta', cost: 1, type: 'accion', maxCopies: 3,
-      desc: '1 de daño directo',
-      effects: [{ type: 'damage', target: 'enemy_hero', amount: 1 }]
+      desc: '2 de daño directo',
+      effects: [{ type: 'damage', target: 'enemy_hero', amount: 2 }]
     },
     {
       id: 'b_discordante', name: 'Nota Discordante', cost: 2, type: 'accion', maxCopies: 3,
