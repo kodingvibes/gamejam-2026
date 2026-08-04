@@ -179,8 +179,8 @@ export class PlayerShip {
 
     // Apply banking: lerp current bank/pitch toward targets, then compose
     // onto the base orientation (which already faces the aim direction).
-    this._bank = THREE.MathUtils.lerp(this._bank, this._bankTarget, 8 * dt);
-    this._pitch = THREE.MathUtils.lerp(this._pitch, this._pitchTarget, 8 * dt);
+    this._bank = THREE.MathUtils.lerp(this._bank, this._bankTarget, 5 * dt);
+    this._pitch = THREE.MathUtils.lerp(this._pitch, this._pitchTarget, 5 * dt);
     if (Math.abs(this._bank) > 0.001 || Math.abs(this._pitch) > 0.001) {
       this._euler.set(this._pitch, 0, this._bank, 'YXZ');
       this._tmpQuat.setFromEuler(this._euler);
