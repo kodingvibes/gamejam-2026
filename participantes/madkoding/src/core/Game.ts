@@ -306,8 +306,8 @@ export class Game {
       targetScreenX = input.moveX;
       targetScreenY = input.moveY;
     } else {
-      targetScreenX = this.playerShip.screenX + input.horizontalAxis * PLAYER.SCREEN_LIMIT * dt * PLAYER.SCREEN_LAG;
-      targetScreenY = this.playerShip.screenY + input.verticalAxis * PLAYER.SCREEN_LIMIT * dt * PLAYER.SCREEN_LAG;
+      targetScreenX = this.playerShip.screenX + input.horizontalAxis * PLAYER.SCREEN_DRIFT_SPEED * dt;
+      targetScreenY = this.playerShip.screenY + input.verticalAxis * PLAYER.SCREEN_DRIFT_SPEED * dt;
     }
 
     targetScreenX = THREE.MathUtils.clamp(targetScreenX, -PLAYER.SCREEN_LIMIT, PLAYER.SCREEN_LIMIT);

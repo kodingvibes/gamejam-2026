@@ -39,7 +39,11 @@ export const PLAYER = {
   // near the window edges while still leaving a small safety margin.
   SCREEN_LIMIT: 0.88,
   // Response when following mouse / keyboard relative movement.
-  SCREEN_LAG: 14,
+  // Lower = more inertia, smoother, less twitchy.
+  SCREEN_LAG: 8,
+  // How fast the keyboard target drifts across the screen (NDC/sec).
+  // Lower = ship takes longer to reach the edge, feels more weighted.
+  SCREEN_DRIFT_SPEED: 6,
 } as const;
 
 export const ENEMIES = {
