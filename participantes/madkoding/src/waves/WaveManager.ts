@@ -224,8 +224,8 @@ export class WaveManager {
       { x: -0.5, y: -1, z: -1 }, // from below-left-front
     ];
     const dir = dirs[Math.floor(Math.random() * dirs.length)];
-    const dist = THREE.MathUtils.randFloat(40, 70);
-    const spread = THREE.MathUtils.randFloat(5, 15);
+    const dist = THREE.MathUtils.randFloat(25, 40);
+    const spread = THREE.MathUtils.randFloat(3, 8);
 
     // Spawn position: far from the player in the chosen direction, with
     // formation offsets applied relative to that position.

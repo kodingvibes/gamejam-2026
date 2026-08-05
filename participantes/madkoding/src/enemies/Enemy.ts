@@ -84,9 +84,9 @@ export class Enemy {
   // The player flies forward along -Z at rail speed. Enemies must fly faster
   // than the rail to actually reach and pass the player (like a plane).
   private _forwardDrift = RAIL.RAIL_SPEED;
-  // Constant flight speed for all states — never reduces. Slightly above the
-  // rail speed so enemies still catch up, but slower so they loiter longer.
-  private _flightSpeed = RAIL.RAIL_SPEED * 0.85;
+  // Constant flight speed for all states — never reduces. Must exceed the rail
+  // speed so enemies actually catch up to the player instead of falling behind.
+  private _flightSpeed = RAIL.RAIL_SPEED * 1.3;
   // Random per-enemy aim offset so enemies don't all converge on the exact
   // same point — each one picks its own approach target.
   private _approachOffset = new THREE.Vector3();
@@ -221,7 +221,7 @@ export class Enemy {
       this._emergenceStart.copy(origin);
       this._emergenceEnd.copy(position);
       this._emergenceProgress = 0;
-      this._emergenceDuration = 2.0 + Math.random() * 1.0;
+      this._emergenceDuration = 0.8 + Math.random() * 0.6;
       this._emergencePhase = Math.random() * Math.PI * 2;
       this._stateTimer = 0;
       this._pirouetteAngle = 0;
