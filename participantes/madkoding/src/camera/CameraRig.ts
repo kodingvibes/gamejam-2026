@@ -20,7 +20,7 @@ export class CameraRig {
   private _initialized = false;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(70, aspect, 0.1, 1000);
     this.camera.position.set(0, 4, 10);
     this.camera.lookAt(0, 0, -10);
   }
