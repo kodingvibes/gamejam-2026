@@ -441,9 +441,8 @@ export class Enemy {
     // Fade out when outside the firing range (can't tell if ahead/behind).
     this.updateRangeFade(playerPos);
 
-    // Safety: deactivate if way behind the player (no score — just remove).
-    // Enemies can now come from behind, so give them more room.
-    if (this._active && this.position.z > playerPos.z + 30) {
+    // Safety: deactivate if behind the player — no damage from behind.
+    if (this._active && this.position.z > playerPos.z + 2) {
       this.reset();
     }
   }
