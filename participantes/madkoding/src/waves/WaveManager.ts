@@ -211,48 +211,33 @@ export class WaveManager {
   }
 
   private spawnFormationEnemy(e: FormationEnemy, playerPos: THREE.Vector3): void {
-    // The formation position is near the center of the play field (on screen).
-    let baseZ = playerPos.z - THREE.MathUtils.randFloat(50, 70);
-    let centerX = THREE.MathUtils.randFloat(-5, 5);
-    let centerY = THREE.MathUtils.randFloat(-3, 3);
-    let origin: THREE.Vector3 | undefined;
+    // Pick a random approach direction from 8 possible vectors so enemies
+    // come from all around the player — above, below, sides, diagonals, behind.
+    const dirs = [
+      { x: 0, y: 1, z: -1 },    // from above-front
+      { x: 0, y: -1, z: -1 },   // from below-front
+      { x: 1, y: 0, z: -1 },    // from right-front
+      { x: -1, y: 0, z: -1 },   // from left-front
+      { x: 1, y: 1, z: -1 },    // from top-right-front
+      { x: -1, y: -1, z: -1 },  // from bottom-left-front
+      { x: 0, y: 1, z: 0 },     // from above (straight down)
+      { x: 0, y: -1, z: 0 },    // from below (straight up)
+    ];
+    const dir = dirs[Math.floor(Math.random() * dirs.length)];
+    const dist = THREE.MathUtils.randFloat(40, 70);
+    const spread = THREE.MathUtils.randFloat(5, 15);
 
-    // Pick an entry vector: prefer corvette hangars (sides) but sometimes
-    // spawn from above, below, or diagonals for trajectory variety.
-    const roll = Math.random();
-    if (roll < 0.55) {
-      // Emerge from a corvette's hangar (off to the side) and fly to the
-      // formation position near the center of the screen.
-      const validCorvettes = this.corvettePositions.filter(c => c.z < playerPos.z - 30);
-      if (validCorvettes.length > 0) {
-        const corvette = validCorvettes[Math.floor(Math.random() * validCorvettes.length)];
-        origin = corvette.clone();
-      }
-    } else {
-      // Alternate entry vectors: above, below, or the four diagonals.
-      const xOff = THREE.MathUtils.randFloat(40, 70);
-      const yOff = THREE.MathUtils.randFloat(25, 45);
-      const zOff = THREE.MathUtils.randFloat(15, 35);
-      const side = roll < 0.7 ? 1 : -1;
-      if (roll < 0.62) {
-        // From above
-        origin = new THREE.Vector3(playerPos.x + THREE.MathUtils.randFloat(-15, 15), playerPos.y + yOff, playerPos.z - zOff);
-      } else if (roll < 0.74) {
-        // From below
-        origin = new THREE.Vector3(playerPos.x + THREE.MathUtils.randFloat(-15, 15), playerPos.y - yOff, playerPos.z - zOff);
-      } else if (roll < 0.87) {
-        // From top-left / top-right diagonal
-        origin = new THREE.Vector3(playerPos.x - side * xOff, playerPos.y + yOff * 0.6, playerPos.z - zOff);
-      } else {
-        // From bottom-left / bottom-right diagonal
-        origin = new THREE.Vector3(playerPos.x + side * xOff, playerPos.y - yOff * 0.6, playerPos.z - zOff);
-      }
-    }
-
+    // Spawn position: far from the player in the chosen direction, with
+    // formation offsets applied relative to that position.
     const spawnPos = new THREE.Vector3(
-      centerX + e.offsetX,
-      centerY + e.offsetY,
-      baseZ + e.offsetZ
+      playerPos.x + dir.x * dist + e.offsetX + THREE.MathUtils.randFloat(-spread, spread),
+      playerPos.y + dir.y * dist + e.offsetY + THREE.MathUtils.randFloat(-spread, spread),
+      playerPos.z + dir.z * dist + e.offsetZ + THREE.MathUtils.randFloat(-10, 10),
+    );
+
+    // Origin: even further in the same direction (for emergence animation).
+    const origin = spawnPos.clone().add(
+      new THREE.Vector3(dir.x * 20, dir.y * 20, dir.z * 20),
     );
 
     this.enemyManager.spawn(e.type, spawnPos, playerPos, e.pattern, origin);
