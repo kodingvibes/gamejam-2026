@@ -86,7 +86,7 @@ export class Enemy {
   private _forwardDrift = RAIL.RAIL_SPEED;
   // Constant flight speed for all states — never reduces. Slightly above the
   // rail speed so enemies still catch up, but slower so they loiter longer.
-  private _flightSpeed = RAIL.RAIL_SPEED * 0.51;
+  private _flightSpeed = RAIL.RAIL_SPEED * 0.85;
   // Random per-enemy aim offset so enemies don't all converge on the exact
   // same point — each one picks its own approach target.
   private _approachOffset = new THREE.Vector3();
@@ -207,9 +207,9 @@ export class Enemy {
     // Random per-enemy approach offset so each enemy aims at its own point
     // near the player instead of all converging on the exact same spot.
     this._approachOffset.set(
+      (Math.random() - 0.5) * 16,
       (Math.random() - 0.5) * 10,
-      (Math.random() - 0.5) * 6,
-      0,
+      (Math.random() - 0.5) * 8,
     );
 
     // Emergence from hangar: if an origin is given, fly a sweeping curve from
@@ -310,7 +310,7 @@ export class Enemy {
         // Once close enough — or after a max approach time — switch to attack.
         // Break off from a comfortable distance so the enemy doesn't fly right
         // on top of the player before starting its dive.
-        if (dist < 45 || this._stateTimer > 3) {
+        if (dist < 60 || this._stateTimer > 2.5) {
           this._flightState = 'ATTACK';
           this._stateTimer = 0;
         }
@@ -441,8 +441,9 @@ export class Enemy {
     // Fade out when outside the firing range (can't tell if ahead/behind).
     this.updateRangeFade(playerPos);
 
-    // Safety: deactivate if behind the player (no score — just remove)
-    if (this._active && this.position.z > playerPos.z + 8) {
+    // Safety: deactivate if way behind the player (no score — just remove).
+    // Enemies can now come from behind, so give them more room.
+    if (this._active && this.position.z > playerPos.z + 30) {
       this.reset();
     }
   }
@@ -453,9 +454,10 @@ export class Enemy {
     const dx = this.position.x - playerPos.x;
     const dy = this.position.y - playerPos.y;
     const dz = this.position.z - playerPos.z;
-    // Reachable firing box around the player (matches crosshair limits).
+    // Reachable firing box around the player — expanded for enemies coming
+    // from all directions (including behind).
     const inRange =
-      Math.abs(dx) <= 12 && Math.abs(dy) <= 7 && dz > -60 && dz < 8;
+      Math.abs(dx) <= 20 && Math.abs(dy) <= 12 && dz > -80 && dz < 30;
     this._fadeTarget = inRange ? 1 : 0.15;
 
     // Smoothly move current alpha toward the target.

@@ -46,17 +46,24 @@ export class Projectile {
     this.bombRing.renderOrder = 997;
     this.mesh.add(this.bombRing);
 
-    // Bright white spotlight for bombs — shines forward like a power star
-    const spotLight = new THREE.SpotLight(0xffffff, 12000.0);
+    // Bright white spotlight for bombs — expansive, illuminates the whole area
+    const spotLight = new THREE.SpotLight(0xffffff, 25000.0);
     spotLight.position.set(0, 0, 0);
     spotLight.target.position.set(0, 0, 10);
-    spotLight.angle = Math.PI / 3;
-    spotLight.penumbra = 0.6;
-    spotLight.distance = 40;
-    spotLight.decay = 1.2;
+    spotLight.angle = Math.PI / 1.8;
+    spotLight.penumbra = 0.8;
+    spotLight.distance = 120;
+    spotLight.decay = 0.8;
     this.mesh.add(spotLight);
     this.mesh.add(spotLight.target);
     this.bombLight = spotLight;
+
+    // Additional omnidirectional point light so the bomb glows from all angles
+    const pointLight = new THREE.PointLight(0xffffff, 8000.0);
+    pointLight.position.set(0, 0, 0);
+    pointLight.distance = 60;
+    pointLight.decay = 1.0;
+    this.mesh.add(pointLight);
   }
 
   get object3D(): THREE.Mesh { return this.mesh; }
