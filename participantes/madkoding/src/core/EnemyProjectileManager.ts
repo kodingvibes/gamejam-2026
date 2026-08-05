@@ -87,8 +87,9 @@ export class EnemyProjectileManager {
         continue;
       }
 
-      // Collision with player
-      if (p.position.distanceTo(playerPos) < PLAYER.HITBOX_RADIUS) {
+      // Collision with player — only if in front (no damage from behind)
+      if (p.position.z <= playerPos.z + 1 &&
+          p.position.distanceTo(playerPos) < PLAYER.HITBOX_RADIUS) {
         p.active = false;
         p.mesh.visible = false;
         hit = true;

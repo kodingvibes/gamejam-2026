@@ -211,8 +211,8 @@ export class WaveManager {
   }
 
   private spawnFormationEnemy(e: FormationEnemy, playerPos: THREE.Vector3): void {
-    // Pick a random approach direction from 8 possible vectors so enemies
-    // come from all around the player — above, below, sides, diagonals, behind.
+    // Pick a random approach direction — always from in front of the player
+    // (z: -1), but from different lateral/vertical angles for variety.
     const dirs = [
       { x: 0, y: 1, z: -1 },    // from above-front
       { x: 0, y: -1, z: -1 },   // from below-front
@@ -220,8 +220,8 @@ export class WaveManager {
       { x: -1, y: 0, z: -1 },   // from left-front
       { x: 1, y: 1, z: -1 },    // from top-right-front
       { x: -1, y: -1, z: -1 },  // from bottom-left-front
-      { x: 0, y: 1, z: 0 },     // from above (straight down)
-      { x: 0, y: -1, z: 0 },    // from below (straight up)
+      { x: 0.5, y: 1, z: -1 },  // from above-right-front
+      { x: -0.5, y: -1, z: -1 }, // from below-left-front
     ];
     const dir = dirs[Math.floor(Math.random() * dirs.length)];
     const dist = THREE.MathUtils.randFloat(40, 70);
