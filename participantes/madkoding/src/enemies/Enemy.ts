@@ -556,9 +556,9 @@ export class Enemy {
       const flash = this._damageFlashTimer > 0;
       this.body.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          const mat = child.material as THREE.MeshStandardMaterial;
-          if (mat.emissiveIntensity !== undefined) {
-            mat.emissiveIntensity = flash ? 2.0 : 0.3;
+          const mat = child.material as THREE.MeshBasicMaterial;
+          if (mat.color) {
+            mat.color.set(flash ? 0xffffff : this._color);
           }
         }
       });
@@ -599,9 +599,17 @@ export class Enemy {
       const pulse = Math.sin(this._telegraphTimer * 20) * 0.5 + 0.5;
       this.body.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          const mat = child.material as THREE.MeshStandardMaterial;
-          if (mat.emissiveIntensity !== undefined) {
-            mat.emissiveIntensity = 0.3 + pulse * 1.5;
+          const mat = child.material as THREE.MeshBasicMaterial;
+          if (mat.color) {
+            const base = this._color;
+            const r = ((base >> 16) & 0xff) / 255;
+            const g = ((base >> 8) & 0xff) / 255;
+            const b = (base & 0xff) / 255;
+            mat.color.setRGB(
+              r + (1 - r) * pulse * 0.5,
+              g + (1 - g) * pulse * 0.5,
+              b + (1 - b) * pulse * 0.5
+            );
           }
         }
       });
