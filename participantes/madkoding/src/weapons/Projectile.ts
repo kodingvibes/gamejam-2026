@@ -6,7 +6,9 @@ import { WeaponKind } from './WeaponConfig';
 export class Projectile {
   private mesh: THREE.Mesh;
   private bombRing: THREE.Mesh; // charged energy ring for bombs
-  private bombLight: THREE.SpotLight | null = null; // bright white spotlight for bombs
+  private bombLight: THREE.SpotLight | null = null;
+  private bombPointLight: THREE.PointLight | null = null;
+  private _lightsAttached = false;
   private static readonly _scratchStep = new THREE.Vector3();
   private _velocity = new THREE.Vector3();
   private _damage = 10;
@@ -23,11 +25,11 @@ export class Projectile {
   private _fuse = -1; // < 0 = no fuse; > 0 = countdown to auto-explode
 
   constructor() {
-    const geo = new THREE.CylinderGeometry(0.18, 0.18, 3.0, 8);
+    const geo = new THREE.CylinderGeometry(0.18, 0.18, 3.0, 6);
     geo.rotateX(Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x00ffaa,
-      transparent: true, opacity: 1,
+      color: 0x4488ff,
+      transparent: true, opacity: 0.7,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     this.mesh = new THREE.Mesh(geo, mat);
@@ -45,8 +47,14 @@ export class Projectile {
     this.bombRing.visible = false;
     this.bombRing.renderOrder = 997;
     this.mesh.add(this.bombRing);
+  }
 
-    // Bright white spotlight for bombs — expansive, illuminates the whole area
+  // Create bomb lights lazily — only when a bomb is actually fired.
+  // This avoids 160+ dynamic lights sitting in the pool doing nothing.
+  private ensureBombLights(): void {
+    if (this._lightsAttached) return;
+    this._lightsAttached = true;
+
     const spotLight = new THREE.SpotLight(0xffffff, 25000.0);
     spotLight.position.set(0, 0, 0);
     spotLight.target.position.set(0, 0, 10);
@@ -58,12 +66,12 @@ export class Projectile {
     this.mesh.add(spotLight.target);
     this.bombLight = spotLight;
 
-    // Additional omnidirectional point light so the bomb glows from all angles
     const pointLight = new THREE.PointLight(0xffffff, 8000.0);
     pointLight.position.set(0, 0, 0);
     pointLight.distance = 60;
     pointLight.decay = 1.0;
     this.mesh.add(pointLight);
+    this.bombPointLight = pointLight;
   }
 
   get object3D(): THREE.Mesh { return this.mesh; }
@@ -93,16 +101,19 @@ export class Projectile {
 
     const oldGeo = this.mesh.geometry;
     if (kind === 'BOMB') {
-      this.mesh.geometry = new THREE.SphereGeometry(radius * 1.5, 16, 16);
+      this.mesh.geometry = new THREE.SphereGeometry(radius * 1.5, 12, 12);
       this.bombRing.visible = true;
       this.bombRing.scale.setScalar(1.5);
+      this.ensureBombLights();
       if (this.bombLight) this.bombLight.visible = true;
+      if (this.bombPointLight) this.bombPointLight.visible = true;
     } else {
-      const geo = new THREE.CylinderGeometry(radius, radius, length, 8);
+      const geo = new THREE.CylinderGeometry(radius, radius, length, 6);
       geo.rotateX(Math.PI / 2);
       this.mesh.geometry = geo;
       this.bombRing.visible = false;
       if (this.bombLight) this.bombLight.visible = false;
+      if (this.bombPointLight) this.bombPointLight.visible = false;
     }
     oldGeo.dispose();
 
@@ -144,8 +155,8 @@ export class Projectile {
     if (this._lifetime >= this._maxLifetime) this.deactivate();
   }
 
-  explode(): void { this._exploded = true; this._active = false; this.mesh.visible = false; this.bombRing.visible = false; }
-  deactivate(): void { this._active = false; this.mesh.visible = false; this.bombRing.visible = false; }
+  explode(): void { this._exploded = true; this._active = false; this.mesh.visible = false; this.bombRing.visible = false; if (this.bombLight) this.bombLight.visible = false; if (this.bombPointLight) this.bombPointLight.visible = false; }
+  deactivate(): void { this._active = false; this.mesh.visible = false; this.bombRing.visible = false; if (this.bombLight) this.bombLight.visible = false; if (this.bombPointLight) this.bombPointLight.visible = false; }
 
   dispose(): void {
     this.mesh.geometry.dispose();
