@@ -17,7 +17,7 @@ export class EnemyMeshFactory {
   }
 
   private static hullMat(color: number): THREE.MeshStandardMaterial {
-    return new THREE.MeshStandardMaterial({ color: 0x8a8f98, roughness: 0.7, metalness: 0.3, emissive: color, emissiveIntensity: 2 });
+    return new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.1, emissive: color, emissiveIntensity: 0.3 });
   }
 
   private static darkMat(): THREE.MeshStandardMaterial {

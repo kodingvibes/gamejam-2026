@@ -58,6 +58,14 @@ export class Enemy {
   protected _emergenceDuration = 2;
   protected _emergencePhase = 0;
 
+  // ── Damage flash ──
+  protected _damageFlashTimer = 0;
+  protected _damageFlashDuration = 0.12;
+
+  // ── Health bar ──
+  protected _healthBar: THREE.Mesh;
+  protected _healthBarBg: THREE.Mesh;
+
   // ── Fade when outside the firing range (can't tell ahead/behind) ──
   protected _fadeAlpha = 1;
   protected _fadeTarget = 1;
@@ -101,6 +109,22 @@ export class Enemy {
     this.body = EnemyMeshFactory.create(type, this._size, this._color);
     this.group.add(this.body);
     this.trail = new EnemyTrail(scene, this._color, this._size * 2 / 3);
+
+    // Health bar: a thin bar above the enemy
+    const barGeo = new THREE.PlaneGeometry(1.6, 0.12);
+    const barMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, depthWrite: false, depthTest: true, transparent: true });
+    this._healthBar = new THREE.Mesh(barGeo, barMat);
+    this._healthBar.position.set(0, this._size * 1.2, 0);
+    this._healthBar.renderOrder = 998;
+
+    const bgGeo = new THREE.PlaneGeometry(1.8, 0.16);
+    const bgMat = new THREE.MeshBasicMaterial({ color: 0x222222, depthWrite: false, depthTest: true, transparent: true, opacity: 0.6 });
+    this._healthBarBg = new THREE.Mesh(bgGeo, bgMat);
+    this._healthBarBg.position.set(0, this._size * 1.2, -0.01);
+    this._healthBarBg.renderOrder = 997;
+
+    this.group.add(this._healthBarBg);
+    this.group.add(this._healthBar);
     this.group.visible = false;
   }
 
@@ -213,6 +237,7 @@ export class Enemy {
 
   takeDamage(amount: number): boolean {
     this._health -= amount;
+    this._damageFlashTimer = this._damageFlashDuration;
     if (this._health <= 0) { this._health = 0; this.destroy(); return true; }
     return false;
   }
@@ -404,6 +429,15 @@ export class Enemy {
     this.trail.update(dt, this.position);
     this.mesh.lookAt(playerPos);
 
+    // Damage flash
+    this.updateDamageFlash(dt);
+
+    // Health bar: always face camera, update width
+    this.updateHealthBar(playerPos);
+
+    // Telegraph visual
+    this.updateTelegraph(dt);
+
     // Fade out when outside the firing range (can't tell if ahead/behind).
     this.updateRangeFade(playerPos);
 
@@ -514,8 +548,37 @@ export class Enemy {
     this.body.rotation.z += angle;
   }
 
+  // ── Damage flash: white flash on hit ──
+  private updateDamageFlash(dt: number): void {
+    if (this._damageFlashTimer > 0) {
+      this._damageFlashTimer -= dt;
+      const flash = this._damageFlashTimer > 0;
+      this.body.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const mat = child.material as THREE.MeshStandardMaterial;
+          if (mat.emissiveIntensity !== undefined) {
+            mat.emissiveIntensity = flash ? 2.0 : 0.3;
+          }
+        }
+      });
+    }
+  }
+
+  // ── Health bar: billboarded bar above the enemy ──
+  private updateHealthBar(playerPos: THREE.Vector3): void {
+    const ratio = this._health / this._maxHealth;
+    this._healthBar.scale.x = ratio;
+    // Shift bar left so it shrinks from the right
+    this._healthBar.position.x = -(1 - ratio) * 0.8;
+    // Color: green → yellow → red
+    const hue = ratio * 0.33;
+    (this._healthBar.material as THREE.MeshBasicMaterial).color.setHSL(hue, 1, 0.5);
+    // Always face the camera (billboard)
+    this._healthBar.lookAt(playerPos);
+    this._healthBarBg.lookAt(playerPos);
+  }
+
   // ── Telegraph: brief pause before shooting to give player reaction time ──
-  // (No color change — enemies keep their grey/line look.)
   startTelegraph(duration: number): void {
     this._isTelegraphing = true;
     this._telegraphTimer = duration;
@@ -527,6 +590,23 @@ export class Enemy {
   }
 
   get isTelegraphing(): boolean { return this._isTelegraphing; }
+
+  // ── Telegraph visual: glow pulse when about to shoot ──
+  private updateTelegraph(dt: number): void {
+    if (this._isTelegraphing) {
+      this._telegraphTimer -= dt;
+      const pulse = Math.sin(this._telegraphTimer * 20) * 0.5 + 0.5;
+      this.body.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const mat = child.material as THREE.MeshStandardMaterial;
+          if (mat.emissiveIntensity !== undefined) {
+            mat.emissiveIntensity = 0.3 + pulse * 1.5;
+          }
+        }
+      });
+      if (this._telegraphTimer <= 0) this.stopTelegraph();
+    }
+  }
 
   // ── Default update (slow approach, no ram) ──
   update(dt: number, playerPos: THREE.Vector3): void {
@@ -571,6 +651,10 @@ export class Enemy {
 
   dispose(): void {
     this.trail.dispose();
+    this._healthBar.geometry.dispose();
+    (this._healthBar.material as THREE.Material).dispose();
+    this._healthBarBg.geometry.dispose();
+    (this._healthBarBg.material as THREE.Material).dispose();
     this.group.parent?.remove(this.group);
     this.body.traverse((c) => {
       if (c instanceof THREE.Mesh) { c.geometry.dispose(); (c.material as THREE.Material).dispose(); }

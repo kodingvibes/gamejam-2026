@@ -111,13 +111,11 @@ export class ExplosionSystem {
 
   spawn(position: THREE.Vector3, size: number = 3, color: number = 0xff8844): void {
     this.spawnParticles(position, size, color, 1.0);
-    this.shakeFromSize(size);
   }
 
   // Epic explosion: same 80 particles but bigger spread + brighter
   spawnEpic(position: THREE.Vector3, color: number = 0xff6600): void {
     this.spawnParticles(position, 8, color, 1.5);
-    this.shakeFromSize(8);
   }
 
   // Nuclear explosion: a massive expanding shockwave ring + blinding flash +

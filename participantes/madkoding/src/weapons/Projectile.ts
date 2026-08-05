@@ -6,6 +6,7 @@ import { WeaponKind } from './WeaponConfig';
 export class Projectile {
   private mesh: THREE.Mesh;
   private bombRing: THREE.Mesh; // charged energy ring for bombs
+  private bombLight: THREE.SpotLight | null = null; // bright white spotlight for bombs
   private static readonly _scratchStep = new THREE.Vector3();
   private _velocity = new THREE.Vector3();
   private _damage = 10;
@@ -37,13 +38,25 @@ export class Projectile {
     // reads as a circle of powerful, glowing mass.
     const ringGeo = new THREE.TorusGeometry(1.1, 0.18, 8, 24);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xffaa44, transparent: true, opacity: 0.95,
+      color: 0xffffff, transparent: true, opacity: 0.95,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     this.bombRing = new THREE.Mesh(ringGeo, ringMat);
     this.bombRing.visible = false;
     this.bombRing.renderOrder = 997;
     this.mesh.add(this.bombRing);
+
+    // Bright white spotlight for bombs — shines forward like a power star
+    const spotLight = new THREE.SpotLight(0xffffff, 12000.0);
+    spotLight.position.set(0, 0, 0);
+    spotLight.target.position.set(0, 0, 10);
+    spotLight.angle = Math.PI / 3;
+    spotLight.penumbra = 0.6;
+    spotLight.distance = 40;
+    spotLight.decay = 1.2;
+    this.mesh.add(spotLight);
+    this.mesh.add(spotLight.target);
+    this.bombLight = spotLight;
   }
 
   get object3D(): THREE.Mesh { return this.mesh; }
@@ -73,14 +86,16 @@ export class Projectile {
 
     const oldGeo = this.mesh.geometry;
     if (kind === 'BOMB') {
-      this.mesh.geometry = new THREE.SphereGeometry(radius, 12, 12);
+      this.mesh.geometry = new THREE.SphereGeometry(radius * 1.5, 16, 16);
       this.bombRing.visible = true;
-      this.bombRing.scale.setScalar(1);
+      this.bombRing.scale.setScalar(1.5);
+      if (this.bombLight) this.bombLight.visible = true;
     } else {
       const geo = new THREE.CylinderGeometry(radius, radius, length, 8);
       geo.rotateX(Math.PI / 2);
       this.mesh.geometry = geo;
       this.bombRing.visible = false;
+      if (this.bombLight) this.bombLight.visible = false;
     }
     oldGeo.dispose();
 

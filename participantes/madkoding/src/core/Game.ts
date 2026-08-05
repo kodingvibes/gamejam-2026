@@ -35,6 +35,7 @@ import { PauseOverlay } from '../ui/PauseOverlay';
 import { GameOverScreen } from '../ui/GameOverScreen';
 import { VictoryScreen } from '../ui/VictoryScreen';
 import { LivesDisplay } from '../ui/LivesDisplay';
+import { OffScreenIndicator } from '../ui/OffScreenIndicator';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { RailFactory } from '../rail/RailFactory';
 
@@ -73,6 +74,7 @@ export class Game {
   private collisionSystem: CollisionSystem;
   private enemyProjectileMgr: EnemyProjectileManager;
   private eventBinder: GameEventBinder;
+  private offScreenIndicator: OffScreenIndicator;
 
   private _animFrameId = 0;
   private _running = false;
@@ -128,7 +130,7 @@ export class Game {
 
     // Bomb auto-explosion: AOE damage + nuclear explosion
     this.weaponSystem.onBombExplode = (pos: THREE.Vector3) => {
-      this.explosionSystem.spawnNuclear(pos, 0xffaa33);
+      this.explosionSystem.spawnNuclear(pos, 0xffffff);
       this.audioManager.playExplosion();
       this.cameraRig.shake(1.0, 0.6);
       const blast = 50;
@@ -171,6 +173,10 @@ export class Game {
       },
     });
     this.eventBinder.bindAll();
+
+    this.offScreenIndicator = new OffScreenIndicator(
+      this.cameraRig.camera3D, this.enemyManager,
+    );
 
     window.addEventListener('resize', () => this.onResize());
     this.stateManager.transition(GameState.MENU);
@@ -403,6 +409,9 @@ export class Game {
     }
 
     this.scoreSystem.update(dt);
+
+    // Off-screen enemy indicators
+    this.offScreenIndicator.update(this.playerShip.position);
   }
 
   // Convert mouse NDC (-1..1) to a world-space direction from the ship.
