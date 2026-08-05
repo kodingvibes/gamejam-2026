@@ -90,6 +90,9 @@ export class Enemy {
   // Random per-enemy aim offset so enemies don't all converge on the exact
   // same point — each one picks its own approach target.
   private _approachOffset = new THREE.Vector3();
+  // Fixed target point for the current flight state — set once on state entry
+  // so the enemy flies a straight line like a plane, not a homing missile.
+  private _approachTarget = new THREE.Vector3();
 
   private static nextId = 0;
 
@@ -255,6 +258,10 @@ export class Enemy {
   // Velocity-based flight: each state sets a constant velocity vector and the
   // enemy integrates it. No rail-drift hack — the enemy flies like a plane at
   // its own constant speed, approaching, passing the player, and returning.
+  //
+  // Key design: each state picks a FIXED target on entry and flies toward it
+  // without recalculating every frame. This prevents the "homing missile"
+  // effect where enemies snap toward the player each frame.
   updateCombat(
     dt: number,
     playerPos: THREE.Vector3,
@@ -274,6 +281,8 @@ export class Enemy {
           this._emerging = false;
           this._flightState = 'APPROACH';
           this._stateTimer = 0;
+          // Fix approach target: a point ahead of the player with offset.
+          this._approachTarget.copy(playerPos).add(this._approachOffset);
         } else {
           const p = this._emergenceProgress;
           const travel = this._emergenceEnd.distanceTo(this._emergenceStart);
@@ -289,28 +298,20 @@ export class Enemy {
       }
 
       case 'APPROACH': {
-        // Fly toward the player at constant speed with gentle pirouettes.
-        this._pirouetteAngle += this._pirouetteDir * dt * 2.5;
-        this.body.rotation.z = Math.sin(this._pirouetteAngle) * 0.6;
-        this.body.rotation.y = Math.cos(this._pirouetteAngle) * 0.4;
-
-        // Aim at a random offset point near the player, not the exact center.
-        const aim = playerPos.clone().add(this._approachOffset);
-        const dir = aim.sub(this.group.position);
+        // Fly toward the FIXED approach target at constant speed.
+        // No per-frame recalculation — the enemy flies a straight line.
+        const dir = this._approachTarget.clone().sub(this.group.position);
         const dist = dir.length();
         if (dist > 0.1) {
           dir.normalize();
-          // Constant flight speed — always exceeds the rail so the enemy
-          // actually catches up to and passes the player.
           this._velocity.copy(dir).multiplyScalar(this._flightSpeed);
         } else {
           this._velocity.set(0, 0, 0);
         }
+        this.body.rotation.z = Math.sin(this._stateTimer * 2) * 0.3;
 
         // Once close enough — or after a max approach time — switch to attack.
-        // Break off from a comfortable distance so the enemy doesn't fly right
-        // on top of the player before starting its dive.
-        if (dist < 60 || this._stateTimer > 2.5) {
+        if (dist < 50 || this._stateTimer > 3) {
           this._flightState = 'ATTACK';
           this._stateTimer = 0;
         }
@@ -318,23 +319,14 @@ export class Enemy {
       }
 
       case 'ATTACK': {
-        // Dive at the player at constant speed, firing. After a short window,
-        // keep flying straight past the player (like a plane) — never stop.
-        const aim = playerPos.clone().add(this._approachOffset);
-        const dir = aim.sub(this.group.position);
-        const dist = dir.length();
-        if (dist > 0.1) {
-          dir.normalize();
-          this._velocity.copy(dir).multiplyScalar(this._flightSpeed * 1.05);
-        } else {
-          this._velocity.set(0, 0, 0);
-        }
-        this.body.rotation.z = Math.sin(this._stateTimer * 4) * 0.4;
+        // Continue flying forward at constant speed. Don't home — just fly
+        // straight past the player like a plane. The enemy is already heading
+        // toward the player area from the approach phase.
+        this.body.rotation.z = Math.sin(this._stateTimer * 4) * 0.3;
 
-        // Fire at the player in 3-shot bursts. Only the 3rd shot is accurate;
-        // the first two are warning shots (high inaccuracy).
+        // Fire at the player in 3-shot bursts.
         this._shootTimer += dt;
-        if (this.canShoot() && dist < 30 && this._burstCount === 0) {
+        if (this.canShoot() && this._burstCount === 0) {
           this._burstCount = 3;
           this._burstShotIndex = 0;
           this._burstTimer = 0;
@@ -351,19 +343,16 @@ export class Enemy {
         }
 
         // After the attack window, keep flying straight past the player.
-        if (this._stateTimer > 2.5 || dist < 6) {
+        if (this._stateTimer > 2.5) {
           this._flightState = 'OVERFLY';
           this._stateTimer = 0;
-          // Store the current heading so we keep flying straight.
           this._overflyDir.copy(this._velocity).normalize();
         }
         break;
       }
 
       case 'OVERFLY': {
-        // Keep flying forward at constant speed. If a movement pattern is
-        // assigned, let it shape the overflight trajectory (zigzag, dive,
-        // circle, sweep); otherwise fly straight along the stored heading.
+        // Keep flying forward at constant speed.
         if (this.pattern) {
           this.pattern.update(this, dt, playerPos, projectiles);
           this._velocity.set(0, 0, 0);
@@ -371,9 +360,9 @@ export class Enemy {
         } else {
           this._velocity.copy(this._overflyDir).multiplyScalar(this._flightSpeed);
         }
-        this.body.rotation.z = Math.sin(this._stateTimer * 3) * 0.4;
+        this.body.rotation.z = Math.sin(this._stateTimer * 3) * 0.3;
 
-        // Fire while overflying in 3-shot bursts (only 3rd is accurate).
+        // Fire while overflying in 3-shot bursts.
         this._shootTimer += dt;
         if (this.canShoot() && this._burstCount === 0) {
           this._burstCount = 3;
@@ -400,7 +389,7 @@ export class Enemy {
       }
 
       case 'RETURN': {
-        // Fly back toward the hangar at constant speed with a gentle weave.
+        // Fly back toward the hangar at constant speed.
         const dir = this._hangarPos.clone().sub(this.group.position);
         const dist = dir.length();
         if (dist > 0.1) {
@@ -409,7 +398,7 @@ export class Enemy {
         } else {
           this._velocity.set(0, 0, 0);
         }
-        this.body.rotation.z = Math.sin(this._stateTimer * 3) * 0.5;
+        this.body.rotation.z = Math.sin(this._stateTimer * 3) * 0.3;
 
         // Reached the hangar (or gave up after a while) → recycle.
         if (dist < 4 || this._stateTimer > 12) {
@@ -420,9 +409,7 @@ export class Enemy {
       }
     }
 
-    // Integrate the constant velocity. Enemies fly at a constant speed that
-    // exceeds the rail speed, so they catch up to, pass, and return past the
-    // player like planes — never stopping at a fixed point.
+    // Integrate the constant velocity.
     this.group.position.addScaledVector(this._velocity, dt);
 
     this.performAcrobatics(dt);
@@ -438,7 +425,7 @@ export class Enemy {
     // Telegraph visual
     this.updateTelegraph(dt);
 
-    // Fade out when outside the firing range (can't tell if ahead/behind).
+    // Fade out when outside the firing range.
     this.updateRangeFade(playerPos);
 
     // Safety: deactivate if behind the player — no damage from behind.
