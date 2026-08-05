@@ -12,8 +12,8 @@ export const RAIL = {
   VERTICAL_LIMIT: 7,
   LATERAL_LERP_SPEED: 5,
   VERTICAL_LERP_SPEED: 5,
-  RAIL_SPEED: 12,
-  RAIL_SPEED_BOSS: 6,
+  RAIL_SPEED: 8,
+  RAIL_SPEED_BOSS: 4,
 } as const;
 
 export const CAMERA = {

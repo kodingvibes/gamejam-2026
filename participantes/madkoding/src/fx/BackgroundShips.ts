@@ -7,7 +7,8 @@ import * as THREE from 'three';
 interface Corvette {
   group: THREE.Group;
   speed: number;
-  side: number; // -1 = left, +1 = right
+  side: number; // -1 = left, +1 = right, 0 = top/bottom
+  yOff: number; // vertical offset for top/bottom corvettes
   // Warp-in state
   warpIn: boolean;
   warpTimer: number;
@@ -138,7 +139,14 @@ export class BackgroundShips {
 
   private createCorvette(index: number): Corvette {
     const group = new THREE.Group();
-    const side = index % 2 === 0 ? -1 : 1;
+    // 4 corvettes: left, right, top, bottom
+    const placements = [
+      { side: -1, yOff: THREE.MathUtils.randFloat(-5, 5) },   // left
+      { side: 1, yOff: THREE.MathUtils.randFloat(-5, 5) },    // right
+      { side: 0, yOff: THREE.MathUtils.randFloat(25, 35) },   // top
+      { side: 0, yOff: THREE.MathUtils.randFloat(-35, -25) }, // bottom
+    ];
+    const p = placements[index % placements.length];
 
     const hullMat = new THREE.MeshPhongMaterial({
       color: 0x8a9bb0, emissive: 0x445566, emissiveIntensity: 0.5, shininess: 50,
@@ -192,10 +200,10 @@ export class BackgroundShips {
     beacon.name = 'beacon';
     group.add(beacon);
 
-    // ── Position: far off to the side, AHEAD of the player (z negative)
+    // ── Position: far off to the side/top/bottom, AHEAD of the player (z negative)
     // so enemies spawn in front and fly toward the player.
-    const xOff = side * THREE.MathUtils.randFloat(50, 90);
-    const yOff = THREE.MathUtils.randFloat(-20, 30);
+    const xOff = p.side * THREE.MathUtils.randFloat(50, 90);
+    const yOff = p.yOff;
     const zOff = -THREE.MathUtils.randFloat(80, 250) - index * 40;
     group.scale.setScalar(3);
     group.position.set(xOff, yOff, zOff);
@@ -208,7 +216,8 @@ export class BackgroundShips {
     return {
       group,
       speed: THREE.MathUtils.randFloat(3, 7),
-      side,
+      side: p.side,
+      yOff: p.yOff,
       warpIn: true,
       warpTimer: 0,
       warpDuration: 2.2,
@@ -344,11 +353,9 @@ export class BackgroundShips {
       // Recycle when it passes the player — reposition far ahead (more -Z).
       if (c.group.position.z > playerPos.z + 50) {
         const newZ = playerPos.z - THREE.MathUtils.randFloat(180, 300);
-        c.group.position.set(
-          c.side * THREE.MathUtils.randFloat(50, 90),
-          THREE.MathUtils.randFloat(-20, 30),
-          newZ
-        );
+        const xPos = c.side !== 0 ? c.side * THREE.MathUtils.randFloat(50, 90) : THREE.MathUtils.randFloat(-30, 30);
+        const yPos = c.side !== 0 ? THREE.MathUtils.randFloat(-5, 5) : c.yOff;
+        c.group.position.set(xPos, yPos, newZ);
         c.portal.position.copy(c.group.position);
         c.warpIn = true;
         c.warpTimer = 0;
@@ -386,11 +393,9 @@ export class BackgroundShips {
     for (let i = 0; i < this.corvettes.length; i++) {
       const c = this.corvettes[i];
       const zOff = -THREE.MathUtils.randFloat(80, 250) - i * 40;
-      c.group.position.set(
-        c.side * THREE.MathUtils.randFloat(50, 90),
-        THREE.MathUtils.randFloat(-20, 30),
-        zOff
-      );
+      const xPos = c.side !== 0 ? c.side * THREE.MathUtils.randFloat(50, 90) : THREE.MathUtils.randFloat(-30, 30);
+      const yPos = c.side !== 0 ? THREE.MathUtils.randFloat(-5, 5) : c.yOff;
+      c.group.position.set(xPos, yPos, zOff);
       c.group.scale.setScalar(3);
       c.portal.position.copy(c.group.position);
       c.portal.visible = false;

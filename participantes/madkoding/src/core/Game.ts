@@ -462,13 +462,9 @@ export class Game {
     // Project a point 50 units ahead along the ray
     this._aimPoint.copy(this._raycaster.ray.origin).addScaledVector(this._raycaster.ray.direction, 50);
 
-    // Direction from ship position to the aim point
+    // Direction from ship position to the aim point — pure aim, no forward blend
     const dir = this._aimPoint.clone().sub(railPos.position).normalize();
-
-    // Blend with forward so lasers always go generally forward even if aiming sideways
-    const forward = railPos.forward.clone();
-    const blended = dir.clone().lerp(forward, 0.3).normalize();
-    return blended;
+    return dir;
   }
 
 
