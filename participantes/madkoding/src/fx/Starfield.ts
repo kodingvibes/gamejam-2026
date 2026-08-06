@@ -72,4 +72,15 @@ export class Starfield {
       (layer.points.material as THREE.Material).dispose();
     }
   }
+
+  reconfigure(cfg: { count: number; depth: number; speed: number } | null): void {
+    // For now, starfield is static — we just update speed.
+    // Full reconfiguration would rebuild geometry.
+    if (cfg) {
+      for (const layer of this.layers) {
+        layer.config.speed = cfg.speed;
+      }
+    }
+  }
 }
+

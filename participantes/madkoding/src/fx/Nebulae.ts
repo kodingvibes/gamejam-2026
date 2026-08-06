@@ -62,4 +62,9 @@ export class Nebulae {
     for (const c of this.clouds) { c.geometry.dispose(); (c.material as THREE.Material).dispose(); }
     this.clouds = [];
   }
+
+  reconfigure(cfg: { colors: number[]; count: number } | null): void {
+    // For now, nebulae are static — just update speed.
+  }
 }
+

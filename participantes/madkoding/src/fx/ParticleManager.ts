@@ -74,4 +74,10 @@ export class ParticleManager {
     this.starfield.dispose();
     this.nebulae.dispose();
   }
+
+  reconfigure(starfieldCfg: { count: number; depth: number; speed: number } | null, nebulaeCfg: { colors: number[]; count: number } | null): void {
+    this.starfield.reconfigure(starfieldCfg);
+    this.nebulae.reconfigure(nebulaeCfg);
+  }
 }
+

@@ -434,4 +434,11 @@ export class BackgroundShips {
     }
     this.corvettes = [];
   }
+
+  setVisible(visible: boolean): void {
+    for (const c of this.corvettes) {
+      c.group.visible = visible;
+    }
+  }
 }
+

@@ -5,7 +5,8 @@ import { EventBus } from '../core/EventBus';
 import { GameEvent } from '../types/events';
 import { EnemyManager } from '../enemies/EnemyManager';
 import { BossMothership } from '../enemies/bosses/BossMothership';
-import { WaveDefinition, LevelDefinition, LEVELS, EnemyType, PatternType } from './WaveDefinition';
+import { WaveDefinition, EnemyType, PatternType } from './WaveDefinition';
+import { LEVELS, type LevelDefinition } from '../levels/LevelData';
 
 interface FormationEnemy {
   type: EnemyType;

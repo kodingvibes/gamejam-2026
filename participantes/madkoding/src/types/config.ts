@@ -3,7 +3,7 @@
 export const GAME = {
   TARGET_FPS: 60,
   MAX_DELTA: 1 / 30, // 33ms cap
-  LEVEL_COUNT: 1,
+  LEVEL_COUNT: 20,
 } as const;
 
 export const RAIL = {

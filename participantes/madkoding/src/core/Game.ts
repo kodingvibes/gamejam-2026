@@ -38,6 +38,7 @@ import { LivesDisplay } from '../ui/LivesDisplay';
 import { OffScreenIndicator } from '../ui/OffScreenIndicator';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { RailFactory } from '../rail/RailFactory';
+import { LevelManager } from '../levels/LevelManager';
 
 export class Game {
   private renderer: THREE.WebGLRenderer;
@@ -75,6 +76,7 @@ export class Game {
   private enemyProjectileMgr: EnemyProjectileManager;
   private eventBinder: GameEventBinder;
   private offScreenIndicator: OffScreenIndicator;
+  private levelManager: LevelManager;
 
   private _animFrameId = 0;
   private _running = false;
@@ -190,6 +192,8 @@ export class Game {
       this.cameraRig.camera3D, this.enemyManager,
     );
 
+    this.levelManager = new LevelManager();
+
     window.addEventListener('resize', () => this.onResize());
     this.stateManager.transition(GameState.MENU);
     this.menuScreen.show();
@@ -208,6 +212,7 @@ export class Game {
     this.stateManager.transition(GameState.PLAYING);
     this.hud.setVisible(true);
     this.musicPlayer.play();
+    this.levelManager.reset();
     // First start: show ENGAGE before enemies spawn
     this.waveManager.setEngageMode(true);
     this.lifeManager.forceEngage();
@@ -221,8 +226,14 @@ export class Game {
   }
 
   private startLevel(levelIndex: number): void {
+    const level = this.levelManager.loadLevel(levelIndex);
     this.eventBinder.currentLevel = levelIndex;
-    this.railController = new RailController(RailFactory.create(), RAIL.RAIL_SPEED);
+    this.applyEnvironment(level);
+    this.railController = new RailController(
+      RailFactory.createFromConfig(level.rail),
+      RAIL.RAIL_SPEED,
+    );
+    this.obstacleManager.setConfig(level.obstacles);
     this.enemyManager.reset();
     this.waveManager.reset();
     this.waveManager.startLevel(levelIndex);
@@ -532,3 +543,4 @@ export class Game {
     this.renderer.dispose();
   }
 }
+

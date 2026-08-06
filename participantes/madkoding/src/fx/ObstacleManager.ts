@@ -17,6 +17,8 @@ export class ObstacleManager {
   private obstacles: Obstacle[] = [];
   private spawnTimer = 0;
   private spawnInterval = 1.0;
+  private _minRadius = 0.5;
+  private _maxRadius = 1.5;
 
   constructor(scene: THREE.Scene, poolSize = 24) {
     this.scene = scene;
@@ -107,7 +109,7 @@ export class ObstacleManager {
     const slot = this.obstacles.find(o => !o.active);
     if (!slot) return;
     // Random asteroid size (small: 0.8-2.0 units radius).
-    const scale = 0.8 + Math.random() * 1.2;
+    const scale = this._minRadius + Math.random() * (this._maxRadius - this._minRadius);
     slot.mesh.scale.setScalar(scale);
     slot.radius = scale;
     slot.rotSpeed.set(
@@ -141,4 +143,11 @@ export class ObstacleManager {
     (this.obstacles[0]?.mesh.material as THREE.Material | undefined)?.dispose?.();
     this.obstacles = [];
   }
+
+  setConfig(config: { spawnInterval: number; minRadius: number; maxRadius: number }): void {
+    this.spawnInterval = config.spawnInterval;
+    this._minRadius = config.minRadius;
+    this._maxRadius = config.maxRadius;
+  }
 }
+
