@@ -154,7 +154,19 @@ export class Game {
       stateManager: this.stateManager,
     });
 
-    this.lifeManager.onPhaseChange = (phase) => this.livesDisplay.setPhase(phase);
+    this.lifeManager.onPhaseChange = (phase) => {
+      this.livesDisplay.setPhase(phase);
+      if (phase === 'dying') {
+        // Player died — despawn all enemies immediately
+        this.waveManager.despawnAll();
+      } else if (phase === 'spawning') {
+        // ENGAGE shown — block enemy spawning
+        this.waveManager.setEngageMode(true);
+      } else if (phase === 'playing') {
+        // ENGAGE gone — release enemy spawning
+        this.waveManager.setEngageMode(false);
+      }
+    };
     this.lifeManager.onLivesChange = (lives) => this.livesDisplay.setLives(lives);
 
     this.eventBinder = new GameEventBinder({
@@ -196,6 +208,9 @@ export class Game {
     this.stateManager.transition(GameState.PLAYING);
     this.hud.setVisible(true);
     this.musicPlayer.play();
+    // First start: show ENGAGE before enemies spawn
+    this.waveManager.setEngageMode(true);
+    this.lifeManager.forceEngage();
     this.startLevel(0);
   }
 

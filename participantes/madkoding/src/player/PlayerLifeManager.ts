@@ -193,4 +193,12 @@ export class PlayerLifeManager {
     this.playerShip.setVisible(true);
     if (this.onLivesChange) this.onLivesChange(this._lives);
   }
+
+  // Force the ENGAGE phase (used on first start, without a death).
+  forceEngage(): void {
+    this._phase = 'spawning';
+    this._timer = 0;
+    if (this.onPhaseChange) this.onPhaseChange('spawning');
+  }
 }
+

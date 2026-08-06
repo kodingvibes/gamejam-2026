@@ -44,6 +44,7 @@ export class WaveManager {
   private _lastPlayerZ = 0;
   private _totalEnemies = 0;
   private _enemiesSpawned = 0;
+  private _engageMode = false;
 
   constructor(scene: THREE.Scene, enemyManager: EnemyManager) {
     this.scene = scene;
@@ -152,7 +153,7 @@ export class WaveManager {
     this._lastPlayerZ = playerPos.z;
 
     // ── Formation spawning ──
-    if (!this._bossActive && this._formationIndex < this._formations.length) {
+    if (!this._bossActive && this._formationIndex < this._formations.length && !this._engageMode) {
       if (this._waitingForFormation) {
         // Wait a bit between formations
         this._interFormationTimer += dt;
@@ -268,6 +269,7 @@ export class WaveManager {
     this._currentWave = 0;
     this._levelComplete = false;
     this._bossActive = false;
+    this._engageMode = false;
     this._formations = [];
     this._formationIndex = 0;
     this._enemyIndexInFormation = 0;
@@ -279,7 +281,19 @@ export class WaveManager {
     if (this.boss) this.boss.reset();
   }
 
+  setEngageMode(active: boolean): void {
+    this._engageMode = active;
+  }
+
+  despawnAll(): void {
+    this.enemyManager.reset();
+    if (this.boss) { this.boss.reset(); this._bossActive = false; }
+  }
+
+  get engageMode(): boolean { return this._engageMode; }
+
   dispose(): void {
     if (this.boss) { this.boss.dispose(); this.boss = null; }
   }
 }
+
