@@ -203,10 +203,11 @@ export class BackgroundShips {
     group.add(beacon);
 
     // ── Position: far off to the side, AHEAD of the player (z negative)
-    // so enemies spawn in front and fly toward the player.
+    // so enemies spawn in front and fly toward the player. Corvettes appear
+    // far in the distance (more -Z) and warp in toward the camera.
     const xOff = side * THREE.MathUtils.randFloat(50, 90);
     const yOff = THREE.MathUtils.randFloat(-20, 30);
-    const zOff = -THREE.MathUtils.randFloat(80, 250) - index * 40;
+    const zOff = -THREE.MathUtils.randFloat(180, 320) - index * 50;
     group.scale.setScalar(3);
     group.position.set(xOff, yOff, zOff);
 
@@ -236,13 +237,18 @@ export class BackgroundShips {
     };
   }
 
-  // Build a dramatic warp portal: a ring of FIRE PARTICLES orbiting the rim,
-  // plus a faint cyan energy core. The fire is a Points system (not literal
-  // cone rings) so it reads as a swirling cloud of embers, not a solid torus.
+  // Build a dramatic warp portal: a ring of FIRE PARTICLES orbiting the rim.
+  // The fire is a Points system (not literal cone rings) so it reads as a
+  // swirling cloud of embers. Each particle uses a soft radial-glow sprite so
+  // it reads as a glowing ember, not a hard dot.
   private createPortal(): THREE.Group {
     const portal = new THREE.Group();
     const R = 22;
     const COUNT = 160;
+
+    // Soft radial glow sprite (white core → transparent edge) used as the
+    // particle texture so each ember has a glow halo.
+    const glowTex = this.createGlowTexture();
 
     // ── Fire particle cloud ──
     const positions = new Float32Array(COUNT * 3);
@@ -266,9 +272,10 @@ export class BackgroundShips {
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const mat = new THREE.PointsMaterial({
       color: 0xffaa44,
-      size: 1.3,
+      size: 2.4,
+      map: glowTex,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true,
@@ -278,20 +285,46 @@ export class BackgroundShips {
     portal.userData.particles = particles;
     portal.userData.points = points;
     portal.userData.pointGeo = geo;
+    portal.userData.glowTex = glowTex;
 
-    // ── Faint cyan energy core (subtle, so the fire reads as the main ring) ──
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(R * 0.92, 0.28, 8, 48),
-      new THREE.MeshBasicMaterial({
-        color: 0x66ccff, transparent: true, opacity: 0.45,
-        blending: THREE.AdditiveBlending, depthWrite: false,
-      })
+    // ── Central fire glow: a soft additive sprite at the portal core so the
+    // whole opening reads as a burning maw, not just a ring of dots. ──
+    const core = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTex,
+        color: 0xff6622,
+        transparent: true,
+        opacity: 0.55,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
     );
-    portal.add(ring);
-    portal.userData.ring = ring;
+    core.scale.setScalar(R * 1.6);
+    portal.add(core);
+    portal.userData.core = core;
 
     portal.visible = false;
     return portal;
+  }
+
+  // Build a small radial-gradient texture (white center → transparent edge)
+  // used as the glow sprite for the fire particles and the portal core.
+  private createGlowTexture(): THREE.Texture {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.35, 'rgba(255,220,160,0.8)');
+    g.addColorStop(0.7, 'rgba(255,140,60,0.35)');
+    g.addColorStop(1, 'rgba(255,80,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
   }
 
   update(dt: number, playerPos: THREE.Vector3): void {
@@ -367,7 +400,7 @@ export class BackgroundShips {
 
       // Recycle when it passes the player — reposition far ahead (more -Z).
       if (c.group.position.z > playerPos.z + 50) {
-        const newZ = playerPos.z - THREE.MathUtils.randFloat(180, 300);
+        const newZ = playerPos.z - THREE.MathUtils.randFloat(180, 320);
         c.group.position.set(
           c.side * THREE.MathUtils.randFloat(50, 90),
           THREE.MathUtils.randFloat(-20, 30),
@@ -416,18 +449,23 @@ export class BackgroundShips {
 
     // Flicker the whole cloud: size + opacity scale with intensity.
     const flicker = 0.85 + Math.sin(t * 5) * 0.15;
-    mat.size = 1.3 * flicker;
-    mat.opacity = 0.9 * intensity;
+    mat.size = 2.4 * flicker;
+    mat.opacity = 0.95 * intensity;
 
-    // Fade the faint cyan core ring too.
-    const ring = portal.userData.ring as THREE.Mesh | undefined;
-    if (ring) (ring.material as THREE.MeshBasicMaterial).opacity = 0.45 * intensity;
+    // Fade the central fire glow with intensity.
+    const core = portal.userData.core as THREE.Sprite | undefined;
+    if (core) {
+      (core.material as THREE.SpriteMaterial).opacity = 0.55 * intensity;
+      // Pulse the core so the burning maw breathes.
+      const corePulse = 1 + Math.sin(t * 3) * 0.08;
+      core.scale.setScalar(22 * 1.6 * corePulse);
+    }
   }
 
   reset(): void {
     for (let i = 0; i < this.corvettes.length; i++) {
       const c = this.corvettes[i];
-      const zOff = -THREE.MathUtils.randFloat(80, 250) - i * 40;
+      const zOff = -THREE.MathUtils.randFloat(180, 320) - i * 50;
       c.group.position.set(
         c.side * THREE.MathUtils.randFloat(50, 90),
         THREE.MathUtils.randFloat(-20, 30),

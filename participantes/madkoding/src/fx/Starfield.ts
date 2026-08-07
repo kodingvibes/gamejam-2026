@@ -15,8 +15,10 @@ const LAYERS = [
 
 export class Starfield {
   private layers: { points: THREE.Points; config: typeof LAYERS[0] }[] = [];
+  private scene: THREE.Scene;
 
   constructor(scene: THREE.Scene) {
+    this.scene = scene;
     for (const cfg of LAYERS) {
       const count = cfg.count;
       const positions = new Float32Array(count * 3);
@@ -74,12 +76,42 @@ export class Starfield {
   }
 
   reconfigure(cfg: { count: number; depth: number; speed: number } | null): void {
-    // For now, starfield is static — we just update speed.
-    // Full reconfiguration would rebuild geometry.
-    if (cfg) {
-      for (const layer of this.layers) {
-        layer.config.speed = cfg.speed;
+    // Rebuild the starfield with the level's count/depth so each map has a
+    // distinct density. Dispose the old layers first.
+    for (const layer of this.layers) {
+      layer.points.geometry.dispose();
+      (layer.points.material as THREE.Material).dispose();
+      layer.points.parent?.remove(layer.points);
+    }
+    this.layers = [];
+    if (!cfg) return;
+    // Two layers: distant (slow, small, cool) and near (fast, big, warm).
+    const layers = [
+      { count: Math.floor(cfg.count * 0.8), depth: cfg.depth, speed: cfg.speed, size: 0.8, opacity: 0.7 },
+      { count: Math.floor(cfg.count * 0.2), depth: cfg.depth * 0.4, speed: cfg.speed * 3.3, size: 2.0, opacity: 0.9 },
+    ];
+    for (const lcfg of layers) {
+      const count = lcfg.count;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        positions[i * 3] = THREE.MathUtils.randFloat(-300, 300);
+        positions[i * 3 + 1] = THREE.MathUtils.randFloat(-300, 300);
+        positions[i * 3 + 2] = THREE.MathUtils.randFloat(-lcfg.depth, 0);
+        const c = STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)];
+        const b = THREE.MathUtils.randFloat(0.4, 1);
+        colors[i * 3] = c[0] * b; colors[i * 3 + 1] = c[1] * b; colors[i * 3 + 2] = c[2] * b;
       }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      const points = new THREE.Points(geo, new THREE.PointsMaterial({
+        size: lcfg.size, vertexColors: true, transparent: true, opacity: lcfg.opacity,
+        blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+      }));
+      points.frustumCulled = false;
+      this.scene.add(points);
+      this.layers.push({ points, config: lcfg });
     }
   }
 }

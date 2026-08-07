@@ -39,6 +39,7 @@ import { OffScreenIndicator } from '../ui/OffScreenIndicator';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { RailFactory } from '../rail/RailFactory';
 import { LevelManager } from '../levels/LevelManager';
+import type { LevelDefinition } from '../levels/LevelData';
 
 export class Game {
   private renderer: THREE.WebGLRenderer;
@@ -242,6 +243,18 @@ export class Game {
     this.waveManager.reset();
     this.waveManager.startLevel(levelIndex);
     this.enemyProjectileMgr.clear();
+  }
+
+  // Apply the level's environment: sky/fog color, starfield + nebulae config,
+  // ambient light intensity, and whether background corvettes are visible.
+  private applyEnvironment(level: LevelDefinition): void {
+    const env = level.environment;
+    this.scene.background = new THREE.Color(env.skyColor);
+    this.scene.fog = new THREE.FogExp2(env.fogColor, env.fogDensity);
+    this.particleManager.reconfigure(env.starfield, env.nebulae);
+    const ambient = this.scene.userData.ambientLight as THREE.AmbientLight | undefined;
+    if (ambient) ambient.intensity = env.ambientLight * 2.0;
+    this.backgroundShips.setVisible(env.backgroundShips);
   }
 
   private returnToMenu(): void {

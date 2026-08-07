@@ -6,8 +6,10 @@ const NEBULA_COLORS = [0x4422aa, 0xaa2266, 0x226699];
 
 export class Nebulae {
   private clouds: THREE.Points[] = [];
+  private scene: THREE.Scene;
 
   constructor(scene: THREE.Scene, count = 3) {
+    this.scene = scene;
     for (let i = 0; i < count; i++) {
       const points = this.createCloud(NEBULA_COLORS[i]);
       points.position.set(THREE.MathUtils.randFloat(-150, 150), THREE.MathUtils.randFloat(-100, 100), -THREE.MathUtils.randFloat(50, 350));
@@ -64,7 +66,19 @@ export class Nebulae {
   }
 
   reconfigure(cfg: { colors: number[]; count: number } | null): void {
-    // For now, nebulae are static — just update speed.
+    // Rebuild the cloud clusters with the level's colors so each map has a
+    // distinct look. Dispose the old clouds first.
+    for (const c of this.clouds) { c.geometry.dispose(); (c.material as THREE.Material).dispose(); }
+    this.clouds = [];
+    if (!cfg) return;
+    const count = cfg.count;
+    for (let i = 0; i < count; i++) {
+      const color = cfg.colors[i % cfg.colors.length];
+      const points = this.createCloud(color);
+      points.position.set(THREE.MathUtils.randFloat(-150, 150), THREE.MathUtils.randFloat(-100, 100), -THREE.MathUtils.randFloat(50, 350));
+      this.scene.add(points);
+      this.clouds.push(points);
+    }
   }
 }
 

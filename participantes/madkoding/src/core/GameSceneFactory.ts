@@ -14,6 +14,8 @@ export class GameSceneFactory {
   static addLights(scene: THREE.Scene): void {
     const ambient = new THREE.AmbientLight(0x8899aa, 2.0);
     scene.add(ambient);
+    // Expose the ambient light so the level environment can tune its intensity.
+    scene.userData.ambientLight = ambient;
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
     dirLight.position.set(10, 20, 10);
