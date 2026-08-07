@@ -213,7 +213,10 @@ export class Game {
     this.hud.setVisible(true);
     this.musicPlayer.play();
     this.levelManager.reset();
-    this.startLevel(0);
+    // Random first level so the player can preview the different terrain /
+    // skybox types available across the 20 levels.
+    const randomLevel = Math.floor(Math.random() * this.levelManager.totalLevels);
+    this.startLevel(randomLevel);
     // First start: show ENGAGE before enemies spawn. Must be set AFTER
     // startLevel() because waveManager.reset() clears _engageMode.
     this.waveManager.setEngageMode(true);
