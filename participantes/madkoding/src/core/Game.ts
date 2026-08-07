@@ -213,10 +213,11 @@ export class Game {
     this.hud.setVisible(true);
     this.musicPlayer.play();
     this.levelManager.reset();
-    // First start: show ENGAGE before enemies spawn
+    this.startLevel(0);
+    // First start: show ENGAGE before enemies spawn. Must be set AFTER
+    // startLevel() because waveManager.reset() clears _engageMode.
     this.waveManager.setEngageMode(true);
     this.lifeManager.forceEngage();
-    this.startLevel(0);
   }
 
   private resumeGame(): void {

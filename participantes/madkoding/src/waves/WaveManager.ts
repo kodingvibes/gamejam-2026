@@ -213,39 +213,27 @@ export class WaveManager {
   }
 
   private spawnFormationEnemy(e: FormationEnemy, playerPos: THREE.Vector3): void {
-    // Spawn from a random corvette position so enemies emerge from the
-    // background capital ships and fly toward the player from different angles.
-    let spawnPos: THREE.Vector3;
-    let origin: THREE.Vector3 | undefined;
-
-    if (this.corvettePositions.length > 0) {
-      const cv = this.corvettePositions[Math.floor(Math.random() * this.corvettePositions.length)];
-      // Spawn near the corvette with some spread so the formation fans out.
-      spawnPos = new THREE.Vector3(
-        cv.x + e.offsetX + THREE.MathUtils.randFloat(-5, 5),
-        cv.y + e.offsetY + THREE.MathUtils.randFloat(-3, 3),
-        cv.z + e.offsetZ + THREE.MathUtils.randFloat(-5, 5),
-      );
-      // Origin is further behind the corvette (for emergence animation).
-      origin = new THREE.Vector3(cv.x, cv.y, cv.z - 20);
-    } else {
-      // Fallback: spawn in front of the player if no corvettes exist.
-      const dirs = [
-        { x: 0, y: 1, z: -1 }, { x: 0, y: -1, z: -1 },
-        { x: 1, y: 0, z: -1 }, { x: -1, y: 0, z: -1 },
-        { x: 1, y: 1, z: -1 }, { x: -1, y: -1, z: -1 },
-        { x: 0.5, y: 1, z: -1 }, { x: -0.5, y: -1, z: -1 },
-      ];
-      const dir = dirs[Math.floor(Math.random() * dirs.length)];
-      const dist = THREE.MathUtils.randFloat(25, 40);
-      const spread = THREE.MathUtils.randFloat(3, 8);
-      spawnPos = new THREE.Vector3(
-        playerPos.x + dir.x * dist + e.offsetX + THREE.MathUtils.randFloat(-spread, spread),
-        playerPos.y + dir.y * dist + e.offsetY + THREE.MathUtils.randFloat(-spread, spread),
-        playerPos.z + dir.z * dist + e.offsetZ + THREE.MathUtils.randFloat(-10, 10),
-      );
-      origin = spawnPos.clone().add(new THREE.Vector3(dir.x * 20, dir.y * 20, dir.z * 20));
-    }
+    // Spawn enemies IN FRONT of the player, within the visible firing box
+    // (x±20, y±12, z -80..+30 relative to the player). Spawning from the far
+    // background corvettes (x=±50..90, z=-80..-250) left them off-screen and
+    // faded to near-invisible, so the player never saw them appear.
+    const dirs = [
+      { x: 0, y: 1, z: -1 }, { x: 0, y: -1, z: -1 },
+      { x: 1, y: 0, z: -1 }, { x: -1, y: 0, z: -1 },
+      { x: 1, y: 1, z: -1 }, { x: -1, y: -1, z: -1 },
+      { x: 0.5, y: 1, z: -1 }, { x: -0.5, y: -1, z: -1 },
+    ];
+    const dir = dirs[Math.floor(Math.random() * dirs.length)];
+    // Keep the spawn inside the visible box so enemies are immediately seen.
+    const dist = THREE.MathUtils.randFloat(35, 55);
+    const spread = THREE.MathUtils.randFloat(3, 8);
+    const spawnPos = new THREE.Vector3(
+      THREE.MathUtils.clamp(playerPos.x + dir.x * dist + e.offsetX + THREE.MathUtils.randFloat(-spread, spread), -18, 18),
+      THREE.MathUtils.clamp(playerPos.y + dir.y * dist + e.offsetY + THREE.MathUtils.randFloat(-spread, spread), -10, 10),
+      playerPos.z + dir.z * dist + e.offsetZ + THREE.MathUtils.randFloat(-10, 10),
+    );
+    // Origin is further ahead so enemies emerge flying toward the player.
+    const origin = spawnPos.clone().add(new THREE.Vector3(dir.x * 20, dir.y * 20, dir.z * 20));
 
     this.enemyManager.spawn(e.type, spawnPos, playerPos, e.pattern, origin);
   }
