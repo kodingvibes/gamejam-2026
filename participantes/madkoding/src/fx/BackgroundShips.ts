@@ -24,6 +24,16 @@ interface Corvette {
   holdDuration: number;
 }
 
+// A single ember orbiting the portal rim.
+interface FireParticle {
+  angle: number;
+  radius: number;
+  speed: number;   // angular speed (rad/s), sign = direction
+  size: number;    // base size
+  phase: number;   // random phase for flicker
+  yOff: number;    // vertical wobble offset
+}
+
 let _modelTemplate: THREE.Group | null = null;
 let _modelLoadPromise: Promise<THREE.Group | null> | null = null;
 
@@ -226,48 +236,59 @@ export class BackgroundShips {
     };
   }
 
-  // Build a dramatic warp portal: a ring of fire flames pointing outward.
+  // Build a dramatic warp portal: a ring of FIRE PARTICLES orbiting the rim,
+  // plus a faint cyan energy core. The fire is a Points system (not literal
+  // cone rings) so it reads as a swirling cloud of embers, not a solid torus.
   private createPortal(): THREE.Group {
     const portal = new THREE.Group();
     const R = 22;
+    const COUNT = 160;
 
-    // Inner energy ring (cyan core).
+    // ── Fire particle cloud ──
+    const positions = new Float32Array(COUNT * 3);
+    const particles: FireParticle[] = [];
+    for (let i = 0; i < COUNT; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const radius = R + (Math.random() - 0.5) * 7;
+      particles.push({
+        angle: a,
+        radius,
+        speed: (0.4 + Math.random() * 0.9) * (Math.random() < 0.5 ? -1 : 1),
+        size: 0.7 + Math.random() * 1.5,
+        phase: Math.random() * Math.PI * 2,
+        yOff: (Math.random() - 0.5) * 2.5,
+      });
+      positions[i * 3] = Math.cos(a) * radius;
+      positions[i * 3 + 1] = Math.sin(a) * radius;
+      positions[i * 3 + 2] = 0;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color: 0xffaa44,
+      size: 1.3,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+    const points = new THREE.Points(geo, mat);
+    portal.add(points);
+    portal.userData.particles = particles;
+    portal.userData.points = points;
+    portal.userData.pointGeo = geo;
+
+    // ── Faint cyan energy core (subtle, so the fire reads as the main ring) ──
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(R, 0.8, 12, 48),
+      new THREE.TorusGeometry(R * 0.92, 0.28, 8, 48),
       new THREE.MeshBasicMaterial({
-        color: 0x66ccff, transparent: true, opacity: 0.9,
+        color: 0x66ccff, transparent: true, opacity: 0.45,
         blending: THREE.AdditiveBlending, depthWrite: false,
       })
     );
     portal.add(ring);
-
-    // Ring of fire flames: cones oriented radially outward, in 3 layers of
-    // decreasing brightness. Each cone points away from the center.
-    const flameLayers = [
-      { count: 48, rOff: 0,  len: 3.5, rad: 0.6, col: 0xffaa44, op: 0.9 },
-      { count: 40, rOff: 2.5, len: 2.8, rad: 0.5, col: 0xff6622, op: 0.75 },
-      { count: 32, rOff: 5.0, len: 2.2, rad: 0.4, col: 0xff2200, op: 0.55 },
-    ];
-    for (const layer of flameLayers) {
-      const group = new THREE.Group();
-      for (let i = 0; i < layer.count; i++) {
-        const a = (i / layer.count) * Math.PI * 2;
-        const cone = new THREE.Mesh(
-          new THREE.ConeGeometry(layer.rad, layer.len, 6),
-          new THREE.MeshBasicMaterial({
-            color: layer.col, transparent: true, opacity: layer.op,
-            blending: THREE.AdditiveBlending, depthWrite: false,
-          })
-        );
-        // Place cone base on the ring, tip pointing outward.
-        const baseR = R + layer.rOff;
-        cone.position.set(Math.cos(a) * (baseR + layer.len / 2), Math.sin(a) * (baseR + layer.len / 2), 0);
-        // Cone default points +Y; rotate so it points radially outward.
-        cone.rotation.z = a - Math.PI / 2;
-        group.add(cone);
-      }
-      portal.add(group);
-    }
+    portal.userData.ring = ring;
 
     portal.visible = false;
     return portal;
@@ -286,10 +307,10 @@ export class BackgroundShips {
         // dramatically from a small point to full size (dramatic arrival).
         c.portal.visible = true;
         c.portalPulse += dt * 6;
-        const pulse = 1 + Math.sin(c.portalPulse) * 0.15;
+        const pulse = 1 + Math.sin(c.portalPulse) * 0.12;
         const expand = THREE.MathUtils.lerp(0.2, 1, Math.min(1, p * 2.2));
         c.portal.scale.setScalar(expand * pulse);
-        // Flicker the flame cones: scale + opacity per frame.
+        // Animate the fire particles orbiting the rim.
         this.animatePortalFlames(c.portal, dt, 1 - p * 0.5);
 
         // Corvette flies from the far background toward the camera (Z grows
@@ -304,7 +325,7 @@ export class BackgroundShips {
           c.warpIn = false;
           c.group.scale.setScalar(3);
           c.holdTimer = 0;
-          // Start the portal fadeout/zoomout now that the corvette has stopped.
+          // Start the portal fadeout now that the corvette has stopped.
           c.portalFading = true;
           c.portalFade = 0;
         }
@@ -313,13 +334,16 @@ export class BackgroundShips {
         continue;
       }
 
-      // Portal fadeout + zoomout after the corvette stops.
+      // Portal fadeout after the corvette stops. The fire particles collapse
+      // INWARD (shrink toward the center) as they fade — the reverse of the
+      // dramatic expansion on arrival.
       if (c.portalFading) {
         c.portalFade += dt / 0.8; // fade over 0.8s
         const f = Math.min(1, c.portalFade);
-        // Zoom out (grow) and fade out simultaneously.
-        c.portal.scale.setScalar(1 + f * 2.5);
+        // Shrink inward + fade out simultaneously.
+        c.portal.scale.setScalar(1 - f * 0.8);
         this.animatePortalFlames(c.portal, dt, Math.max(0, 1 - f));
+        if (f >= 1) c.portal.visible = false;
       }
 
       // Hold in place for a while after warp-in before drifting forward.
@@ -362,24 +386,42 @@ export class BackgroundShips {
   // Flicker the portal's flame cones: per-frame scale + opacity jitter so the
   // ring of fire looks alive. `intensity` scales the whole effect (used to
   // fade out on exit).
+  // Animate the portal's fire particle cloud: embers orbit the rim, flicker
+  // in size/opacity, and the whole cloud fades with `intensity` (1 = full,
+  // 0 = gone). The particles are a single THREE.Points system stored in
+  // portal.userData.
   private animatePortalFlames(portal: THREE.Group, dt: number, intensity: number): void {
-    const t = performance.now() * 0.01;
-    for (let li = 1; li < portal.children.length; li++) {
-      const layer = portal.children[li];
-      if (!layer) continue;
-      for (let ci = 0; ci < layer.children.length; ci++) {
-        const cone = layer.children[ci] as THREE.Mesh;
-        if (!cone) continue;
-        const mat = cone.material as THREE.MeshBasicMaterial;
-        const flicker = 0.7 + Math.sin(t * 3 + ci * 0.7 + li) * 0.3;
-        mat.opacity = mat.opacity * 0.9 + (0.8 * intensity * flicker) * 0.1;
-        const s = 0.8 + Math.sin(t * 4 + ci) * 0.2;
-        cone.scale.setScalar(s);
-      }
+    const particles = portal.userData.particles as FireParticle[] | undefined;
+    const points = portal.userData.points as THREE.Points | undefined;
+    if (!particles || !points) return;
+
+    const pos = points.geometry.attributes.position as THREE.BufferAttribute;
+    const t = performance.now() * 0.001;
+    const mat = points.material as THREE.PointsMaterial;
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      // Orbit the rim.
+      p.angle += p.speed * dt;
+      // Vertical wobble so the cloud feels alive, not a flat ring.
+      const wobble = Math.sin(t * 2 + p.phase) * p.yOff;
+      pos.setXYZ(
+        i,
+        Math.cos(p.angle) * p.radius,
+        Math.sin(p.angle) * p.radius + wobble,
+        0,
+      );
     }
-    // Fade the inner ring too.
-    const ring = portal.children[0] as THREE.Mesh;
-    if (ring) (ring.material as THREE.MeshBasicMaterial).opacity = 0.9 * intensity;
+    pos.needsUpdate = true;
+
+    // Flicker the whole cloud: size + opacity scale with intensity.
+    const flicker = 0.85 + Math.sin(t * 5) * 0.15;
+    mat.size = 1.3 * flicker;
+    mat.opacity = 0.9 * intensity;
+
+    // Fade the faint cyan core ring too.
+    const ring = portal.userData.ring as THREE.Mesh | undefined;
+    if (ring) (ring.material as THREE.MeshBasicMaterial).opacity = 0.45 * intensity;
   }
 
   reset(): void {
@@ -422,6 +464,10 @@ export class BackgroundShips {
           const mat = child.material as THREE.Material | THREE.Material[];
           if (Array.isArray(mat)) mat.forEach(m => sharedMats.add(m));
           else if (mat) sharedMats.add(mat);
+        } else if (child instanceof THREE.Points) {
+          if (child.geometry) sharedGeoms.add(child.geometry);
+          const mat = child.material as THREE.Material;
+          if (mat) sharedMats.add(mat);
         }
       });
     }
