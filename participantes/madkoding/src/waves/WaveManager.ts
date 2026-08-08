@@ -45,6 +45,7 @@ export class WaveManager {
   private _lastPlayerZ = 0;
   private _totalEnemies = 0;
   private _enemiesSpawned = 0;
+  private _enemiesKilled = 0;
   private _engageMode = false;
   // Rail curve so formations spawn ON the path (never inside tunnel walls).
   private _curve: THREE.CatmullRomCurve3 | null = null;
@@ -58,6 +59,11 @@ export class WaveManager {
     this.eventBus = EventBus.getInstance();
     this.enemyManager = enemyManager;
     this._levelDefinitions = LEVELS;
+    // Count kills so the wave counter reflects actual progress (enemies
+    // defeated), not just how many have spawned.
+    this.eventBus.on(GameEvent.ENEMY_DESTROYED, () => {
+      this._enemiesKilled++;
+    });
   }
 
   get currentLevel(): number { return this._currentLevel; }
@@ -117,6 +123,7 @@ export class WaveManager {
     this._interFormationTimer = 0;
     this._waitingForFormation = false;
     this._enemiesSpawned = 0;
+    this._enemiesKilled = 0;
 
     this.eventBus.emit(GameEvent.WAVE_START, { wave: 1, totalWaves: this._totalWaves });
   }
@@ -196,9 +203,10 @@ export class WaveManager {
       }
     }
 
-    // Update wave counter for HUD
+    // Update wave counter for HUD — based on enemies DEFEATED, not spawned,
+    // so the wave only advances when the player actually clears enemies.
     if (!this._bossActive && this._totalEnemies > 0 && this._totalWaves > 0) {
-      const progress = this._enemiesSpawned / this._totalEnemies;
+      const progress = this._enemiesKilled / this._totalEnemies;
       const wave = Math.min(this._totalWaves, Math.floor(progress * this._totalWaves) + 1);
       if (wave !== this._currentWave + 1) {
         this._currentWave = wave - 1;
@@ -314,6 +322,7 @@ export class WaveManager {
     this._interFormationTimer = 0;
     this._waitingForFormation = false;
     this._enemiesSpawned = 0;
+    this._enemiesKilled = 0;
     this._lastPlayerZ = 0;
     this._spawningStopped = false;
     if (this.boss) this.boss.reset();
