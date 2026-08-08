@@ -126,6 +126,15 @@ export class ExplosionSystem {
     this.shakeFromSize(14);
   }
 
+  // Boss death: a GIANT, SLOW explosion — like the bomb but drawn out. Bigger
+  // spread, longer lifetime, slower particle speeds, and a slow-motion
+  // shockwave so the boss death reads as a cinematic, weighty moment.
+  spawnBossExplosion(position: THREE.Vector3, color: number = 0xffaa33): void {
+    this.spawnParticles(position, 22, color, 4.5, 0.35);
+    this.spawnShockwave(position, color, 3.5);
+    this.shakeFromSize(22);
+  }
+
   // Scale shake to explosion size. Small (size=3) → 0.15 / 0.15s, the biggest
   // hits (size=14) cap at 0.55 / 0.5s. CameraRig decays the intensity.
   private shakeFromSize(size: number): void {
@@ -135,7 +144,7 @@ export class ExplosionSystem {
   }
 
   // Expanding shockwave ring + flash for the nuclear blast.
-  private spawnShockwave(pos: THREE.Vector3, color: number): void {
+  private spawnShockwave(pos: THREE.Vector3, color: number, durationMult = 1): void {
     // Blinding flash sprite.
     const flashMat = new THREE.SpriteMaterial({
       map: getBokehTexture(),
@@ -176,10 +185,10 @@ export class ExplosionSystem {
     glow.scale.set(5, 5, 1);
     this.scene.add(glow);
 
-    this.shockwaves.push({ flash, ring, glow, timer: 0, duration: 1.2, active: true });
+    this.shockwaves.push({ flash, ring, glow, timer: 0, duration: 1.2 * durationMult, active: true });
   }
 
-  private spawnParticles(pos: THREE.Vector3, size: number, color: number, duration: number): void {
+  private spawnParticles(pos: THREE.Vector3, size: number, color: number, duration: number, speedScale = 1): void {
     const points = this.pool.acquire();
     const geo = points.geometry;
 
@@ -208,7 +217,7 @@ export class ExplosionSystem {
       }
       colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
 
-      const pSpeed = THREE.MathUtils.randFloat(10, size * 8);
+      const pSpeed = THREE.MathUtils.randFloat(10, size * 8) * speedScale;
       velocities[i * 3]     = Math.sin(phi) * Math.cos(theta) * pSpeed;
       velocities[i * 3 + 1] = Math.sin(phi) * Math.sin(theta) * pSpeed;
       velocities[i * 3 + 2] = Math.cos(phi) * pSpeed;

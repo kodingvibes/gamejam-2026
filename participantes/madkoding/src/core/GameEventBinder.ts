@@ -83,8 +83,11 @@ export class GameEventBinder {
   private bindBossDestroyed(): void {
     this.eventBus.on(GameEvent.BOSS_DESTROYED, (p) => {
       this.scoreSystem.add(p.score);
-      this.explosionSystem.spawn(new THREE.Vector3(0, 0, -30), 8, 0xff4444);
+      // Giant, slow cinematic explosion at the boss position.
+      const pos = this.waveManager.bossInstance?.position ?? new THREE.Vector3(0, 0, -30);
+      this.explosionSystem.spawnBossExplosion(pos.clone(), 0xffaa33);
       this.audioManager.playExplosion();
+      this.cameraRig.shake(1.0, 1.2);
     });
   }
 
@@ -103,7 +106,9 @@ export class GameEventBinder {
         this.audioManager.playVictory();
         this.stateManager.transition(GameState.VICTORY);
       } else {
-        setTimeout(() => this.callbacks.startLevel(this._currentLevel), 2000);
+        // Wait for the slow cinematic boss explosion to finish before loading
+        // the next level (~5s matches the 4.5s boss blast + buffer).
+        setTimeout(() => this.callbacks.startLevel(this._currentLevel), 5000);
       }
     });
   }
