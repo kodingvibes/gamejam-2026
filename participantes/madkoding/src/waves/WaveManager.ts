@@ -46,6 +46,12 @@ export class WaveManager {
   private _totalEnemies = 0;
   private _enemiesSpawned = 0;
   private _engageMode = false;
+  // Rail curve so formations spawn ON the path (never inside tunnel walls).
+  private _curve: THREE.CatmullRomCurve3 | null = null;
+  // Tunnel radius (0 = open biome, no clamping).
+  private _tunnelRadius = 0;
+  // Stops formation spawning once the boss stage begins.
+  private _spawningStopped = false;
 
   constructor(scene: THREE.Scene, enemyManager: EnemyManager) {
     this.scene = scene;
@@ -60,6 +66,12 @@ export class WaveManager {
   get bossActive(): boolean { return this._bossActive; }
   get bossInstance(): BossMothership | null { return this.boss; }
   get levelComplete(): boolean { return this._levelComplete; }
+
+  /** Provide the rail curve + tunnel radius so formations spawn on the path. */
+  setRail(curve: THREE.CatmullRomCurve3 | null, tunnelRadius = 0): void {
+    this._curve = curve;
+    this._tunnelRadius = tunnelRadius;
+  }
 
   startLevel(levelIndex: number): void {
     this._currentLevel = levelIndex;
@@ -154,7 +166,8 @@ export class WaveManager {
     this._lastPlayerZ = playerPos.z;
 
     // ── Formation spawning ──
-    if (!this._bossActive && this._formationIndex < this._formations.length && !this._engageMode) {
+    // Stop spawning once the boss stage begins (railProgress near 1).
+    if (!this._bossActive && !this._spawningStopped && this._formationIndex < this._formations.length && !this._engageMode) {
       if (this._waitingForFormation) {
         // Wait a bit between formations
         this._interFormationTimer += dt;
@@ -198,6 +211,7 @@ export class WaveManager {
     // reach the boss. Once the rail is nearly done, stop spawning formations
     // and bring out the boss.
     if (!this._bossActive && railProgress >= 0.92) {
+      this._spawningStopped = true;
       this.startBoss();
     }
 
@@ -215,29 +229,61 @@ export class WaveManager {
   }
 
   private spawnFormationEnemy(e: FormationEnemy, playerPos: THREE.Vector3): void {
-    // Spawn enemies IN FRONT of the player, within the visible firing box
-    // (x±20, y±12, z -80..+30 relative to the player). Spawning from the far
-    // background corvettes (x=±50..90, z=-80..-250) left them off-screen and
-    // faded to near-invisible, so the player never saw them appear.
-    const dirs = [
-      { x: 0, y: 1, z: -1 }, { x: 0, y: -1, z: -1 },
-      { x: 1, y: 0, z: -1 }, { x: -1, y: 0, z: -1 },
-      { x: 1, y: 1, z: -1 }, { x: -1, y: -1, z: -1 },
-      { x: 0.5, y: 1, z: -1 }, { x: -0.5, y: -1, z: -1 },
-    ];
-    const dir = dirs[Math.floor(Math.random() * dirs.length)];
-    // Keep the spawn inside the visible box so enemies are immediately seen.
-    const dist = THREE.MathUtils.randFloat(35, 55);
-    const spread = THREE.MathUtils.randFloat(3, 8);
-    const spawnPos = new THREE.Vector3(
-      THREE.MathUtils.clamp(playerPos.x + dir.x * dist + e.offsetX + THREE.MathUtils.randFloat(-spread, spread), -18, 18),
-      THREE.MathUtils.clamp(playerPos.y + dir.y * dist + e.offsetY + THREE.MathUtils.randFloat(-spread, spread), -10, 10),
-      playerPos.z + dir.z * dist + e.offsetZ + THREE.MathUtils.randFloat(-10, 10),
-    );
-    // Origin is further ahead so enemies emerge flying toward the player.
-    const origin = spawnPos.clone().add(new THREE.Vector3(dir.x * 20, dir.y * 20, dir.z * 20));
+    // Spawn enemies ON the rail path so they never appear inside tunnel walls.
+    // If a curve is available, compute the spawn point ahead along the curve
+    // (relative to the player's progress) and clamp lateral offsets to the
+    // tunnel radius. Otherwise fall back to the old world-space box.
+    let spawnPos: THREE.Vector3;
+    let origin: THREE.Vector3 | undefined;
+
+    if (this._curve) {
+      // Approximate the player's progress by projecting its Z onto the curve.
+      const prog = this._progressAtZ(playerPos.z);
+      const ahead = THREE.MathUtils.randFloat(0.03, 0.06); // 3-6% of the path ahead
+      const base = this._curve.getPointAt(Math.min(1, prog + ahead));
+      // Lateral offset within the tunnel radius (or a generous open-space band).
+      const maxOff = this._tunnelRadius > 0 ? this._tunnelRadius * 0.6 : 14;
+      spawnPos = new THREE.Vector3(
+        THREE.MathUtils.clamp(base.x + e.offsetX + THREE.MathUtils.randFloat(-3, 3), -maxOff, maxOff),
+        THREE.MathUtils.clamp(base.y + e.offsetY + THREE.MathUtils.randFloat(-3, 3), -maxOff * 0.7, maxOff * 0.7),
+        base.z,
+      );
+      // Origin = a bit further ahead on the same curve so enemies emerge flying
+      // toward the player along the path.
+      origin = this._curve.getPointAt(Math.min(1, prog + ahead + 0.04));
+    } else {
+      const dirs = [
+        { x: 0, y: 1, z: -1 }, { x: 0, y: -1, z: -1 },
+        { x: 1, y: 0, z: -1 }, { x: -1, y: 0, z: -1 },
+        { x: 1, y: 1, z: -1 }, { x: -1, y: -1, z: -1 },
+        { x: 0.5, y: 1, z: -1 }, { x: -0.5, y: -1, z: -1 },
+      ];
+      const dir = dirs[Math.floor(Math.random() * dirs.length)];
+      const dist = THREE.MathUtils.randFloat(35, 55);
+      const spread = THREE.MathUtils.randFloat(3, 8);
+      spawnPos = new THREE.Vector3(
+        THREE.MathUtils.clamp(playerPos.x + dir.x * dist + e.offsetX + THREE.MathUtils.randFloat(-spread, spread), -18, 18),
+        THREE.MathUtils.clamp(playerPos.y + dir.y * dist + e.offsetY + THREE.MathUtils.randFloat(-spread, spread), -10, 10),
+        playerPos.z + dir.z * dist + e.offsetZ + THREE.MathUtils.randFloat(-10, 10),
+      );
+      origin = spawnPos.clone().add(new THREE.Vector3(dir.x * 20, dir.y * 20, dir.z * 20));
+    }
 
     this.enemyManager.spawn(e.type, spawnPos, playerPos, e.pattern, origin);
+  }
+
+  // Estimate the rail progress (0..1) for a given world Z by sampling the curve.
+  private _progressAtZ(z: number): number {
+    if (!this._curve) return 0;
+    const curve = this._curve;
+    // Binary search for the point whose Z is closest to the given z.
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 12; i++) {
+      const mid = (lo + hi) / 2;
+      const pz = curve.getPointAt(mid).z;
+      if (pz > z) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
   }
 
   private startBoss(): void {
@@ -269,6 +315,7 @@ export class WaveManager {
     this._waitingForFormation = false;
     this._enemiesSpawned = 0;
     this._lastPlayerZ = 0;
+    this._spawningStopped = false;
     if (this.boss) this.boss.reset();
   }
 

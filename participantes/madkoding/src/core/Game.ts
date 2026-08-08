@@ -43,7 +43,7 @@ import { OffScreenIndicator } from '../ui/OffScreenIndicator';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { RailFactory } from '../rail/RailFactory';
 import { LevelManager } from '../levels/LevelManager';
-import type { LevelDefinition } from '../levels/LevelData';
+import type { LevelDefinition, TerrainType } from '../levels/LevelData';
 
 export class Game {
   private renderer: THREE.WebGLRenderer;
@@ -254,9 +254,19 @@ export class Game {
     this.obstacleManager.setConfig(level.obstacles);
     this.obstacleManager.setTerrain(level.environment.terrain);
     this.enemyManager.reset();
+    this.enemyManager.setTunnel(this.railController.getCurve(), this.tunnelRadius(level.environment.terrain));
     this.waveManager.reset();
+    this.waveManager.setRail(this.railController.getCurve(), this.tunnelRadius(level.environment.terrain));
     this.waveManager.startLevel(levelIndex);
     this.enemyProjectileMgr.clear();
+  }
+
+  // Tunnel radius for wave spawning: cave/ice have tunnel walls, everything
+  // else is open space (no clamping).
+  private tunnelRadius(terrain: TerrainType): number {
+    if (terrain === 'cave') return 16;
+    if (terrain === 'ice') return 18;
+    return 0;
   }
 
   // Apply the level's environment: sky/fog color, starfield + nebulae config,

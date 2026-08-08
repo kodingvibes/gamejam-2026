@@ -34,6 +34,9 @@ export class EnemyManager {
   private patterns: Map<string, PatternBase> = new Map();
   private _activeEnemies: Enemy[] = [];
   private _pendingProjectiles: EnemyProjectileDef[] = [];
+  // Tunnel confinement (cave/ice): passed to every spawned enemy.
+  private _tunnelCurve: THREE.CatmullRomCurve3 | null = null;
+  private _tunnelRadius = 0;
 
   constructor(scene: THREE.Scene, poolSize = 30) {
     this.scene = scene;
@@ -87,9 +90,16 @@ export class EnemyManager {
     const config = ENEMY_CONFIGS[type] || ENEMIES.DRONE;
     enemy.configure(config, type);
     enemy.pattern = this.patterns.get(patternName) ?? null;
+    enemy.setTunnel(this._tunnelCurve, this._tunnelRadius);
     enemy.init(position, targetPosition, origin);
     this._activeEnemies.push(enemy);
     return enemy;
+  }
+
+  /** Set tunnel confinement for all spawned enemies (cave/ice biomes). */
+  setTunnel(curve: THREE.CatmullRomCurve3 | null, radius: number): void {
+    this._tunnelCurve = curve;
+    this._tunnelRadius = radius;
   }
 
   update(dt: number, playerPos: THREE.Vector3, playerProjectiles?: Projectile[]): void {

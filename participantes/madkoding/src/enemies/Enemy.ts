@@ -94,6 +94,12 @@ export class Enemy {
   // so the enemy flies a straight line like a plane, not a homing missile.
   private _approachTarget = new THREE.Vector3();
 
+  // ── Tunnel confinement ──
+  // Optional rail curve + tunnel radius so enemies in cave/ice biomes stay
+  // inside the tunnel instead of flying through the walls.
+  private _tunnelCurve: THREE.CatmullRomCurve3 | null = null;
+  private _tunnelRadius = 0;
+
   private static nextId = 0;
 
   constructor(config: EnemyConfig, type: string, scene: THREE.Scene) {
@@ -164,6 +170,12 @@ export class Enemy {
     // lookAt orients +Z toward the player, so +Z is the front of the enemy
     const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(this.group.quaternion);
     return this.group.position.clone().add(fwd.multiplyScalar(this._size * 0.8));
+  }
+
+  /** Optional tunnel confinement: keep the enemy inside the rail tunnel. */
+  setTunnel(curve: THREE.CatmullRomCurve3 | null, radius: number): void {
+    this._tunnelCurve = curve;
+    this._tunnelRadius = radius;
   }
 
   // ── Lifecycle ──
@@ -412,6 +424,9 @@ export class Enemy {
     // Integrate the constant velocity.
     this.group.position.addScaledVector(this._velocity, dt);
 
+    // Keep the enemy inside the tunnel (cave/ice) if a curve is provided.
+    this.confineToTunnel();
+
     this.performAcrobatics(dt);
     this.trail.update(dt, this.position);
     this.mesh.lookAt(playerPos);
@@ -431,6 +446,29 @@ export class Enemy {
     // Safety: deactivate if behind the player — no damage from behind.
     if (this._active && this.position.z > playerPos.z + 2) {
       this.reset();
+    }
+  }
+
+  // Keep the enemy inside the rail tunnel (cave/ice). Projects the enemy's
+  // current Z onto the curve, finds the nearest point on the path, and if the
+  // enemy has drifted beyond the tunnel radius, pulls it back toward the path.
+  private confineToTunnel(): void {
+    if (!this._tunnelCurve || this._tunnelRadius <= 0) return;
+    const curve = this._tunnelCurve;
+    // Find the curve progress nearest to the enemy's Z via binary search.
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 12; i++) {
+      const mid = (lo + hi) / 2;
+      if (curve.getPointAt(mid).z > this.position.z) lo = mid; else hi = mid;
+    }
+    const center = curve.getPointAt((lo + hi) / 2);
+    const dx = this.position.x - center.x;
+    const dy = this.position.y - center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > this._tunnelRadius) {
+      const scale = this._tunnelRadius / dist;
+      this.position.x = center.x + dx * scale;
+      this.position.y = center.y + dy * scale;
     }
   }
 

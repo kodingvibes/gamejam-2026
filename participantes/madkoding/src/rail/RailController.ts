@@ -52,6 +52,11 @@ export class RailController {
     return this.totalLength;
   }
 
+  /** Point on the rail curve at a given progress (0..1). */
+  pointAt(progress: number): THREE.Vector3 {
+    return this.curve.getPointAt(THREE.MathUtils.clamp(progress, 0, 1));
+  }
+
   addLateralInput(delta: number): void {
     this._targetLateral = THREE.MathUtils.clamp(
       this._targetLateral + delta,
