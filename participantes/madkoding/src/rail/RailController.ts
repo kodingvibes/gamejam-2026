@@ -37,6 +37,21 @@ export class RailController {
     this._speed = value;
   }
 
+  /** Rail travel progress, 0 (start) → 1 (end of the stage path). */
+  get progress(): number {
+    return this._progress;
+  }
+
+  /** The underlying Catmull-Rom curve, so environment systems (e.g. tunnel
+   *  walls) can follow the same winding path the ship flies. */
+  getCurve(): THREE.CatmullRomCurve3 {
+    return this.curve;
+  }
+
+  get length(): number {
+    return this.totalLength;
+  }
+
   addLateralInput(delta: number): void {
     this._targetLateral = THREE.MathUtils.clamp(
       this._targetLateral + delta,

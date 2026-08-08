@@ -146,7 +146,7 @@ export const LEVELS: LevelDefinition[] = [
   },
   {
     id: 12, name: 'Cuevas de Cristal',
-    environment: { skyColor: 0x0a1a2a, fogColor: 0x0a1a2a, fogDensity: 0.002, starfield: { count: 600, depth: 300, speed: 10 }, nebulae: { colors: [0x44ffcc, 0x22aacc], count: 2 }, terrain: 'cave', ambientLight: 0.2, backgroundShips: false },
+    environment: { skyColor: 0x0a1a2a, fogColor: 0x0a1a2a, fogDensity: 0.002, starfield: { count: 600, depth: 300, speed: 10 }, nebulae: { colors: [0x44ffcc, 0x22aacc], count: 2 }, terrain: 'ice', ambientLight: 0.2, backgroundShips: false },
     rail: { amplitudeX: 7, amplitudeY: 4, frequencyX: 2.5, frequencyY: 3.0, length: 1200 },
     obstacles: { spawnInterval: 0.7, minRadius: 0.5, maxRadius: 1.4 },
     waves: [W('INTERCEPTOR', 4, 'CIRCLE', 700), W('FIGHTER', 6, 'DIVE', 800), W('SCOUT', 8, 'SWEEP', 400)],

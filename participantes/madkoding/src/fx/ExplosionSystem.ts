@@ -141,20 +141,20 @@ export class ExplosionSystem {
       map: getBokehTexture(),
       color: 0xffffff,
       transparent: true,
-      opacity: 1,
+      opacity: 0.55,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const flash = new THREE.Sprite(flashMat);
     flash.position.copy(pos);
-    flash.scale.set(30, 30, 1);
+    flash.scale.set(22, 22, 1);
     this.scene.add(flash);
 
     // Expanding shockwave ring (torus).
     const ring = new THREE.Mesh(
       new THREE.TorusGeometry(1, 0.8, 12, 48),
       new THREE.MeshBasicMaterial({
-        color, transparent: true, opacity: 0.9,
+        color, transparent: true, opacity: 0.6,
         blending: THREE.AdditiveBlending, depthWrite: false,
       })
     );
@@ -167,13 +167,13 @@ export class ExplosionSystem {
       map: getBokehTexture(),
       color,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.5,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const glow = new THREE.Sprite(glowMat);
     glow.position.copy(pos);
-    glow.scale.set(6, 6, 1);
+    glow.scale.set(5, 5, 1);
     this.scene.add(glow);
 
     this.shockwaves.push({ flash, ring, glow, timer: 0, duration: 1.2, active: true });

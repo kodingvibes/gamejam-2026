@@ -27,7 +27,7 @@ export class LevelManager {
   /** Advance to the next level. Returns the level definition or null if game is complete. */
   advanceToNext(): LevelDefinition | null {
     if (this.isLastLevel) {
-      this.eventBus.emit(GameEvent.GAME_COMPLETE, {});
+      this.eventBus.emit(GameEvent.VICTORY, { score: 0 });
       return null;
     }
     this._currentIndex++;

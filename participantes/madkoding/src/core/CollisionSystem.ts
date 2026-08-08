@@ -9,6 +9,7 @@ import { Projectile } from '../weapons/Projectile';
 import { WeaponSystem } from '../weapons/WeaponSystem';
 import { BossMothership } from '../enemies/bosses/BossMothership';
 import { HitSpark } from '../fx/HitSpark';
+import { ObstacleManager } from '../fx/ObstacleManager';
 
 // Distance from a point to a line segment (prev → current)
 function distPointToSegment(point: THREE.Vector3, segStart: THREE.Vector3, segEnd: THREE.Vector3): number {
@@ -25,6 +26,7 @@ export class CollisionSystem {
     private enemyManager: EnemyManager,
     private weaponSystem: WeaponSystem,
     private hitSpark: HitSpark,
+    private obstacleManager?: ObstacleManager,
   ) {}
 
   checkProjectilesVsEnemies(): void {
@@ -47,6 +49,27 @@ export class CollisionSystem {
             this.weaponSystem.explodeBomb(proj.position, proj);
           } else {
             this.handleLaser(proj, enemy);
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  /** Lasers can shatter destructible columns; bombs destroy any column. */
+  checkProjectilesVsObstacles(): void {
+    if (!this.obstacleManager) return;
+    const projectiles = this.weaponSystem.projectilesList;
+    for (const proj of projectiles) {
+      if (!proj.active || !proj.isPlayerProjectile) continue;
+      for (const o of this.obstacleManager.obstacles) {
+        if (!o.active) continue;
+        const dist = distPointToSegment(o.position, proj.prevPosition, proj.position);
+        if (dist < o.radius + 0.5) {
+          if (proj.kind === 'BOMB' || o.destructible) {
+            this.obstacleManager.destroyColumn(o);
+            this.hitSpark.spawn(proj.position.clone(), 0xffaa44);
+            this.weaponSystem.releaseProjectile(proj);
           }
           break;
         }

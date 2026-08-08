@@ -24,6 +24,10 @@ import { ParticleManager } from '../fx/ParticleManager';
 import { HitSpark } from '../fx/HitSpark';
 import { ScreenEffects } from '../fx/ScreenEffects';
 import { BackgroundShips } from '../fx/BackgroundShips';
+import { ParticleTerrain } from '../environment/ParticleTerrain';
+import { TerrainManager } from '../environment/TerrainManager';
+import { TerrainDecorations } from '../environment/TerrainDecorations';
+import { Skybox, getEnvironmentColors } from '../environment/Skybox';
 import { PowerUpManager } from '../fx/PowerUpManager';
 import { ObstacleManager } from '../fx/ObstacleManager';
 import { PlayerLifeManager } from '../player/PlayerLifeManager';
@@ -60,6 +64,10 @@ export class Game {
   private hitSpark: HitSpark;
   private screenEffects: ScreenEffects;
   private backgroundShips: BackgroundShips;
+  private particleTerrain: ParticleTerrain;
+  private terrainManager: TerrainManager;
+  private terrainDecorations: TerrainDecorations;
+  private skybox: Skybox;
   private powerUpManager: PowerUpManager;
   private obstacleManager: ObstacleManager;
   private lifeManager: PlayerLifeManager;
@@ -109,6 +117,10 @@ export class Game {
     this.hitSpark = new HitSpark(this.scene);
     this.screenEffects = new ScreenEffects();
     this.backgroundShips = new BackgroundShips(this.scene);
+    this.terrainManager = new TerrainManager(this.scene);
+    this.terrainDecorations = new TerrainDecorations(this.scene);
+    this.skybox = new Skybox(this.scene, this.cameraRig.camera3D);
+    this.particleTerrain = new ParticleTerrain(this.scene, this.cameraRig.camera3D);
     this.powerUpManager = new PowerUpManager(this.scene);
     this.obstacleManager = new ObstacleManager(this.scene);
     this.audioManager = new AudioManager();
@@ -127,7 +139,7 @@ export class Game {
 
     this.scoreSystem = new ScoreSystem();
     this.collisionSystem = new CollisionSystem(
-      this.enemyManager, this.weaponSystem, this.hitSpark,
+      this.enemyManager, this.weaponSystem, this.hitSpark, this.obstacleManager,
     );
     this.enemyProjectileMgr = new EnemyProjectileManager(this.audioManager, this.scene);
 
@@ -238,7 +250,9 @@ export class Game {
       RailFactory.createFromConfig(level.rail),
       RAIL.RAIL_SPEED,
     );
+    this.terrainManager.setCurve(this.railController.getCurve());
     this.obstacleManager.setConfig(level.obstacles);
+    this.obstacleManager.setTerrain(level.environment.terrain);
     this.enemyManager.reset();
     this.waveManager.reset();
     this.waveManager.startLevel(levelIndex);
@@ -249,12 +263,47 @@ export class Game {
   // ambient light intensity, and whether background corvettes are visible.
   private applyEnvironment(level: LevelDefinition): void {
     const env = level.environment;
-    this.scene.background = new THREE.Color(env.skyColor);
-    this.scene.fog = new THREE.FogExp2(env.fogColor, env.fogDensity);
+    const envColors = getEnvironmentColors(env.terrain);
+    // Photo skybox: 360° hyperrealistic backdrop matching the terrain's context.
+    this.skybox.apply(env.terrain);
+    this.scene.background = null;
+    // No linear fog — terrain renders as particles that fade out individually.
+    this.scene.fog = null;
     this.particleManager.reconfigure(env.starfield, env.nebulae);
     const ambient = this.scene.userData.ambientLight as THREE.AmbientLight | undefined;
-    if (ambient) ambient.intensity = env.ambientLight * 2.0;
+    if (ambient) ambient.intensity = 2.2 + env.ambientLight * 3.0;
+    // Tint the hemisphere + directional lights with the zone's sky/ground
+    // colors so ships and props are lit by the environment (not pasted on top).
+    const hemi = this.scene.userData.hemisphereLight as THREE.HemisphereLight | undefined;
+    if (hemi) {
+      hemi.color.copy(envColors.sky).lerp(new THREE.Color(0xffffff), 0.5);
+      hemi.groundColor.copy(envColors.ground).lerp(new THREE.Color(0xffffff), 0.5);
+      hemi.intensity = 2.0 + env.ambientLight * 1.5;
+    }
+    const dirLight = this.scene.userData.dirLight as THREE.DirectionalLight | undefined;
+    if (dirLight) {
+      dirLight.color.copy(envColors.sky).lerp(new THREE.Color(0xffffff), 0.5);
+      dirLight.intensity = 1.8 + env.ambientLight * 1.8;
+    }
+    const fillLight = this.scene.userData.fillLight as THREE.DirectionalLight | undefined;
+    if (fillLight) {
+      fillLight.color.copy(envColors.ground).lerp(new THREE.Color(0xffffff), 0.4);
+    }
+    // Under-rim light (below-behind +Z): tint with the ground color so the
+    // back/bottom faces of objects stay lit in the biome's palette.
+    const underLight = this.scene.userData.underLight as THREE.DirectionalLight | undefined;
+    if (underLight) {
+      underLight.color.copy(envColors.ground).lerp(new THREE.Color(0xffffff), 0.5);
+    }
     this.backgroundShips.setVisible(env.backgroundShips);
+    // Space-like biomes have no ground — hide the terrain so the skybox and
+    // starfield read as open space. Terrain biomes keep the ground visible.
+    const spaceLike = env.terrain === 'space' || env.terrain === 'nebula' ||
+                      env.terrain === 'void' || env.terrain === 'aurora';
+    this.terrainManager.setVisible(!spaceLike);
+    this.particleTerrain.setVisible(!spaceLike);
+    this.terrainManager.apply(env.terrain);
+    this.terrainDecorations.apply(env.terrain);
   }
 
   private returnToMenu(): void {
@@ -284,6 +333,8 @@ export class Game {
     this.powerUpManager.reset();
     this.obstacleManager.reset();
     this.lifeManager.reset();
+    this.terrainManager.reset();
+    this.terrainDecorations.reset();
   }
 
   private onResize(): void {
@@ -324,6 +375,8 @@ export class Game {
     this.explosionSystem.update(dt);
     this.particleManager.update(dt, this.playerShip.position);
     this.hitSpark.update(dt);
+    this.skybox.update();
+    this.particleTerrain.update(dt, this.playerShip.position);
     this.postProcessing.render(dt);
     this.profiler.end();
   };
@@ -419,14 +472,17 @@ export class Game {
 
     this.weaponSystem.update(dt, this.playerShip.position);
     this.backgroundShips.update(dt, this.playerShip.position);
+    this.terrainManager.update(dt, this.playerShip.position);
+    this.terrainDecorations.update(dt, this.playerShip.position);
     this.waveManager.corvettePositions = this.backgroundShips.positions;
-    this.waveManager.update(dt, this.playerShip.position);
+    this.waveManager.update(dt, this.playerShip.position, this.railController.progress);
 
     const playerProjectiles = this.weaponSystem.projectilesList.filter(p => p.active && p.isPlayerProjectile);
     this.enemyManager.update(dt, this.playerShip.position, playerProjectiles);
 
     this.spawnPendingEnemyProjectiles();
     this.collisionSystem.checkProjectilesVsEnemies();
+    this.collisionSystem.checkProjectilesVsObstacles();
     if (this.waveManager.bossActive && this.waveManager.bossInstance) {
       this.collisionSystem.checkProjectilesVsBoss(this.waveManager.bossInstance);
     }
@@ -546,6 +602,9 @@ export class Game {
     this.hitSpark.dispose();
     this.screenEffects.dispose();
     this.backgroundShips.dispose();
+    this.terrainManager.dispose();
+    this.terrainDecorations.dispose();
+    this.skybox.dispose();
     this.powerUpManager.dispose();
     this.obstacleManager.dispose();
     this.audioManager.dispose();

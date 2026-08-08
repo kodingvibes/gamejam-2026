@@ -149,7 +149,7 @@ export class WaveManager {
     return enemies;
   }
 
-  update(dt: number, playerPos: THREE.Vector3): void {
+  update(dt: number, playerPos: THREE.Vector3, railProgress = 0): void {
     if (this._levelComplete) return;
     this._lastPlayerZ = playerPos.z;
 
@@ -193,9 +193,11 @@ export class WaveManager {
       }
     }
 
-    // All formations spawned and no enemies left → spawn boss
-    if (!this._bossActive && this._formationIndex >= this._formations.length &&
-        this.enemyManager.activeEnemies.length === 0) {
+    // Boss appears at the END of the stage path (rail progress near 1), not
+    // when the waves are exhausted. The player must survive the whole run to
+    // reach the boss. Once the rail is nearly done, stop spawning formations
+    // and bring out the boss.
+    if (!this._bossActive && railProgress >= 0.92) {
       this.startBoss();
     }
 
