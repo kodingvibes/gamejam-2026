@@ -3,7 +3,6 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass.js';
 
@@ -63,16 +62,6 @@ export class PostProcessingPipeline {
     // Motion blur (afterimage / trails)
     const afterimagePass = new AfterimagePass(0.7);
     this.composer.addPass(afterimagePass);
-
-    // Bloom — high threshold so only bright lights/emissives bloom, not the
-    // whole scene. Low strength keeps the image readable instead of washed.
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(width, height),
-      0.4, // strength
-      0.4, // radius
-      0.85 // threshold
-    );
-    this.composer.addPass(bloomPass);
 
     // Vignette + Chromatic Aberration
     this.composer.addPass(new ShaderPass(VignetteChromaticAberrationShader));

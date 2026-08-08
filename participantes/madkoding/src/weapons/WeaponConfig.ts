@@ -27,11 +27,11 @@ export const WEAPON_LIST: WeaponData[] = [
   {
     name: 'BOMB',
     kind: 'BOMB',
-    damage: 200,
+    damage: 100,
     fireRate: 1.2,
     speed: 50,
     color: 0xffffff,
-    radius: 0.6,
+    radius: 0.3,
     length: 0,
   },
 ];
