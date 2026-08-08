@@ -16,16 +16,16 @@ export class EnemyMeshFactory {
     }
   }
 
-  private static hullMat(_color: number): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({ color: 0x889999 });
+  private static hullMat(_color: number): THREE.MeshStandardMaterial {
+    return new THREE.MeshStandardMaterial({ color: 0x889999, roughness: 0.6, metalness: 0.4 });
   }
 
-  private static darkMat(): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({ color: 0x556666 });
+  private static darkMat(): THREE.MeshStandardMaterial {
+    return new THREE.MeshStandardMaterial({ color: 0x556666, roughness: 0.7, metalness: 0.3 });
   }
 
-  private static accentMat(color: number): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({ color });
+  private static accentMat(color: number): THREE.MeshStandardMaterial {
+    return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5, emissive: color, emissiveIntensity: 0.25 });
   }
 
   private static glow(color: number, opacity = 0.8): THREE.MeshBasicMaterial {
