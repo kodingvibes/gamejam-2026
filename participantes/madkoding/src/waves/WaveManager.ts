@@ -15,6 +15,8 @@ interface FormationEnemy {
   offsetX: number;
   offsetY: number;
   offsetZ: number;
+  side: number;   // shared by the formation: which flank it attacks from
+  seed: number;   // shared by the formation: manoeuvre variant
 }
 
 export class WaveManager {
@@ -140,7 +142,9 @@ export class WaveManager {
   // Build a formation: V, line, or diamond with relative offsets
   private buildFormation(type: EnemyType, pattern: PatternType, count: number): FormationEnemy[] {
     const formationType = Math.floor(Math.random() * 4); // V, line, diamond, echelon
-    const spacing = 3.0;
+    const spacing = 4.2;
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const seed = Math.random();
     const enemies: FormationEnemy[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -171,7 +175,7 @@ export class WaveManager {
           break;
       }
 
-      enemies.push({ type, pattern, offsetX: dx, offsetY: dy, offsetZ: dz });
+      enemies.push({ type, pattern, offsetX: dx, offsetY: dy, offsetZ: dz, side, seed });
     }
 
     return enemies;
@@ -268,51 +272,14 @@ export class WaveManager {
     }
   }
 
+  // Formation members share side + seed, so the squadron flies the same
+  // manoeuvre in formation (offset slots, staggered by the spawn cadence).
   private spawnFormationEnemy(e: FormationEnemy, playerPos: THREE.Vector3): void {
-    // Spawn enemies ON the rail path so they never appear inside tunnel walls.
-    // If a curve is available, compute the spawn point ahead along the curve
-    // (relative to the player's progress) and clamp lateral offsets to the
-    // tunnel radius. Otherwise fall back to the old world-space box.
-    let spawnPos: THREE.Vector3;
-    let origin: THREE.Vector3 | undefined;
-
-    if (this._curve) {
-      // Approximate the player's progress by projecting its Z onto the curve.
-      const prog = this._railProgress;
-      // 36-72 world units ahead along the path (distance-based, so the longer
-      // boss-arena rail doesn't push spawns further away).
-      const ahead = THREE.MathUtils.randFloat(36, 72) / this._curveLength;
-      const base = this._curve.getPointAt(Math.min(1, prog + ahead));
-      // Lateral offset RELATIVE to the rail (the old code clamped absolute
-      // world X/Y, so on a winding rail formations spawned off the path).
-      const maxOff = this._tunnelRadius > 0 ? this._tunnelRadius * 0.6 : 14;
-      spawnPos = new THREE.Vector3(
-        base.x + THREE.MathUtils.clamp(e.offsetX + THREE.MathUtils.randFloat(-3, 3), -maxOff, maxOff),
-        base.y + THREE.MathUtils.clamp(e.offsetY + THREE.MathUtils.randFloat(-3, 3), -maxOff * 0.7, maxOff * 0.7),
-        base.z,
-      );
-      // Origin = a bit further ahead on the same curve so enemies emerge flying
-      // toward the player along the path.
-      origin = this._curve.getPointAt(Math.min(1, prog + ahead + 48 / this._curveLength));
-    } else {
-      const dirs = [
-        { x: 0, y: 1, z: -1 }, { x: 0, y: -1, z: -1 },
-        { x: 1, y: 0, z: -1 }, { x: -1, y: 0, z: -1 },
-        { x: 1, y: 1, z: -1 }, { x: -1, y: -1, z: -1 },
-        { x: 0.5, y: 1, z: -1 }, { x: -0.5, y: -1, z: -1 },
-      ];
-      const dir = dirs[Math.floor(Math.random() * dirs.length)];
-      const dist = THREE.MathUtils.randFloat(35, 55);
-      const spread = THREE.MathUtils.randFloat(3, 8);
-      spawnPos = new THREE.Vector3(
-        THREE.MathUtils.clamp(playerPos.x + dir.x * dist + e.offsetX + THREE.MathUtils.randFloat(-spread, spread), -18, 18),
-        THREE.MathUtils.clamp(playerPos.y + dir.y * dist + e.offsetY + THREE.MathUtils.randFloat(-spread, spread), -10, 10),
-        playerPos.z + dir.z * dist + e.offsetZ + THREE.MathUtils.randFloat(-10, 10),
-      );
-      origin = spawnPos.clone().add(new THREE.Vector3(dir.x * 20, dir.y * 20, dir.z * 20));
-    }
-
-    this.enemyManager.spawn(e.type, spawnPos, playerPos, e.pattern, origin);
+    this.enemyManager.spawn(e.type, e.pattern, {
+      side: e.side,
+      seed: e.seed,
+      offset: new THREE.Vector3(e.offsetX, e.offsetY, e.offsetZ),
+    }, playerPos);
   }
 
   // Estimate the rail progress (0..1) for a given world Z by sampling the curve.

@@ -49,6 +49,7 @@ El esquema activo (mouse o teclado/gamepad) sigue al último dispositivo usado.
 - **HUD vivo**: puntaje que rueda, barras con rastro de daño, combo con temporizador por niveles de color, medidor de boost, hit-markers y lock-on que magnetiza la mira, popups de puntaje en el punto de cada kill.
 - **Nave**: barrel roll con burbuja de escudo fresnel, afterburner que crece con el boost, parpadeo de invencibilidad.
 - **Enemigos y boss**: aparición con rebote, squash al recibir daño, flash blanco real, boss que sigue el riel con patrones por fase (abanico y anillo giratorio).
+- **Pilotos enemigos**: 5 naves con silueta propia (dron de cuchillas, dardo explorador, caza delta, interceptor de alas en X, bombardero ala volante) con toberas animadas y luces de navegación. Vuelan maniobras coreografiadas en el marco del riel —pasadas cruzadas, adelantamientos desde atrás con giro en U, picados, loops, zigzag con snap-rolls, justas de frente—, se inclinan en cada curva, esquivan tus láseres con barrel rolls, cargan los cañones antes de disparar y pueden embestirte.
 
 ## Stack tecnológico
 
@@ -67,8 +68,7 @@ src/
 │                 # GameEventBinder, ScoreSystem, Timekeeper, ...
 ├── enemies/      # EnemyManager, Enemy, EnemyMeshFactory, EnemyTrail
 │   ├── bosses/   # BossBase, BossMothership
-│   └── patterns/ # PatternBase, DiveBombPattern, CirclePattern,
-│                 # SweepPattern, movement
+│                 # FlightPlans (maniobras por patrón)
 ├── fx/           # FxDirector, Starfield, ExplosionSystem, PowerUp, Nebulae,
 │                 # ParticleManager, ScreenEffects, HitSpark, ...
 ├── player/       # PlayerShip, InputMapper, FoxTail, PlayerLifeManager,

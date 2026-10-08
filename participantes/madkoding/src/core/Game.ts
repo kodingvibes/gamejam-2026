@@ -774,7 +774,17 @@ export class Game {
     this.waveManager.update(dt, this.playerShip.position, this.railController.stageProgress, this.railController.progress);
 
     const playerProjectiles = this.weaponSystem.projectilesList.filter(p => p.active && p.isPlayerProjectile);
+    this.enemyManager.setFrame(railCameraPos);
     this.enemyManager.update(dt, this.playerShip.position, playerProjectiles);
+    // Kamikaze contact: enemies that fly into the ship explode on it.
+    for (const e of this.enemyManager.rams) {
+      e.takeDamage(9999);
+      if (this.lifeManager.phase === 'playing' && !this.sequenceActive) {
+        if (this.playerShip.isRolling) this.playerShip.pulseShield(0x66ffff, 1);
+        else this.playerShip.takeDamage(20);
+        this.cameraRig.addTrauma(0.5);
+      }
+    }
 
     this.spawnPendingEnemyProjectiles();
     this.collisionSystem.checkProjectilesVsEnemies();
