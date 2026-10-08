@@ -14,6 +14,7 @@ import type { TerrainType } from '../levels/LevelData';
 import { asteroidGeometry, crystalGeometry } from './RockGeometry';
 import { getBiomeProfile, heightAt, liquidAt, floorAt } from './TerrainField';
 import { railAtZ } from './RailShape';
+import { buildChunkStreet, getFacadeMaterial } from './CityStreets';
 
 type Kind = 'tree' | 'rock' | 'dead' | 'building' | 'crystal';
 
@@ -95,30 +96,6 @@ function buildingGeo(): THREE.BufferGeometry {
   return g;
 }
 
-// Window texture: grid of randomly lit windows (emissive map).
-let windowTex: THREE.Texture | null = null;
-function getWindowTexture(): THREE.Texture {
-  if (windowTex) return windowTex;
-  const c = document.createElement('canvas');
-  c.width = 64; c.height = 128;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, 64, 128);
-  for (let y = 4; y < 124; y += 6) {
-    for (let x = 4; x < 60; x += 6) {
-      const r = Math.random();
-      if (r < 0.45) continue;
-      ctx.fillStyle = r < 0.85 ? '#ffd28a' : r < 0.95 ? '#9fd8ff' : '#ff8a6a';
-      ctx.globalAlpha = 0.5 + Math.random() * 0.5;
-      ctx.fillRect(x, y, 3, 3);
-    }
-  }
-  windowTex = new THREE.CanvasTexture(c);
-  windowTex.wrapS = windowTex.wrapT = THREE.RepeatWrapping;
-  windowTex.colorSpace = THREE.SRGBColorSpace;
-  return windowTex;
-}
-
 // ── Materials (shared) ──────────────────────────────────────────────────────
 let mats: Record<Kind, THREE.Material> | null = null;
 function getMats(): Record<Kind, THREE.Material> {
@@ -143,10 +120,7 @@ function getMats(): Record<Kind, THREE.Material> {
     tree,
     dead,
     rock: new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x8a8278, roughness: 0.95, flatShading: true, envMapIntensity: 0.3 }),
-    building: new THREE.MeshStandardMaterial({
-      color: 0x3a4250, roughness: 0.4, metalness: 0.55, envMapIntensity: 1,
-      emissive: 0xffffff, emissiveMap: getWindowTexture(), emissiveIntensity: 1.3,
-    }),
+    building: getFacadeMaterial(),
     crystal: new THREE.MeshStandardMaterial({
       color: 0x88ffee, emissive: 0x33ffcc, emissiveIntensity: 1.6, roughness: 0.2, metalness: 0.2, flatShading: true,
     }),
@@ -216,14 +190,16 @@ export function buildChunkProps(terrain: TerrainType, x0: number, z0: number, si
       } else if (spec.kind === 'dead' || spec.kind === 'rock') {
         if (d < 15) continue;
       } else if (spec.kind === 'building') {
-        if (d < 26 || slope > 6) continue;
+        if (d < 16 || slope > 6) continue;
       } else if (spec.kind === 'crystal') {
         if (d < 7 || d > 15) continue;
       }
       const sc = spec.scale[0] + rnd() * (spec.scale[1] - spec.scale[0]);
       if (spec.kind === 'building') {
+        // Keep the whole footprint clear of the avenue and its sidewalks.
+        if (d - sc * 0.75 < 15.5) continue;
         // Taller towers toward the canyon edge: a skyline you fly between.
-        const tall = 25 + rnd() * 70 * (1 - Math.min(1, (d - 26) / 400)) + rnd() * 20;
+        const tall = 25 + rnd() * 70 * (1 - Math.min(1, (d - 16) / 400)) + rnd() * 20;
         _s.set(sc, tall, sc * (0.7 + rnd() * 0.6));
         _e.set(0, Math.round(rnd() * 4) * Math.PI / 2 + (rnd() - 0.5) * 0.1, 0);
         _p.set(x, h - 2, z);
@@ -251,11 +227,15 @@ export function buildChunkProps(terrain: TerrainType, x0: number, z0: number, si
     im.computeBoundingSphere();
     if (n > 0) group.add(im); else im.dispose();
   }
+  if (terrain === 'city') for (const o of buildChunkStreet(x0, z0, size)) group.add(o);
   return group.children.length ? group : null;
 }
 
 export function disposeChunkProps(group: THREE.Group): void {
-  for (const c of group.children) (c as THREE.InstancedMesh).dispose();
+  for (const c of group.children) {
+    if (c instanceof THREE.InstancedMesh) c.dispose();          // geometry is shared
+    else if (c instanceof THREE.Mesh) c.geometry.dispose();     // per-chunk road strip
+  }
   group.clear();
 }
 

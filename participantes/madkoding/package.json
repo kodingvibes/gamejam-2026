@@ -8,7 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "three": "^0.160.0"
+    "three": "^0.160.0",
+    "three-fenestra": "^0.3.0"
   },
   "devDependencies": {
     "@types/three": "^0.185.3",
