@@ -273,7 +273,7 @@ export class LiquidSurfaces {
    * main render). `level` is the water height under the camera. Objects in
    * `hide` (sky sphere etc.) are skipped so they fall back to the sky lookup.
    */
-  renderReflection(renderer: THREE.WebGLRenderer, camera: THREE.PerspectiveCamera, level: number, hide: THREE.Object3D[]): void {
+  renderReflection(renderer: THREE.WebGLRenderer, camera: THREE.PerspectiveCamera, level: number, hide: THREE.Object3D[], scale = 1): void {
     const u = this.waterMat.uniforms;
     if (!this.waterVisible || !this.reflections) { u.uHasRefl.value = 0; return; }
     camera.updateMatrixWorld();
@@ -282,7 +282,7 @@ export class LiquidSurfaces {
 
     // Size: half the drawing buffer.
     const size = renderer.getDrawingBufferSize(new THREE.Vector2());
-    const w = Math.max(64, Math.floor(size.x / 2)), h = Math.max(64, Math.floor(size.y / 2));
+    const w = Math.max(64, Math.floor(size.x * scale / 2)), h = Math.max(64, Math.floor(size.y * scale / 2));
     if (this.reflTarget.width !== w || this.reflTarget.height !== h) this.reflTarget.setSize(w, h);
 
     // Mirror camera: position, look point and up vector reflected across

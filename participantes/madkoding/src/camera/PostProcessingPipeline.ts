@@ -14,6 +14,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { FsrPass } from './FsrPass';
 
 // Ground-truth AO that only sees solid geometry: glows, sprites, particles,
 // lasers and the sky sphere are hidden from its normal/depth pre-pass so they
@@ -156,6 +157,20 @@ export class PostProcessingPipeline {
   private cinematicPass: ShaderPass;
   private _time = 0;
   private baseBloom = 0.55;
+  // Dynamic resolution + FSR 1.0 upscaling: the 3D scene and effects render
+  // at renderScale × the screen, FsrPass (EASU + RCAS) rebuilds full res.
+  private fsrPass: FsrPass;
+  private basePixelRatio: number;
+  private _w = 1;
+  private _h = 1;
+  private _scale = 1;
+  private minScale = 0.5;
+  private maxScale = 1;
+  private scaleLocked = false;
+  private _sinceScale = 0;
+  private _fastTime = 0;
+  private _lastNow = 0;
+  private _clock = 0;
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -165,8 +180,15 @@ export class PostProcessingPipeline {
     height: number,
   ) {
     this.composer = new EffectComposer(renderer);
-    this.composer.setPixelRatio(renderer.getPixelRatio());
-    this.composer.setSize(width, height);
+    this.basePixelRatio = renderer.getPixelRatio();
+    // Phones start at 70% resolution (FSR makes up the difference); desktops
+    // at native and only drop when the frame rate does. ?res=0.6 forces a
+    // fixed scale, ?res=1 disables upscaling.
+    const mobile = window.matchMedia?.('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+    this.maxScale = mobile ? 0.85 : 1;
+    this._scale = mobile ? 0.7 : 1;
+    const forced = Number(new URLSearchParams(window.location.search).get('res'));
+    if (forced > 0) { this._scale = THREE.MathUtils.clamp(forced, 0.33, 1); this.scaleLocked = true; }
     this.composer.addPass(new RenderPass(scene, camera));
 
     this.aoPass = new SolidGTAOPass(scene, camera, width, height);
@@ -188,11 +210,21 @@ export class PostProcessingPipeline {
     // composer's raw linear output (tone mapping never ran under the old
     // pipeline either), and ACES + sRGB here blows every biome out to white.
     this.composer.addPass(this.cinematicPass);
+    // Last: upscale to the full drawing buffer (skipped at native scale).
+    this.fsrPass = new FsrPass(0.25);
+    this.composer.addPass(this.fsrPass);
     this.setSize(width, height);
   }
 
   setSize(width: number, height: number): void {
-    this.composer.setSize(width, height);
+    this._w = width;
+    this._h = height;
+    // Whole-pixel internal buffer (fractional sizes misalign the upscaler).
+    const iw = Math.max(1, Math.round(width * this.basePixelRatio * this._scale));
+    const ih = Math.max(1, Math.round(height * this.basePixelRatio * this._scale));
+    this.composer.setPixelRatio(1);
+    this.composer.setSize(iw, ih);
+    this.fsrPass.enabled = this._scale < 0.99;
     this.bloomPass.resolution.set(Math.max(1, width / 2), Math.max(1, height / 2));
     this.cinematicPass.uniforms.uAspect.value = width / Math.max(1, height);
   }
@@ -217,12 +249,39 @@ export class PostProcessingPipeline {
     this.aoPass.enabled = on;
   }
 
+  /** Internal render resolution relative to the screen (1 = native). */
+  get renderScale(): number { return this._scale; }
+
+  private setScale(s: number): void {
+    s = Math.round(THREE.MathUtils.clamp(s, this.minScale, this.maxScale) * 100) / 100;
+    if (s === this._scale) return;
+    this._scale = s;
+    this._sinceScale = 0;
+    this.setSize(this._w, this._h);
+  }
+
   render(delta: number): void {
     this._time += delta;
-    // Adaptive quality: ~5 s under 38 fps turns AO off for the session.
-    this._frameAvg = this._frameAvg * 0.95 + delta * 0.05;
-    if (this.aoPass.enabled && this._time > 4) {
-      this._slowTime = this._frameAvg > 1 / 38 ? this._slowTime + delta : 0;
+    // Quality decisions use real wall-clock frame time: the game delta is
+    // capped, which would hide how slow a struggling phone really is.
+    const now = performance.now();
+    const real = this._lastNow ? Math.min(0.5, (now - this._lastNow) / 1000) : delta;
+    this._lastNow = now;
+    this._frameAvg = this._frameAvg * 0.95 + real * 0.05;
+    this._clock += real;
+    // Dynamic resolution first: drop 10% when under ~48 fps, creep back up
+    // after a few seconds above ~57 fps. Resizes are rate-limited so render
+    // targets don't thrash.
+    this._sinceScale += real;
+    if (!this.scaleLocked && this._clock > 2) {
+      this._fastTime = this._frameAvg < 1 / 57 ? this._fastTime + real : 0;
+      if (this._sinceScale > 1.5 && this._frameAvg > 1 / 48 && this._scale > this.minScale) this.setScale(this._scale - 0.1);
+      else if (this._sinceScale > 3 && this._fastTime > 4 && this._scale < this.maxScale) { this.setScale(this._scale + 0.05); this._fastTime = 0; }
+    }
+    // Then AO: ~5 s under 38 fps at the lowest resolution turns it off.
+    const floor = this.scaleLocked || this._scale <= this.minScale + 1e-3;
+    if (this.aoPass.enabled && this._clock > 4 && floor) {
+      this._slowTime = this._frameAvg > 1 / 38 ? this._slowTime + real : 0;
       if (this._slowTime > 5) this.aoPass.enabled = false;
     }
     this.cinematicPass.uniforms.uTime.value = this._time;
@@ -232,6 +291,7 @@ export class PostProcessingPipeline {
   dispose(): void {
     this.aoPass.dispose();
     this.bloomPass.dispose();
+    this.fsrPass.dispose();
     this.composer.dispose();
   }
 }

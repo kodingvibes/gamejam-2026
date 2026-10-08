@@ -62,6 +62,7 @@ El esquema activo (mouse o teclado/gamepad/táctil) sigue al último dispositivo
 - **Espacio** con planeta en el horizonte (continentes, gigante gaseoso con anillos, mundo muerto agrietado, mundo helado con aurora) y cinturón de asteroides con paralaje.
 - **Obstáculos reales en la franja de vuelo**: agujas de roca, arcos que hay que cruzar por el hueco, cristales destructibles, estalactitas, pilones y asteroides a la deriva, con colisión tipo cápsula para nave y láseres. Se reparten con separación mínima entre sí y espaciado irregular para dejar espacio de maniobra; las agujas son curvas e inclinadas (la colisión sigue la curva).
 - **Realismo**: oclusión ambiental horneada en el terreno + GTAO en pantalla (adaptativa), iluminación por imagen (IBL) desde la foto del cielo y sombras del sol que siguen a la nave.
+- **Escalado tipo FSR 1.0** (EASU + RCAS, port GLSL de AMD FidelityFX): la escena se renderiza a una resolución interna menor y se reconstruye a pantalla completa con bordes nítidos. Resolución dinámica según fps (celular arranca al 70 %, mín. 50 %; escritorio nativo y baja solo si hace falta). Forzar con `?res=0.6`, desactivar con `?res=1`.
 
 ## Stack tecnológico
 

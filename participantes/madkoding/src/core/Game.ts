@@ -595,7 +595,7 @@ export class Game {
     const liquids = this.terrainManager.liquids;
     liquids.reflections = this.postProcessing.aoEnabled;
     const lv = hasGround() ? liquidAt(this.playerShip.position.z) : null;
-    if (lv !== null) liquids.renderReflection(this.renderer, this.cameraRig.camera3D, lv, [this.skybox.object, this.spaceScenery.object]);
+    if (lv !== null) liquids.renderReflection(this.renderer, this.cameraRig.camera3D, lv, [this.skybox.object, this.spaceScenery.object], this.postProcessing.renderScale);
     this.postProcessing.render(rawDt);
   };
 
