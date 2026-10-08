@@ -11,9 +11,14 @@ export class BossMothership extends BossBase {
   private declare turrets: THREE.Mesh[];
   private declare core: THREE.Mesh;
   private declare shield: THREE.Mesh;
+  private declare hullMat: THREE.MeshPhongMaterial;
+  private declare coreHalo: THREE.Sprite;
   private attackTimer = 0;
   private attackInterval = 2;
   private volleyEven = false;
+  private volleyCount = 0;
+  private hitFlash = 0;
+  private _desired = new THREE.Vector3();
 
   constructor() {
     super(BOSS.MOTHERSHIP);
@@ -34,6 +39,7 @@ export class BossMothership extends BossBase {
 
     // Central hull (flattened sphere)
     const hullGeo = new THREE.SphereGeometry(this._size * 0.6, 16, 12);
+    this.hullMat = bodyMat;
     const hull = new THREE.Mesh(hullGeo, bodyMat);
     hull.scale.set(1.8, 0.5, 1.2);
     this.group.add(hull);
@@ -79,6 +85,24 @@ export class BossMothership extends BossBase {
     this.core.position.y = 0.5;
     this.group.add(this.core);
 
+    // Pulsing reactor halo (bloom makes it bleed light).
+    const haloCanvas = document.createElement('canvas');
+    haloCanvas.width = haloCanvas.height = 64;
+    const hctx = haloCanvas.getContext('2d')!;
+    const hg = hctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    hg.addColorStop(0, 'rgba(255,255,255,1)');
+    hg.addColorStop(0.3, 'rgba(255,200,140,0.6)');
+    hg.addColorStop(1, 'rgba(255,120,40,0)');
+    hctx.fillStyle = hg;
+    hctx.fillRect(0, 0, 64, 64);
+    this.coreHalo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(haloCanvas), color: 0xff8844, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    this.coreHalo.position.y = 0.5;
+    this.coreHalo.scale.setScalar(this._size * 1.4);
+    this.group.add(this.coreHalo);
+
     // Core ring (rotating)
     const ringMat = new THREE.MeshPhongMaterial({
       color: 0xff8844,
@@ -93,16 +117,48 @@ export class BossMothership extends BossBase {
     ring.rotation.x = Math.PI / 2;
     this.group.add(ring);
 
-    // ── Shield bubble ──
-    const shieldMat = new THREE.MeshPhongMaterial({
-      color: 0x44aaff,
-      transparent: true,
-      opacity: 0.12,
-      emissive: 0x44aaff,
-      emissiveIntensity: 0.1,
-      side: THREE.DoubleSide,
+    // ── Shield bubble: fresnel rim + scrolling hex cells, transparent core ──
+    const shieldMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(0x44aaff) },
+        uTime: { value: 0 },
+        uHit: { value: 0 },
+        uOpacity: { value: 1 },
+      },
+      vertexShader: /* glsl */ `
+        varying vec3 vN; varying vec3 vV; varying vec3 vP;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vN = normalize(normalMatrix * normal);
+          vV = normalize(-mv.xyz);
+          vP = position;
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor; uniform float uTime; uniform float uHit; uniform float uOpacity;
+        varying vec3 vN; varying vec3 vV; varying vec3 vP;
+        float hex(vec2 p) {
+          p = abs(p);
+          return max(p.x * 0.866 + p.y * 0.5, p.y);
+        }
+        void main() {
+          float rim = pow(1.0 - abs(dot(vN, vV)), 2.5);
+          vec3 n = normalize(vP);
+          vec2 uv = vec2(atan(n.z, n.x) * 3.0, n.y * 5.0 + uTime * 0.3);
+          vec2 cell = vec2(1.0, 1.732);
+          vec2 a = mod(uv, cell) - cell * 0.5;
+          vec2 b = mod(uv - cell * 0.5, cell) - cell * 0.5;
+          vec2 g = dot(a, a) < dot(b, b) ? a : b;
+          float edge = smoothstep(0.42, 0.48, hex(g));
+          float scan = 0.5 + 0.5 * sin(n.y * 12.0 - uTime * 3.0);
+          float alpha = (rim * 0.9 + edge * (0.12 + rim * 0.5) * scan + uHit * (0.25 + edge * 0.6)) * uOpacity;
+          gl_FragColor = vec4(uColor * (1.4 + uHit * 2.0), alpha);
+        }
+      `,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     });
-    const shieldGeo = new THREE.SphereGeometry(this._size * 0.9, 20, 20);
+    const shieldGeo = new THREE.SphereGeometry(this._size * 0.9, 40, 28);
     this.shield = new THREE.Mesh(shieldGeo, shieldMat);
     this.group.add(this.shield);
 
@@ -190,39 +246,59 @@ export class BossMothership extends BossBase {
         // Phase 2: faster attacks, spawn drones
         this.attackInterval = 1.2;
         // Change shield color
-        (this.shield.material as THREE.MeshPhongMaterial).color.setHex(0xff4444);
-        (this.shield.material as THREE.MeshPhongMaterial).emissive.setHex(0xff4444);
+        this.shieldUniforms.uColor.value.setHex(0xff7744);
         break;
       case 3:
         // Phase 3: enraged
-        this.attackInterval = 0.6;
+        this.attackInterval = 0.85;
         (this.core.material as THREE.MeshBasicMaterial).color.setHex(0xff0000);
-        (this.shield.material as THREE.MeshPhongMaterial).color.setHex(0xff0000);
-        (this.shield.material as THREE.MeshPhongMaterial).opacity = 0.3;
+        this.shieldUniforms.uColor.value.setHex(0xff2244);
         break;
     }
   }
 
   init(position: THREE.Vector3): void {
     super.init(position);
-    this.attackTimer = 0;
+    this.attackTimer = -2.5; // grace period while it swoops in
     this.attackInterval = 2;
     this.volleyEven = false;
+    this.volleyCount = 0;
+    this.hitFlash = 0;
   }
 
-  update(dt: number, playerPos: THREE.Vector3): void {
+  takeDamage(amount: number): boolean {
+    this.hitFlash = 1;
+    return super.takeDamage(amount);
+  }
+
+  /**
+   * @param anchor point on the rail ~45 units ahead of the ship. The boss
+   * holds station around it (the old version used absolute world X/Y, so on
+   * winding rails it hovered off to the side of the path).
+   */
+  update(dt: number, playerPos: THREE.Vector3, anchor?: THREE.Vector3): void {
     if (!this._active) return;
     super.update(dt, playerPos);
 
-    // Maintain a standoff position ~45 units ahead of the player (don't chase into them)
-    const desiredZ = playerPos.z - 45;
-    const dz = desiredZ - this.group.position.z;
-    this.group.position.z += dz * 0.8 * dt;
-    // Slight lateral drift for visual interest
-    this.group.position.x = Math.sin(this._age * 0.4) * 4;
+    const a = anchor ?? this._desired.set(0, 0, playerPos.z - 45);
+    const sway = this._currentPhase >= 3 ? 1.6 : 1;
+    this._desired.set(
+      a.x + Math.sin(this._age * 0.45 * sway) * 7,
+      a.y + 2 + Math.sin(this._age * 0.7 * sway) * 3,
+      a.z,
+    );
+    // Critically-damped follow: fast swoop-in on entry, smooth afterwards.
+    const k = 1 - Math.exp(-(this._age < 3 ? 1.6 : 2.4) * dt);
+    this.group.position.lerp(this._desired, k);
 
     // Always face the player
     this.group.lookAt(playerPos);
+
+    // Hit flash on the hull + phase-tinted reactor halo.
+    this.hitFlash = Math.max(0, this.hitFlash - dt * 8);
+    this.hullMat.emissiveIntensity = 0.2 + this.hitFlash * 1.6;
+    const haloPulse = 1 + Math.sin(this._age * (2 + this._currentPhase * 2)) * 0.18 + this.hitFlash * 0.3;
+    this.coreHalo.scale.setScalar(this._size * 1.4 * haloPulse);
 
     // Rotate slowly
     this.group.rotation.z += dt * 0.3;
@@ -242,12 +318,16 @@ export class BossMothership extends BossBase {
     const pulse = Math.sin(this._age * 3) * 0.3 + 0.7;
     (this.core.material as THREE.MeshBasicMaterial).opacity = pulse;
 
-    // Shield pulse
-    (this.shield.material as THREE.MeshPhongMaterial).opacity =
-      Math.sin(this._age * 2) * 0.1 + 0.2;
+    // Shield shader: scroll + flare on hits
+    this.shieldUniforms.uTime.value = this._age;
+    this.shieldUniforms.uHit.value = this.hitFlash;
 
     // Attack timer
     this.attackTimer += dt;
+  }
+
+  private get shieldUniforms(): { uColor: { value: THREE.Color }; uTime: { value: number }; uHit: { value: number }; uOpacity: { value: number } } {
+    return (this.shield.material as THREE.ShaderMaterial).uniforms as never;
   }
 
   canAttack(): boolean {
@@ -258,9 +338,11 @@ export class BossMothership extends BossBase {
     this.attackTimer = 0;
   }
 
-  // Alternate volley: fire from every other turret, alternating each volley
+  // Phase 1: alternating turret volley · Phase 2: + aimed fan from the core
+  // Phase 3: + rotating ring burst. Each pattern leaves dodgeable gaps.
   computeVolley(playerPos: THREE.Vector3): { position: THREE.Vector3; dir: THREE.Vector3 }[] {
     this.volleyEven = !this.volleyEven;
+    this.volleyCount++;
     const shots: { position: THREE.Vector3; dir: THREE.Vector3 }[] = [];
     const turrets = this.getTurretPositions();
     for (let idx = 0; idx < turrets.length; idx++) {
@@ -269,6 +351,28 @@ export class BossMothership extends BossBase {
         position: turrets[idx],
         dir: playerPos.clone().sub(turrets[idx]).normalize(),
       });
+    }
+    const corePos = new THREE.Vector3();
+    this.core.getWorldPosition(corePos);
+    const toPlayer = playerPos.clone().sub(corePos).normalize();
+    const right = new THREE.Vector3().crossVectors(toPlayer, new THREE.Vector3(0, 1, 0)).normalize();
+    const up = new THREE.Vector3().crossVectors(right, toPlayer).normalize();
+    if (this._currentPhase >= 2 && this.volleyCount % 2 === 0) {
+      for (let i = -2; i <= 2; i++) {
+        shots.push({ position: corePos.clone(), dir: toPlayer.clone().addScaledVector(right, i * 0.09).normalize() });
+      }
+    }
+    if (this._currentPhase >= 3 && this.volleyCount % 3 === 0) {
+      const n = 10;
+      const spin = this._age * 1.3;
+      for (let i = 0; i < n; i++) {
+        const ang = spin + (i / n) * Math.PI * 2;
+        const dir = toPlayer.clone()
+          .addScaledVector(right, Math.cos(ang) * 0.28)
+          .addScaledVector(up, Math.sin(ang) * 0.28)
+          .normalize();
+        shots.push({ position: corePos.clone(), dir });
+      }
     }
     return shots;
   }
@@ -284,11 +388,14 @@ export class BossMothership extends BossBase {
   reset(): void {
     super.reset();
     this.attackTimer = 0;
+    this.volleyCount = 0;
+    this.hitFlash = 0;
+    this.hullMat.emissiveIntensity = 0.2;
+    this.coreHalo.scale.setScalar(this._size * 1.4);
     this.attackInterval = 2;
     this.volleyEven = false;
     (this.core.material as THREE.MeshBasicMaterial).color.setHex(0xff8844);
-    (this.shield.material as THREE.MeshPhongMaterial).color.setHex(0x44aaff);
-    (this.shield.material as THREE.MeshPhongMaterial).emissive.setHex(0x44aaff);
-    (this.shield.material as THREE.MeshPhongMaterial).opacity = 0.15;
+    this.shieldUniforms.uColor.value.setHex(0x44aaff);
+    this.shieldUniforms.uHit.value = 0;
   }
 }

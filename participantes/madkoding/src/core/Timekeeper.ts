@@ -6,6 +6,7 @@ export class Timekeeper {
   private static instance: Timekeeper;
   private lastTime = 0;
   private _delta = 0;
+  private _rawDelta = 0;
   private _timeScale = 1;
 
   static getInstance(): Timekeeper {
@@ -17,6 +18,11 @@ export class Timekeeper {
 
   get delta(): number {
     return this._delta;
+  }
+
+  /** Unscaled frame delta (still capped) — for FX that ignore slow-motion. */
+  get rawDelta(): number {
+    return this._rawDelta;
   }
 
   get timeScale(): number {
@@ -31,11 +37,13 @@ export class Timekeeper {
     if (this.lastTime === 0) {
       this.lastTime = timestamp;
       this._delta = 1 / GAME.TARGET_FPS;
+      this._rawDelta = this._delta;
       return;
     }
 
     const rawDelta = (timestamp - this.lastTime) / 1000;
-    this._delta = Math.min(rawDelta, GAME.MAX_DELTA) * this._timeScale;
+    this._rawDelta = Math.min(Math.max(rawDelta, 0), GAME.MAX_DELTA);
+    this._delta = this._rawDelta * this._timeScale;
     this.lastTime = timestamp;
   }
 

@@ -1,6 +1,6 @@
 # FOXSTAR
 
-Rail shooter estilo **Star Fox** hecho en **Three.js 0.160 + TypeScript 5.4 + Vite 5.4**. La cámara avanza por un riel mientras pilotas tu nave, esquivas oleadas de enemigos y te enfrentas a un boss final en el espacio profundo.
+Rail shooter estilo **Star Fox** hecho en **Three.js 0.160 + TypeScript 5.4 + Vite 8**. La cámara avanza por un riel mientras pilotas tu nave, esquivas oleadas de enemigos y te enfrentas a un boss final en el espacio profundo.
 
 ## Descripción
 
@@ -28,19 +28,33 @@ npm run preview
 
 ## Controles
 
-| Tecla | Acción |
-|-------|--------|
-| `WASD` / `Flechas` | mover la nave y la mira |
-| `ESPACIO` | disparar láseres |
-| `Z` | lanzar bomba (5 en total) |
-| `ESC` | pausa |
-| `ESPACIO` / `ENTER` | iniciar partida (menú) |
+| Teclado | Mouse | Gamepad | Acción |
+|---------|-------|---------|--------|
+| `WASD` / `Flechas` | mover el puntero | stick izquierdo | mover la nave y la mira |
+| `ESPACIO` | clic izquierdo | `A` / `RT` | disparar láseres |
+| `Z` | clic derecho | `B` | bomba (5 en total, limpia disparos enemigos) |
+| `SHIFT` | — | `X` / `LT` | boost (consume el medidor) |
+| `Q` / `E` | — | `LB` / `RB` | barrel roll (desvía disparos) |
+| `ESC` / `P` | — | `START` | pausa |
+| `ENTER` / `ESPACIO` | clic | — | iniciar / reintentar |
+
+El esquema activo (mouse o teclado/gamepad) sigue al último dispositivo usado.
+
+## Motion design y efectos
+
+- **Post-procesado cinematográfico**: bloom a media resolución + pase propio con aberración cromática radial, zoom blur, viñeta, grano, scanlines, flashes y viñeta de latido con poca vida.
+- **FxDirector**: hit-stop en impactos, slow-motion (bomba, muerte, boss), pulsos de FOV, bloom y aberración que se apilan y decaen de forma coherente.
+- **Cámara con trauma**: shake por ruido suave (posición + rotación), seguimiento independiente del framerate, roll siguiendo a la nave y órbita cinematográfica en el menú.
+- **Secuencias**: entrada en warp con título "SECTOR XX", alerta WARNING del boss con franjas y klaxon, MISSION COMPLETE con conteo de bonus y salto al hiperespacio al siguiente sector.
+- **HUD vivo**: puntaje que rueda, barras con rastro de daño, combo con temporizador por niveles de color, medidor de boost, hit-markers y lock-on que magnetiza la mira, popups de puntaje en el punto de cada kill.
+- **Nave**: barrel roll con burbuja de escudo fresnel, afterburner que crece con el boost, parpadeo de invencibilidad.
+- **Enemigos y boss**: aparición con rebote, squash al recibir daño, flash blanco real, boss que sigue el riel con patrones por fase (abanico y anillo giratorio).
 
 ## Stack tecnológico
 
 - **Three.js** `^0.160.0` — renderizado 3D.
 - **TypeScript** `^5.4.0` — tipado estático.
-- **Vite** `^5.4.0` — bundler y dev server.
+- **Vite** `^8.2.0` — bundler y dev server.
 - **@types/three** `^0.185.3` — tipos para Three.js.
 
 ## Estructura del proyecto
@@ -55,13 +69,13 @@ src/
 │   ├── bosses/   # BossBase, BossMothership
 │   └── patterns/ # PatternBase, DiveBombPattern, CirclePattern,
 │                 # SweepPattern, movement
-├── fx/           # Starfield, ExplosionSystem, PowerUp, Nebulae,
+├── fx/           # FxDirector, Starfield, ExplosionSystem, PowerUp, Nebulae,
 │                 # ParticleManager, ScreenEffects, HitSpark, ...
 ├── player/       # PlayerShip, InputMapper, FoxTail, PlayerLifeManager,
 │                 # PlayerShipMeshFactory
 ├── rail/         # RailFactory, RailController
 ├── types/        # config, events, index
-├── ui/           # HUD, MenuScreen, PauseOverlay, GameOverScreen,
+├── ui/           # HUD, Announcer, ScorePopups, MenuScreen, PauseOverlay, GameOverScreen,
 │                 # VictoryScreen, LivesDisplay, iconRow
 ├── utils/        # ObjectPool
 ├── waves/        # WaveDefinition, WaveManager

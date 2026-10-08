@@ -416,6 +416,133 @@ export class AudioManager {
     }
   }
 
+  // ── Motion-design SFX (procedural) ───────────────────────────────────────
+
+  private noiseBuffer: AudioBuffer | null = null;
+  private getNoise(ctx: AudioContext): AudioBuffer {
+    if (this.noiseBuffer) return this.noiseBuffer;
+    const len = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    this.noiseBuffer = buf;
+    return buf;
+  }
+
+  /** Filtered-noise sweep. `up` = rising (warp out), else falling (warp in). */
+  private sweep(duration: number, from: number, to: number, gainPeak: number, q = 4): void {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.getNoise(ctx);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = q;
+    filter.frequency.setValueAtTime(from, t);
+    filter.frequency.exponentialRampToValueAtTime(to, t + duration);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(gainPeak, t + duration * 0.6);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    const rev = this.getReverb();
+    if (rev) gain.connect(rev);
+    src.start(t);
+    src.stop(t + duration + 0.05);
+  }
+
+  playWarp(): void {
+    this.sweep(1.6, 120, 4200, 0.9, 2.5);
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(55, t);
+    osc.frequency.exponentialRampToValueAtTime(880, t + 1.5);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.12, t + 1.2);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 1.7);
+  }
+
+  playWarpArrive(): void {
+    this.sweep(1.1, 5000, 160, 0.7, 2);
+  }
+
+  playRoll(): void {
+    this.sweep(0.45, 600, 2600, 0.35, 6);
+  }
+
+  playDeflect(): void {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2400, t);
+    osc.frequency.exponentialRampToValueAtTime(3600, t + 0.06);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.13);
+  }
+
+  playPickup(): void {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+    const notes = [880, 1175, 1568];
+    notes.forEach((f, i) => {
+      const t = ctx.currentTime + i * 0.06;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(f, t);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(t);
+      osc.stop(t + 0.13);
+    });
+  }
+
+  playBoost(): void {
+    this.sweep(0.6, 300, 1800, 0.45, 3);
+  }
+
+  /** Two-tone klaxon for the boss warning. */
+  playAlarm(): void {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+    for (let i = 0; i < 4; i++) {
+      const t = ctx.currentTime + i * 0.55;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(660, t);
+      osc.frequency.setValueAtTime(440, t + 0.25);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.09, t + 0.03);
+      gain.gain.setValueAtTime(0.09, t + 0.45);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.52);
+    }
+  }
+
   dispose(): void {
     if (this.ctx) {
       this.ctx.close();

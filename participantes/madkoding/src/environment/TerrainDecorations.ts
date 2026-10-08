@@ -13,6 +13,7 @@
 // flies toward -Z, so the world always feels populated ahead.
 
 import * as THREE from 'three';
+import { getSoftParticleTexture } from '../fx/softTexture';
 import type { TerrainType } from '../levels/LevelData';
 import { terrainHeightAt } from './TerrainManager';
 import { fbm } from '../utils/noise';
@@ -209,7 +210,7 @@ export class TerrainDecorations {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const mat = new THREE.PointsMaterial({
-      color: 0xffaa44, size: 0.4, transparent: true, opacity: 0.9,
+      map: getSoftParticleTexture(), color: 0xffaa44, size: 0.4, transparent: true, opacity: 0.9,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const points = new THREE.Points(geo, mat);

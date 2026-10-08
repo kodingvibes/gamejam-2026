@@ -90,6 +90,10 @@ export class Enemy {
 
   private static nextId = 0;
 
+  // ── Motion: warp-in pop on spawn + squash punch on hit ──
+  private _spawnAnim = 1;
+  private _hitPunch = 0;
+
   constructor(config: EnemyConfig, type: string, scene: THREE.Scene) {
     this._name = config.name;
     this._health = config.health;
@@ -197,6 +201,11 @@ export class Enemy {
     this._emergenceProgress = 0;
     this._approachTarget.set(0, 0, 0);
     this._overflyDir.set(0, 0, 1);
+    this._spawnAnim = 0;
+    this._hitPunch = 0;
+    this._damageFlashTimer = 0;
+    this.group.scale.setScalar(0.01);
+    this.applyTint(1);
 
     // Random per-enemy approach offset so each enemy aims at its own point
     // near the player instead of all converging on the exact same spot.
@@ -230,6 +239,7 @@ export class Enemy {
   takeDamage(amount: number): boolean {
     this._health -= amount;
     this._damageFlashTimer = this._damageFlashDuration;
+    this._hitPunch = 1;
     if (this._health <= 0) { this._health = 0; this.destroy(); return true; }
     return false;
   }
@@ -408,6 +418,21 @@ export class Enemy {
     this.trail.update(dt, this.position);
     this.mesh.lookAt(playerPos);
 
+    // Spawn pop (easeOutBack) + hit punch
+    if (this._spawnAnim < 1) {
+      this._spawnAnim = Math.min(1, this._spawnAnim + dt * 2.2);
+      const t = this._spawnAnim - 1;
+      const back = 1 + 2.7 * t * t * t + 1.7 * t * t;
+      this.group.scale.setScalar(Math.max(0.01, back));
+      if (this._damageFlashTimer <= 0) this.applyTint(1 - this._spawnAnim);
+    } else if (this._hitPunch > 0) {
+      this._hitPunch = Math.max(0, this._hitPunch - dt * 7);
+      const k = Math.sin(this._hitPunch * Math.PI) * 0.22;
+      this.group.scale.set(1 + k, 1 - k * 0.6, 1 + k);
+    } else if (this.group.scale.x !== 1) {
+      this.group.scale.setScalar(1);
+    }
+
     // Damage flash
     this.updateDamageFlash(dt);
 
@@ -494,14 +519,15 @@ export class Enemy {
   private fireLaser(playerPos: THREE.Vector3, onShoot?: (s: THREE.Vector3, d: THREE.Vector3) => void): void {
     if (!onShoot) return;
     const shootPos = this.getShootPosition();
-    const dir = playerPos.clone().sub(shootPos);
+    // Normalize BEFORE adding spread — on the raw (~50 unit) vector the
+    // "warning shot" spread was negligible and every shot was a sniper shot.
+    const dir = playerPos.clone().sub(shootPos).normalize();
     // First two shots in a burst are warning shots (wide miss). Only the 3rd
     // (burstShotIndex === 2) is accurate and can hit the player.
     const isFinalShot = this._burstShotIndex >= 2;
-    const spread = isFinalShot ? 0.04 : 0.55;
+    const spread = isFinalShot ? 0.02 : 0.12;
     dir.x += (Math.random() - 0.5) * spread;
     dir.y += (Math.random() - 0.5) * spread;
-    dir.z += (Math.random() - 0.5) * (isFinalShot ? 0.05 : 0.25);
     dir.normalize();
     onShoot(shootPos, dir);
   }
@@ -517,19 +543,33 @@ export class Enemy {
   }
 
   // ── Damage flash: white flash on hit ──
+  // Tints toward white from each material's ORIGINAL color (cached in
+  // userData) — the old version restored every part to the enemy's accent
+  // color, permanently repainting grey hulls and white engine cores.
   private updateDamageFlash(dt: number): void {
     if (this._damageFlashTimer > 0) {
-      this._damageFlashTimer -= dt;
-      const flash = this._damageFlashTimer > 0;
-      this.body.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          const mat = child.material as THREE.MeshBasicMaterial;
-          if (mat.color) {
-            mat.color.set(flash ? 0xffffff : this._color);
-          }
-        }
-      });
+      this._damageFlashTimer = Math.max(0, this._damageFlashTimer - dt);
+      this.applyTint(this._damageFlashTimer / this._damageFlashDuration);
     }
+  }
+
+  private static readonly _white = new THREE.Color(1, 1, 1);
+  private applyTint(amount: number): void {
+    this.body.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const mat = child.material as THREE.MeshStandardMaterial;
+      if (!mat.color) return;
+      const ud = mat.userData as { baseColor?: THREE.Color; baseEmissive?: THREE.Color; baseEI?: number };
+      if (!ud.baseColor) {
+        ud.baseColor = mat.color.clone();
+        if (mat.emissive) { ud.baseEmissive = mat.emissive.clone(); ud.baseEI = mat.emissiveIntensity; }
+      }
+      mat.color.copy(ud.baseColor).lerp(Enemy._white, amount);
+      if (mat.emissive && ud.baseEmissive) {
+        mat.emissive.copy(ud.baseEmissive).lerp(Enemy._white, amount);
+        mat.emissiveIntensity = (ud.baseEI ?? 0) + amount * 2.5;
+      }
+    });
   }
 
   // ── Health bar: billboarded bar above the enemy ──
@@ -564,23 +604,8 @@ export class Enemy {
     if (this._isTelegraphing) {
       this._telegraphTimer -= dt;
       const pulse = Math.sin(this._telegraphTimer * 20) * 0.5 + 0.5;
-      this.body.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          const mat = child.material as THREE.MeshBasicMaterial;
-          if (mat.color) {
-            const base = this._color;
-            const r = ((base >> 16) & 0xff) / 255;
-            const g = ((base >> 8) & 0xff) / 255;
-            const b = (base & 0xff) / 255;
-            mat.color.setRGB(
-              r + (1 - r) * pulse * 0.5,
-              g + (1 - g) * pulse * 0.5,
-              b + (1 - b) * pulse * 0.5
-            );
-          }
-        }
-      });
-      if (this._telegraphTimer <= 0) this.stopTelegraph();
+      if (this._damageFlashTimer <= 0) this.applyTint(pulse * 0.5);
+      if (this._telegraphTimer <= 0) { this.stopTelegraph(); this.applyTint(0); }
     }
   }
 

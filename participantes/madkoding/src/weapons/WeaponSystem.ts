@@ -109,10 +109,9 @@ export class WeaponSystem {
         continue;
       }
 
-      const p = proj.position;
-      const baseZ = playerPos ? playerPos.z : 0;
-      if (p.x < -60 || p.x > 60 || p.y < -60 || p.y > 60 ||
-          p.z > baseZ + 20 || p.z < baseZ - 300) {
+      // Distance-based culling (the old absolute world box broke on curved
+      // rails that drift sideways).
+      if (playerPos && proj.position.distanceToSquared(playerPos) > 300 * 300) {
         proj.deactivate();
       }
     }
@@ -128,6 +127,11 @@ export class WeaponSystem {
 
   releaseProjectile(proj: Projectile): void {
     proj.deactivate();
+  }
+
+  /** Drop in-flight shots without refilling bombs (level change). */
+  clearProjectiles(): void {
+    for (const p of this.projectiles) p.deactivate();
   }
 
   reset(): void {

@@ -4,6 +4,7 @@
 // that mimics a fox tail waving behind the ship.
 
 import * as THREE from 'three';
+import { getSoftParticleTexture } from '../fx/softTexture';
 
 const TAIL_PARTICLES = 40;
 const TAIL_LENGTH = 1.8;     // how far back the tail extends
@@ -24,6 +25,7 @@ export class FoxTail {
   private colors: Float32Array;
   private ages: Float32Array;
   private phase = 0;
+  private intensity = 1;
   private static readonly _c = new THREE.Color();
 
   constructor(parent: THREE.Group) {
@@ -40,7 +42,7 @@ export class FoxTail {
     geo.setAttribute('color', new THREE.BufferAttribute(this.colors, 3));
 
     const mat = new THREE.PointsMaterial({
-      size: 0.4,
+      map: getSoftParticleTexture(), size: 0.4,
       vertexColors: true,
       transparent: true,
       opacity: 0.9,
@@ -57,7 +59,7 @@ export class FoxTail {
     parent.add(this.points);
 
     // SpotLight at the tail base illuminating the fiery exhaust trail.
-    const tailLight = new THREE.SpotLight(0xff6622, 5000.0);
+    const tailLight = new THREE.SpotLight(0xff6622, 120.0);
     tailLight.position.set(0, -0.8, -2.5);
     tailLight.target.position.set(0, -0.8, -8);
     tailLight.angle = Math.PI / 2.2;
@@ -80,7 +82,7 @@ export class FoxTail {
       const width = TAIL_WIDTH_START + (TAIL_WIDTH_END - TAIL_WIDTH_START) * t * t;
 
       // Z position: extends backward (negative Z in local space = behind ship)
-      const z = -t * TAIL_LENGTH;
+      const z = -t * TAIL_LENGTH * this.intensity;
 
       // Sway: sinusoidal curve that increases toward the tip
       const sway = Math.sin(this.phase + t * 3) * SWAY_AMP * t;
@@ -122,6 +124,12 @@ export class FoxTail {
 
   setVisible(v: boolean): void {
     this.points.visible = v;
+  }
+
+  /** 1 = cruise, >1 = boost afterburner (longer, fatter flame). */
+  setIntensity(k: number): void {
+    this.intensity = k;
+    (this.points.material as THREE.PointsMaterial).size = 0.4 * (0.6 + 0.4 * k);
   }
 
   get pointsObject(): THREE.Points { return this.points; }

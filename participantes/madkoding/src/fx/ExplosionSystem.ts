@@ -3,6 +3,7 @@
 // Each explosion also gets a soft bokeh sprite (camera-lens blur) at its core.
 
 import * as THREE from 'three';
+import { getSoftParticleTexture } from './softTexture';
 import { ObjectPool } from '../utils/ObjectPool';
 import { CameraRig } from '../camera/CameraRig';
 
@@ -97,7 +98,7 @@ export class ExplosionSystem {
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
         geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
         const mat = new THREE.PointsMaterial({
-          size: 0.6, vertexColors: true, transparent: true, opacity: 1,
+          map: getSoftParticleTexture(), size: 0.6, vertexColors: true, transparent: true, opacity: 1,
           blending: THREE.AdditiveBlending, depthWrite: false,
         });
         const points = new THREE.Points(geo, mat);

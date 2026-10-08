@@ -2,6 +2,8 @@
 
 import { EventBus } from '../core/EventBus';
 import { GameEvent } from '../types/events';
+import { submitScore } from './bestScore';
+import { countUp } from './countUp';
 
 export class VictoryScreen {
   private element: HTMLElement;
@@ -10,6 +12,7 @@ export class VictoryScreen {
   private eventBus: EventBus;
   private onContinueRef: () => void;
   private onVictory: (p: { score: number }) => void;
+  private onKeyDown: (e: KeyboardEvent) => void;
 
   constructor(private onContinue: () => void) {
     this.eventBus = EventBus.getInstance();
@@ -21,10 +24,17 @@ export class VictoryScreen {
     this.continueButton.addEventListener('click', this.onContinueRef);
 
     this.onVictory = (p) => {
-      this.scoreElement.textContent = `Puntuación: ${p.score.toLocaleString()}`;
       this.show();
+      countUp(this.scoreElement, p.score, 2000, 'Puntuación: ');
+      submitScore(p.score);
     };
     this.eventBus.on(GameEvent.VICTORY, this.onVictory);
+
+    this.onKeyDown = (e: KeyboardEvent) => {
+      if (this.element.classList.contains('hidden')) return;
+      if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); this.onContinue(); }
+    };
+    window.addEventListener('keydown', this.onKeyDown);
   }
 
   show(): void {
@@ -38,5 +48,6 @@ export class VictoryScreen {
   dispose(): void {
     this.continueButton.removeEventListener('click', this.onContinueRef);
     this.eventBus.off(GameEvent.VICTORY, this.onVictory);
+    window.removeEventListener('keydown', this.onKeyDown);
   }
 }

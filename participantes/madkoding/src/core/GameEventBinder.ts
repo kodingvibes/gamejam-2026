@@ -15,8 +15,10 @@ import { WaveManager } from '../waves/WaveManager';
 import { CameraRig } from '../camera/CameraRig';
 
 interface GameCallbacks {
-  startLevel: (level: number) => void;
+  /** Boss down: Game runs the clear → warp → next-level sequence. */
+  onLevelComplete: (nextLevel: number) => void;
   onPlayerDeath: (score: number, wave: number) => void;
+  onEnemyKilled?: (pos: THREE.Vector3, gained: number, combo: number) => void;
 }
 
 export class GameEventBinder {
@@ -32,7 +34,6 @@ export class GameEventBinder {
   private waveManager!: WaveManager;
   private callbacks!: GameCallbacks;
   private _currentLevel = 0;
-  private _levelLoadTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(deps: {
     stateManager: StateManager;
@@ -71,21 +72,15 @@ export class GameEventBinder {
   get currentLevel(): number { return this._currentLevel; }
   set currentLevel(v: number) { this._currentLevel = v; }
 
-  /** Cancel a queued level transition (called when quitting to the menu). */
-  cancelPendingLevelLoad(): void {
-    if (this._levelLoadTimer !== null) {
-      clearTimeout(this._levelLoadTimer);
-      this._levelLoadTimer = null;
-    }
-  }
 
   private bindEnemyDestroyed(): void {
     this.eventBus.on(GameEvent.ENEMY_DESTROYED, (p) => {
-      this.scoreSystem.add(p.score);
+      const gained = this.scoreSystem.add(p.score);
       const pos = new THREE.Vector3(p.position.x, p.position.y, p.position.z);
       this.explosionSystem.spawnEpic(pos, 0xff8844);
       this.audioManager.playExplosion();
-      this.hitSpark.spawn(pos, 0xff8844);
+      this.hitSpark.spawn(pos, 0xffcc66, 1.6);
+      this.callbacks.onEnemyKilled?.(pos, gained, this.scoreSystem.combo);
     });
   }
 
@@ -115,13 +110,9 @@ export class GameEventBinder {
         this.audioManager.playVictory();
         this.stateManager.transition(GameState.VICTORY);
       } else {
-        // Wait for the slow cinematic boss explosion to finish before loading
-        // the next level (~5s matches the 4.5s boss blast + buffer). Guarded
-        // against menu quit so the level can't start in the menu state.
-        this._levelLoadTimer = setTimeout(() => {
-          this._levelLoadTimer = null;
-          if (this.stateManager.isPlaying()) this.callbacks.startLevel(this._currentLevel);
-        }, 5000);
+        // The Game owns the timed, pausable clear → warp → load sequence (the
+        // old setTimeout kept running while paused).
+        this.callbacks.onLevelComplete(this._currentLevel);
       }
     });
   }
@@ -143,7 +134,5 @@ export class GameEventBinder {
     });
   }
 
-  dispose(): void {
-    this.cancelPendingLevelLoad();
-  }
+  dispose(): void {}
 }

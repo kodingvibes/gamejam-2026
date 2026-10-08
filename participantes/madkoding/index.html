@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,13 +15,19 @@
     <div id="hud"></div>
     <div id="menu-screen" class="screen hidden">
       <div class="menu-content">
-        <h1 class="game-title">FoxStar</h1>
-        <button id="start-button" class="menu-button">START</button>
+        <div class="menu-kicker">RAIL SHOOTER · 20 SECTORES</div>
+        <h1 class="game-title">FOXSTAR</h1>
+        <div class="menu-sub">Defiende la galaxia. Haz un barrel roll.</div>
+        <button id="start-button" class="menu-button primary">INICIAR MISIÓN</button>
+        <div class="press-hint">PRESIONA <kbd>ENTER</kbd></div>
+        <div id="menu-best" class="menu-best"></div>
         <div class="controls-info">
-          <p>WASD / Flechas — Mover nave y mira</p>
-          <p>ESPACIO — Disparar Lasers</p>
-          <p>Z — Lanzar Bomba (5 total)</p>
-          <p>ESC — Pausa</p>
+          <div><kbd>WASD</kbd><kbd>←↑↓→</kbd><span>Mover · o usa el mouse</span></div>
+          <div><kbd>ESPACIO</kbd><kbd>CLIC</kbd><span>Disparar</span></div>
+          <div><kbd>Z</kbd><kbd>CLIC DER</kbd><span>Bomba</span></div>
+          <div><kbd>SHIFT</kbd><span>Boost</span></div>
+          <div><kbd>Q</kbd><kbd>E</kbd><span>Barrel roll · desvía disparos</span></div>
+          <div><kbd>ESC</kbd><span>Pausa</span></div>
         </div>
       </div>
     </div>
@@ -34,18 +40,19 @@
     </div>
     <div id="gameover-screen" class="screen hidden">
       <div class="menu-content">
-        <h2>GAME OVER</h2>
+        <h2 class="glitch-title" data-text="GAME OVER">GAME OVER</h2>
         <p id="final-score" class="score-display">Puntuación: 0</p>
-        <p id="final-wave" class="score-display">Oleada: 0</p>
-        <button id="continue-button" class="menu-button">VOLVER A INTENTAR</button>
+        <p id="final-wave" class="score-display small">Oleada: 0</p>
+        <p id="gameover-record" class="record-badge">¡NUEVO RÉCORD!</p>
+        <button id="continue-button" class="menu-button primary">VOLVER A INTENTAR</button>
         <button id="gameover-menu-button" class="menu-button">MENÚ</button>
       </div>
     </div>
     <div id="victory-screen" class="screen hidden">
       <div class="menu-content">
-        <h2>VICTORIA</h2>
+        <h2 class="victory-title">VICTORIA</h2>
         <p id="victory-score" class="score-display">Puntuación: 0</p>
-        <button id="victory-continue-button" class="menu-button">CONTINUAR</button>
+        <button id="victory-continue-button" class="menu-button primary">CONTINUAR</button>
       </div>
     </div>
     <div id="damage-overlay" class="damage-flash hidden"></div>
@@ -55,6 +62,7 @@
     <div id="engage-text">ENGAGE</div>
     <div id="lives-display"></div>
     <div id="vignette-overlay"></div>
+    <div id="announcer"></div>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>

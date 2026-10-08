@@ -2,13 +2,31 @@
 
 import * as THREE from 'three';
 import { WeaponKind } from './WeaponConfig';
+import { getSoftParticleTexture } from '../fx/softTexture';
+
+// Shared geometries: every shot used to allocate (and upload) a new cylinder.
+const _laserGeoCache = new Map<string, THREE.BufferGeometry>();
+function laserGeometry(radius: number, length: number): THREE.BufferGeometry {
+  const key = `${radius}:${length}`;
+  let geo = _laserGeoCache.get(key);
+  if (!geo) {
+    geo = new THREE.CapsuleGeometry(radius, length, 3, 8);
+    geo.rotateX(Math.PI / 2);
+    _laserGeoCache.set(key, geo);
+  }
+  return geo;
+}
+let _bombGeo: THREE.BufferGeometry | null = null;
+function bombGeometry(): THREE.BufferGeometry {
+  return _bombGeo ??= new THREE.SphereGeometry(0.45, 16, 12);
+}
+const _ringGeo = new THREE.TorusGeometry(1.1, 0.18, 8, 24);
 
 export class Projectile {
   private mesh: THREE.Mesh;
+  private glow: THREE.Mesh;     // soft outer halo around the laser core
   private bombRing: THREE.Mesh; // charged energy ring for bombs
-  private bombLight: THREE.SpotLight | null = null;
-  private bombPointLight: THREE.PointLight | null = null;
-  private _lightsAttached = false;
+  private bombHalo: THREE.Sprite;
   private static readonly _scratchStep = new THREE.Vector3();
   private _velocity = new THREE.Vector3();
   private _damage = 10;
@@ -25,53 +43,41 @@ export class Projectile {
   private _fuse = -1; // < 0 = no fuse; > 0 = countdown to auto-explode
 
   constructor() {
-    const geo = new THREE.CylinderGeometry(0.18, 0.18, 3.0, 6);
-    geo.rotateX(Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x4488ff,
-      transparent: true, opacity: 0.7,
+      color: 0xffffff,
+      transparent: true, opacity: 1,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
-    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh = new THREE.Mesh(laserGeometry(0.18, 3.0), mat);
     this.mesh.visible = false;
     this.mesh.renderOrder = 999;
 
+    this.glow = new THREE.Mesh(laserGeometry(0.18, 3.0), new THREE.MeshBasicMaterial({
+      color: 0x4488ff, transparent: true, opacity: 0.55,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    this.glow.scale.set(2.6, 2.6, 1.15);
+    this.glow.renderOrder = 998;
+    this.mesh.add(this.glow);
+
     // Charged energy ring for bombs — a bright torus around the core that
     // reads as a circle of powerful, glowing mass.
-    const ringGeo = new THREE.TorusGeometry(1.1, 0.18, 8, 24);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0xffffff, transparent: true, opacity: 0.95,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
-    this.bombRing = new THREE.Mesh(ringGeo, ringMat);
+    this.bombRing = new THREE.Mesh(_ringGeo, ringMat);
     this.bombRing.visible = false;
     this.bombRing.renderOrder = 997;
     this.mesh.add(this.bombRing);
-  }
 
-  // Create bomb lights lazily — only when a bomb is actually fired.
-  // This avoids 160+ dynamic lights sitting in the pool doing nothing.
-  private ensureBombLights(): void {
-    if (this._lightsAttached) return;
-    this._lightsAttached = true;
-
-    const spotLight = new THREE.SpotLight(0xffffff, 25000.0);
-    spotLight.position.set(0, 0, 0);
-    spotLight.target.position.set(0, 0, 10);
-    spotLight.angle = Math.PI / 1.8;
-    spotLight.penumbra = 0.8;
-    spotLight.distance = 120;
-    spotLight.decay = 0.8;
-    this.mesh.add(spotLight);
-    this.mesh.add(spotLight.target);
-    this.bombLight = spotLight;
-
-    const pointLight = new THREE.PointLight(0xffffff, 8000.0);
-    pointLight.position.set(0, 0, 0);
-    pointLight.distance = 60;
-    pointLight.decay = 1.0;
-    this.mesh.add(pointLight);
-    this.bombPointLight = pointLight;
+    this.bombHalo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: getSoftParticleTexture(), color: 0xffeeaa, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    this.bombHalo.scale.setScalar(7);
+    this.bombHalo.visible = false;
+    this.mesh.add(this.bombHalo);
   }
 
   get object3D(): THREE.Mesh { return this.mesh; }
@@ -99,28 +105,27 @@ export class Projectile {
     this._fuse = -1;
     this._maxLifetime = kind === 'BOMB' ? 5 : 3;
 
-    const oldGeo = this.mesh.geometry;
     if (kind === 'BOMB') {
-      this.mesh.geometry = new THREE.SphereGeometry(radius * 1.5, 12, 12);
+      this.mesh.geometry = bombGeometry();
+      this.glow.visible = false;
       this.bombRing.visible = true;
       this.bombRing.scale.setScalar(1.5);
-      this.ensureBombLights();
-      if (this.bombLight) this.bombLight.visible = true;
-      if (this.bombPointLight) this.bombPointLight.visible = true;
+      this.bombHalo.visible = true;
+      this.mesh.quaternion.identity();
     } else {
-      const geo = new THREE.CylinderGeometry(radius, radius, length, 6);
-      geo.rotateX(Math.PI / 2);
+      const geo = laserGeometry(radius, length);
       this.mesh.geometry = geo;
+      this.glow.geometry = geo;
+      this.glow.visible = true;
+      (this.glow.material as THREE.MeshBasicMaterial).color.setHex(color);
       this.bombRing.visible = false;
-      if (this.bombLight) this.bombLight.visible = false;
-      if (this.bombPointLight) this.bombPointLight.visible = false;
+      this.bombHalo.visible = false;
     }
-    oldGeo.dispose();
 
     this.mesh.position.copy(position);
     this._prevPosition.copy(position);
     this._velocity.copy(direction).multiplyScalar(speed);
-    (this.mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
+    (this.mesh.material as THREE.MeshBasicMaterial).color.setHex(kind === 'BOMB' ? 0xffffff : 0xe8f4ff);
     this.mesh.visible = true;
 
     if (kind === 'LASER' && this._velocity.length() > 0.01) {
@@ -150,18 +155,20 @@ export class Projectile {
       this.bombRing.scale.setScalar(pulse);
       this.bombRing.rotation.z += dt * 4;
       this.bombRing.rotation.x += dt * 2;
+      this.bombHalo.scale.setScalar(6 + Math.sin(this._lifetime * 18) * 1.5);
     }
 
     if (this._lifetime >= this._maxLifetime) this.deactivate();
   }
 
-  explode(): void { this._exploded = true; this._active = false; this.mesh.visible = false; this.bombRing.visible = false; if (this.bombLight) this.bombLight.visible = false; if (this.bombPointLight) this.bombPointLight.visible = false; }
-  deactivate(): void { this._active = false; this.mesh.visible = false; this.bombRing.visible = false; if (this.bombLight) this.bombLight.visible = false; if (this.bombPointLight) this.bombPointLight.visible = false; }
+  explode(): void { this._exploded = true; this.deactivate(); }
+  deactivate(): void { this._active = false; this.mesh.visible = false; this.bombRing.visible = false; this.bombHalo.visible = false; }
 
   dispose(): void {
-    this.mesh.geometry.dispose();
+    // Geometries are shared module-level caches; only free materials here.
     (this.mesh.material as THREE.Material).dispose();
-    this.bombRing.geometry.dispose();
+    (this.glow.material as THREE.Material).dispose();
     (this.bombRing.material as THREE.Material).dispose();
+    (this.bombHalo.material as THREE.Material).dispose();
   }
 }

@@ -6,12 +6,43 @@ import { EventBus } from '../core/EventBus';
 import { GameEvent } from '../types/events';
 import { PlayerShipMeshFactory } from './PlayerShipMeshFactory';
 import { FoxTail } from './FoxTail';
+import { getSoftParticleTexture } from '../fx/softTexture';
+
+const ROLL_DURATION = 0.55;
+const ROLL_COOLDOWN = 0.75;
+
+// Fresnel energy bubble: invisible at the center, glowing at the rim.
+const shieldVertex = /* glsl */ `
+  varying vec3 vNormalV;
+  varying vec3 vViewDir;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vNormalV = normalize(normalMatrix * normal);
+    vViewDir = normalize(-mv.xyz);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const shieldFragment = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uAlpha;
+  uniform float uTime;
+  varying vec3 vNormalV;
+  varying vec3 vViewDir;
+  void main() {
+    float f = pow(1.0 - abs(dot(vNormalV, vViewDir)), 2.2);
+    float bands = 0.75 + 0.25 * sin(vNormalV.y * 40.0 + uTime * 12.0);
+    gl_FragColor = vec4(uColor * (f * 2.2 * bands), f * uAlpha);
+  }
+`;
 
 export class PlayerShip {
   private group: THREE.Group;
-  private fuselage: THREE.Mesh;
-  private engineGlow: THREE.Mesh;
   private foxTail: FoxTail;
+  private model: THREE.Object3D | null = null;
+  private engineFlare: THREE.Sprite;
+  private shieldBubble: THREE.Mesh;
+  private shieldMat: THREE.ShaderMaterial;
+  private _shieldFx = 0;
   private _health: number;
   private _shields: number;
   private _maxShields: number;
@@ -19,6 +50,7 @@ export class PlayerShip {
   private _invincibilityTimer = 0;
   private _disposed = false;
   private eventBus: EventBus;
+  private _time = 0;
 
   // Starfox-style banking: ship rolls into lateral turns and pitches
   // slightly with vertical input. Lerped toward targets each frame.
@@ -29,6 +61,12 @@ export class PlayerShip {
   private _baseQuat = new THREE.Quaternion();
   private _tmpQuat = new THREE.Quaternion();
   private _euler = new THREE.Euler();
+
+  // Barrel roll
+  private _rollTimer = 0;
+  private _rollDir = 1;
+  private _rollCooldown = 0;
+  private _boost = 0;
 
   // Exposed for camera parallax and collision.
   private _screenX = 0;
@@ -44,21 +82,44 @@ export class PlayerShip {
 
     const mesh = PlayerShipMeshFactory.create();
     this.group = mesh.group;
-    this.fuselage = mesh.fuselage;
-    this.engineGlow = mesh.engineGlow;
     this.foxTail = mesh.foxTail;
     scene.add(this.group);
 
+    // Afterburner flare at the engine nozzle (re-anchored once the GLB loads).
+    this.engineFlare = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: getSoftParticleTexture(), color: 0x66eeff, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    this.engineFlare.position.set(0, 0, -1.5);
+    this.engineFlare.scale.setScalar(1.6);
+    this.engineFlare.renderOrder = 990;
+    this.group.add(this.engineFlare);
+
+    this.shieldMat = new THREE.ShaderMaterial({
+      vertexShader: shieldVertex,
+      fragmentShader: shieldFragment,
+      uniforms: {
+        uColor: { value: new THREE.Color(0x44ddff) },
+        uAlpha: { value: 0 },
+        uTime: { value: 0 },
+      },
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    });
+    this.shieldBubble = new THREE.Mesh(new THREE.SphereGeometry(3.2, 32, 20), this.shieldMat);
+    this.shieldBubble.scale.set(1.25, 0.7, 1.1);
+    this.shieldBubble.visible = false;
+    this.shieldBubble.renderOrder = 995;
+    this.group.add(this.shieldBubble);
+
     // Try to swap in the external GLB model. If it loads, replace the
     // procedural ship's meshes with the GLB (keeping the fox tail + glow).
-    this.loadGLBModel(scene);
+    this.loadGLBModel();
   }
 
-  private async loadGLBModel(scene: THREE.Scene): Promise<void> {
+  private async loadGLBModel(): Promise<void> {
     const glb = await PlayerShipMeshFactory.loadGLB();
     if (!glb || this._disposed) return;
 
-    // Find the actual mesh inside the GLB scene and rot
     glb.traverse((c) => {
       if (c instanceof THREE.Mesh) {
         c.rotation.order = 'XYZ';
@@ -80,13 +141,13 @@ export class PlayerShip {
       }
     });
 
-    // Remove the procedural ship meshes (keep the fox tail, which is a child
-    // of the group and should stay attached to the new model's rear).
-    const keep = new Set<THREE.Object3D>([this.foxTail.pointsObject]);
+    // Remove only the procedural hull meshes. Lights stay attached (removing
+    // them changes the scene light count → every lit shader recompiles).
+    const keep = new Set<THREE.Object3D>([this.foxTail.pointsObject, this.engineFlare, this.shieldBubble]);
     const toRemove: THREE.Object3D[] = [];
-    this.group.traverse((c) => {
-      if (c !== this.group && !keep.has(c)) toRemove.push(c);
-    });
+    for (const c of this.group.children) {
+      if (c instanceof THREE.Mesh && !keep.has(c)) toRemove.push(c);
+    }
     for (const c of toRemove) {
       this.group.remove(c);
       if (c instanceof THREE.Mesh) {
@@ -97,6 +158,23 @@ export class PlayerShip {
 
     // Attach the GLB model to the group (inherits position/rotation/banking).
     this.group.add(glb);
+    this.model = glb;
+
+    // Anchor the afterburner to the rear of the real model.
+    const prevQuat = this.group.quaternion.clone();
+    const prevPos = this.group.position.clone();
+    this.group.quaternion.identity();
+    this.group.position.set(0, 0, 0);
+    this.group.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(glb);
+    this.group.quaternion.copy(prevQuat);
+    this.group.position.copy(prevPos);
+    if (!box.isEmpty()) {
+      const c = box.getCenter(new THREE.Vector3());
+      this.engineFlare.position.set(c.x, c.y, box.min.z + 0.2);
+      const size = box.getSize(new THREE.Vector3());
+      this.shieldBubble.scale.set(size.x / 5.2 + 0.4, size.y / 5.2 + 0.35, size.z / 5.2 + 0.4);
+    }
   }
 
   get position(): THREE.Vector3 { return this.group.position; }
@@ -106,6 +184,9 @@ export class PlayerShip {
   get screenY(): number { return this._screenY; }
   get screenVelocityX(): number { return this._screenVelocityX; }
   get screenVelocityY(): number { return this._screenVelocityY; }
+  get isRolling(): boolean { return this._rollTimer > 0; }
+  get isInvincible(): boolean { return this._invincible; }
+  get object3D(): THREE.Group { return this.group; }
 
   setVisible(v: boolean): void { this.group.visible = v; }
 
@@ -142,6 +223,27 @@ export class PlayerShip {
     this._pitchTarget = THREE.MathUtils.clamp(vertical * 0.35, -0.35, 0.35);
   }
 
+  /** Start a barrel roll (dir -1 = left, 1 = right). Returns false on cooldown. */
+  barrelRoll(dir: number): boolean {
+    if (this._rollTimer > 0 || this._rollCooldown > 0) return false;
+    this._rollDir = dir >= 0 ? 1 : -1;
+    this._rollTimer = ROLL_DURATION;
+    this._rollCooldown = ROLL_COOLDOWN;
+    this.pulseShield(0x66ffff, 0.6);
+    return true;
+  }
+
+  /** 0..1 afterburner intensity (visual only). */
+  setBoost(amount: number): void {
+    this._boost = amount;
+  }
+
+  /** Flash the fresnel shield bubble. */
+  pulseShield(color = 0x44ddff, strength = 1): void {
+    this.shieldMat.uniforms.uColor.value.setHex(color);
+    this._shieldFx = Math.max(this._shieldFx, strength);
+  }
+
   takeDamage(amount: number): boolean {
     if (this._invincible) return false;
     if (this._shields > 0) {
@@ -149,48 +251,82 @@ export class PlayerShip {
       this.eventBus.emit(GameEvent.PLAYER_SHIELD_LOST, { shields: this._shields });
       this._invincible = true;
       this._invincibilityTimer = PLAYER.INVINCIBILITY_TIME * 0.5;
+      this.pulseShield(0x44ddff, 1.2);
       return false;
     }
     this._health = Math.max(0, this._health - amount);
     this.eventBus.emit(GameEvent.PLAYER_DAMAGED, { amount, health: this._health, shields: this._shields });
     this._invincible = true;
     this._invincibilityTimer = PLAYER.INVINCIBILITY_TIME;
+    this.pulseShield(0xff3344, 0.8);
     if (this._health <= 0) { this.eventBus.emit(GameEvent.PLAYER_DEATH, {}); return true; }
     return false;
   }
 
+  /** Grant temporary invulnerability (respawn / ENGAGE). */
+  grantInvincibility(seconds: number): void {
+    this._invincible = true;
+    this._invincibilityTimer = Math.max(this._invincibilityTimer, seconds);
+  }
+
+  private setHullVisible(v: boolean): void {
+    if (this.model) { this.model.visible = v; return; }
+    for (const c of this.group.children) {
+      if (c instanceof THREE.Mesh && c !== this.shieldBubble) c.visible = v;
+    }
+  }
+
   update(dt: number): void {
+    this._time += dt;
     if (this._invincible) {
       this._invincibilityTimer -= dt;
       if (this._invincibilityTimer <= 0) this._invincible = false;
-      const flash = Math.floor(this._invincibilityTimer * 10) % 2 === 0;
-      if (this.fuselage) {
-        const mat = this.fuselage.material as THREE.MeshStandardMaterial | THREE.MeshPhongMaterial;
-        if ('emissiveIntensity' in mat) mat.emissiveIntensity = flash ? 0.8 : 0.15;
-      }
-    } else if (this.fuselage) {
-      const mat = this.fuselage.material as THREE.MeshStandardMaterial | THREE.MeshPhongMaterial;
-      if ('emissiveIntensity' in mat) mat.emissiveIntensity = 0.15;
+      // Fast blink while invulnerable; always restore when it ends.
+      this.setHullVisible(!this._invincible || Math.floor(this._invincibilityTimer * 14) % 2 === 0);
+    } else {
+      this.setHullVisible(true);
     }
-    if (this.engineGlow) {
-      const pulse = Math.sin(performance.now() * 0.01) * 0.2 + 0.6;
-      (this.engineGlow.material as THREE.MeshBasicMaterial).opacity = pulse;
-    }
+
+    // Engine flare: idle flicker + afterburner swell.
+    const flicker = 0.85 + Math.sin(this._time * 60) * 0.08 + Math.random() * 0.07;
+    this.engineFlare.scale.setScalar((0.6 + this._boost * 2.2) * flicker);
+    (this.engineFlare.material as THREE.SpriteMaterial).color.setHex(this._boost > 0.3 ? 0x88eeff : 0x2a8fbf);
+    this.foxTail.setIntensity(1 + this._boost * 1.6);
     this.foxTail.update(dt);
+
+    // Shield bubble
+    if (this._shieldFx > 0) {
+      this._shieldFx = Math.max(0, this._shieldFx - dt * 2.2);
+      this.shieldBubble.visible = true;
+      this.shieldMat.uniforms.uAlpha.value = this._shieldFx;
+      this.shieldMat.uniforms.uTime.value = this._time;
+    } else {
+      this.shieldBubble.visible = false;
+    }
+
+    // Barrel roll timers
+    this._rollCooldown = Math.max(0, this._rollCooldown - dt);
+    let rollAngle = 0;
+    if (this._rollTimer > 0) {
+      this._rollTimer = Math.max(0, this._rollTimer - dt);
+      const t = 1 - this._rollTimer / ROLL_DURATION;
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      rollAngle = -this._rollDir * eased * Math.PI * 2;
+    }
 
     // Apply banking: lerp current bank/pitch toward targets, then compose
     // onto the base orientation (which already faces the aim direction).
-    this._bank = THREE.MathUtils.lerp(this._bank, this._bankTarget, 5 * dt);
-    this._pitch = THREE.MathUtils.lerp(this._pitch, this._pitchTarget, 5 * dt);
-    if (Math.abs(this._bank) > 0.001 || Math.abs(this._pitch) > 0.001) {
-      this._euler.set(this._pitch, 0, this._bank, 'YXZ');
-      this._tmpQuat.setFromEuler(this._euler);
-      this.group.quaternion.copy(this._baseQuat).multiply(this._tmpQuat);
-    }
+    const k = 1 - Math.exp(-6 * dt);
+    this._bank = THREE.MathUtils.lerp(this._bank, this._bankTarget, k);
+    this._pitch = THREE.MathUtils.lerp(this._pitch, this._pitchTarget, k);
+    this._euler.set(this._pitch, 0, this._bank + rollAngle, 'YXZ');
+    this._tmpQuat.setFromEuler(this._euler);
+    this.group.quaternion.copy(this._baseQuat).multiply(this._tmpQuat);
   }
 
   heal(amount: number): void {
     this._health = Math.min(PLAYER.MAX_HEALTH, this._health + amount);
+    this.pulseShield(0x44ff99, 0.9);
   }
 
   reset(): void {
@@ -202,7 +338,12 @@ export class PlayerShip {
     this._screenY = 0;
     this._screenVelocityX = 0;
     this._screenVelocityY = 0;
+    this._rollTimer = 0;
+    this._rollCooldown = 0;
+    this._boost = 0;
+    this._shieldFx = 0;
     this.group.visible = true;
+    this.setHullVisible(true);
     this.foxTail.setVisible(true);
   }
 
@@ -213,5 +354,6 @@ export class PlayerShip {
     this.group.traverse((c) => {
       if (c instanceof THREE.Mesh) { c.geometry.dispose(); (c.material as THREE.Material).dispose(); }
     });
+    (this.engineFlare.material as THREE.Material).dispose();
   }
 }

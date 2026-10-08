@@ -5,6 +5,7 @@
 // scene-wide fog. This reads as a volumetric, ethereal landscape.
 
 import * as THREE from 'three';
+import { getSoftParticleTexture } from '../fx/softTexture';
 import type { TerrainType } from '../levels/LevelData';
 import { terrainElevation } from './TerrainManager';
 import { fbm } from '../utils/noise';
@@ -54,7 +55,7 @@ export class ParticleTerrain {
     this.camera = camera;
 
     this.material = new THREE.PointsMaterial({
-      size: STYLES.space.particleSize,
+      map: getSoftParticleTexture(), size: STYLES.space.particleSize,
       vertexColors: true,
       transparent: true,
       opacity: 1.0,

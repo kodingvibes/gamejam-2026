@@ -32,12 +32,16 @@ export class EnemyMeshFactory {
     return new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
   }
 
+  // Engine glow: an additive hot core + soft halo. No real lights — dozens of
+  // pooled enemies toggling PointLights forced a full shader recompile every
+  // spawn/death (light count is part of every lit material's program key).
   private static addEngineGlow(g: THREE.Group, x: number, y: number, z: number, color: number, r: number): void {
-    const light = new THREE.PointLight(color, 400.0);
-    light.position.set(x, y, z);
-    light.distance = r * 60;
-    light.decay = 1.5;
-    g.add(light);
+    const core = new THREE.Mesh(new THREE.SphereGeometry(r * 1.4, 10, 8), this.glow(0xffffff, 0.9));
+    core.position.set(x, y, z);
+    g.add(core);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(r * 3.2, 12, 10), this.glow(color, 0.45));
+    halo.position.set(x, y, z);
+    g.add(halo);
   }
 
   // Helper: create detailed wing with ribbing
@@ -59,11 +63,7 @@ export class EnemyMeshFactory {
     ring.rotation.x = Math.PI / 2;
     g.add(ring);
 
-    const coreLight = new THREE.PointLight(color, 300.0);
-    coreLight.position.set(0, 0, -size * 0.4);
-    coreLight.distance = size * 60;
-    coreLight.decay = 1.5;
-    g.add(coreLight);
+    this.addEngineGlow(g, 0, 0, size * 0.85, color, size * 0.14);
 
     return g;
   }

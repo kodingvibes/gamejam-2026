@@ -22,6 +22,9 @@ function distPointToSegment(point: THREE.Vector3, segStart: THREE.Vector3, segEn
 }
 
 export class CollisionSystem {
+  /** Fired whenever a player shot connects (crosshair hit-marker, sfx). */
+  onHit: ((position: THREE.Vector3, killed: boolean) => void) | null = null;
+
   constructor(
     private enemyManager: EnemyManager,
     private weaponSystem: WeaponSystem,
@@ -79,8 +82,9 @@ export class CollisionSystem {
 
   private handleLaser(proj: Projectile, enemy: Enemy): void {
     // ENEMY_DESTROYED event owns the explosion + sfx + drops (see GameEventBinder)
-    enemy.takeDamage(proj.damage);
-    this.hitSpark.spawn(proj.position.clone(), 0xffff44);
+    const killed = enemy.takeDamage(proj.damage);
+    this.hitSpark.spawn(proj.position.clone(), 0x88ccff, 0.8);
+    this.onHit?.(proj.position, killed);
     this.weaponSystem.releaseProjectile(proj);
   }
 
@@ -92,8 +96,9 @@ export class CollisionSystem {
       const dist = distPointToSegment(boss.position, proj.prevPosition, proj.position);
       if (dist < hitRadius) {
         // BOSS_DESTROYED event owns the explosion + sfx (see GameEventBinder)
-        boss.takeDamage(proj.damage);
-        this.hitSpark.spawn(proj.position.clone(), 0xff4444);
+        const killed = boss.takeDamage(proj.damage);
+        this.hitSpark.spawn(proj.position.clone(), 0xffaa66, 0.9);
+        this.onHit?.(proj.position, killed);
         this.weaponSystem.releaseProjectile(proj);
         break;
       }

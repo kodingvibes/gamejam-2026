@@ -1,6 +1,7 @@
 // ─── Starfield: procedural stars with parallax layers ─────────────────────
 
 import * as THREE from 'three';
+import { getSoftParticleTexture } from './softTexture';
 import { FX } from '../types/config';
 
 const STAR_COLORS = [
@@ -38,7 +39,7 @@ export class Starfield {
       geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
       const points = new THREE.Points(geo, new THREE.PointsMaterial({
-        size: cfg.size, vertexColors: true, transparent: true, opacity: cfg.opacity,
+        map: getSoftParticleTexture(), size: cfg.size, vertexColors: true, transparent: true, opacity: cfg.opacity,
         blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
       }));
       points.frustumCulled = false;
@@ -106,7 +107,7 @@ export class Starfield {
       geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       const points = new THREE.Points(geo, new THREE.PointsMaterial({
-        size: lcfg.size, vertexColors: true, transparent: true, opacity: lcfg.opacity,
+        map: getSoftParticleTexture(), size: lcfg.size, vertexColors: true, transparent: true, opacity: lcfg.opacity,
         blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
       }));
       points.frustumCulled = false;

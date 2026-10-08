@@ -1,7 +1,11 @@
 // ─── Input Mapper ────────────────────────────────────────────────────────────
-// WASD + Arrow keys = ship movement (both control the ship)
-// Arrow keys also offset the crosshair relative to the ship center
-// Space = fire lasers, Z = bomb, Escape = pause
+// Keyboard: WASD / arrows move · SPACE fire · Z bomb · SHIFT boost · Q/E roll
+// Mouse:    pointer steers · left click fire · right click bomb
+// Gamepad:  left stick move · A/RT fire · B bomb · LT/X boost · LB/RB roll
+//
+// The active scheme (mouse vs keys/pad) follows the LAST device the player
+// touched. The old version relied on window mouseenter/mouseleave, which
+// browsers don't fire reliably, so mouse steering often never engaged.
 
 import * as THREE from 'three';
 
@@ -9,6 +13,9 @@ export interface InputState {
   fire: boolean;
   bomb: boolean;
   pause: boolean;
+  boost: boolean;
+  rollLeft: boolean;
+  rollRight: boolean;
   horizontalAxis: number;
   verticalAxis: number;
   aimX: number;
@@ -16,78 +23,97 @@ export interface InputState {
   // Normalised screen-space position of the ship reticule / move target.
   moveX: number;
   moveY: number;
+  /** True when the mouse pointer is the active steering device. */
+  mouseMode: boolean;
 }
 
-// How fast the keyboard reticule drifts from the ship center (NDC units/sec).
-const AIM_SPEED = 1.4;
+const MOVE_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyW', 'KeyA', 'KeyS', 'KeyD'];
+const PREVENT_KEYS = [...MOVE_KEYS, 'Space', 'ShiftLeft', 'ShiftRight', 'KeyQ', 'KeyE', 'KeyZ'];
 
 export class InputMapper {
   private keys: Set<string> = new Set();
+  // Keys pressed since the last update() — so a tap shorter than one frame
+  // (common at low frame rates) still triggers edge actions.
+  private tapped: Set<string> = new Set();
   private _state: InputState = {
-    fire: false, bomb: false, pause: false,
-    horizontalAxis: 0, verticalAxis: 0,
-    aimX: 0, aimY: 0,
-    moveX: 0, moveY: 0,
+    fire: false, bomb: false, pause: false, boost: false, rollLeft: false, rollRight: false,
+    horizontalAxis: 0, verticalAxis: 0, aimX: 0, aimY: 0, moveX: 0, moveY: 0, mouseMode: false,
   };
-  private pauseConsumed = false;
-  private bombConsumed = false;
-  private _aimX = 0;
-  private _aimY = 0;
-  private _lastTime = 0;
+  private prev = { pause: false, bomb: false, rollL: false, rollR: false };
   private _mouseX = 0;
   private _mouseY = 0;
   private _mouseDown = false;
-  // Last non-zero axis from keyboard, so mixing keys gives predictable movement.
-  private _lastAxisX = 0;
-  private _lastAxisY = 0;
+  private _rightDown = false;
+  private _mouseMode = false;
+  private _lastMouse = { x: -1, y: -1 };
 
   constructor() {
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
-    this.onMouseEnter = this.onMouseEnter.bind(this);
-    this.onMouseLeave = this.onMouseLeave.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
+    this.onBlur = this.onBlur.bind(this);
+    this.onContextMenu = this.onContextMenu.bind(this);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('mousemove', this.onMouseMove);
-    window.addEventListener('mouseenter', this.onMouseEnter);
-    window.addEventListener('mouseleave', this.onMouseLeave);
     window.addEventListener('mousedown', this.onMouseDown);
     window.addEventListener('mouseup', this.onMouseUp);
+    window.addEventListener('blur', this.onBlur);
+    window.addEventListener('contextmenu', this.onContextMenu);
+  }
+
+  private setMouseMode(on: boolean): void {
+    if (this._mouseMode === on) return;
+    this._mouseMode = on;
+    document.body.classList.toggle('cursor-hidden', on);
   }
 
   private onKeyDown(e: KeyboardEvent): void {
     this.keys.add(e.code);
-    if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) {
+    if (!e.repeat) this.tapped.add(e.code);
+    if (MOVE_KEYS.includes(e.code)) this.setMouseMode(false);
+    if (PREVENT_KEYS.includes(e.code) && document.body.classList.contains('in-game')) {
       e.preventDefault();
     }
   }
   private onKeyUp(e: KeyboardEvent): void { this.keys.delete(e.code); }
+  private onBlur(): void {
+    // Releasing focus would otherwise leave keys "stuck" down.
+    this.keys.clear();
+    this.tapped.clear();
+    this._mouseDown = false;
+    this._rightDown = false;
+  }
   private getKey(key: string): boolean { return this.keys.has(key); }
+  private getTap(key: string): boolean { return this.tapped.has(key); }
 
   private onMouseMove(e: MouseEvent): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
     this._mouseX = (e.clientX / w) * 2 - 1;
     this._mouseY = -((e.clientY / h) * 2 - 1);
-  }
-
-  private onMouseEnter(): void {
-    document.body.classList.add('cursor-hidden');
-  }
-
-  private onMouseLeave(): void {
-    document.body.classList.remove('cursor-hidden');
+    // Ignore tiny jitter so resting a hand on the mouse doesn't steal control.
+    const dx = Math.abs(e.clientX - this._lastMouse.x);
+    const dy = Math.abs(e.clientY - this._lastMouse.y);
+    if (this._lastMouse.x >= 0 && dx + dy > 3) this.setMouseMode(true);
+    this._lastMouse.x = e.clientX;
+    this._lastMouse.y = e.clientY;
   }
 
   private onMouseDown(e: MouseEvent): void {
     if (e.button === 0) this._mouseDown = true;
+    if (e.button === 2) this._rightDown = true;
   }
 
   private onMouseUp(e: MouseEvent): void {
     if (e.button === 0) this._mouseDown = false;
+    if (e.button === 2) this._rightDown = false;
+  }
+
+  private onContextMenu(e: MouseEvent): void {
+    if (document.body.classList.contains('in-game')) e.preventDefault();
   }
 
   update(): InputState {
@@ -96,54 +122,59 @@ export class InputMapper {
     const up = this.getKey('KeyW') || this.getKey('ArrowUp');
     const down = this.getKey('KeyS') || this.getKey('ArrowDown');
 
-    const fire = this.getKey('Space') || this._mouseDown;
-    const pause = this.getKey('Escape') && !this.pauseConsumed;
-    const bomb = this.getKey('KeyZ') && !this.bombConsumed;
+    let fire = this.getKey('Space') || this._mouseDown;
+    let bombHeld = this.getKey('KeyZ') || this._rightDown;
+    let pauseHeld = this.getKey('Escape') || this.getKey('KeyP');
+    let boost = this.getKey('ShiftLeft') || this.getKey('ShiftRight');
+    let rollL = this.getKey('KeyQ');
+    let rollR = this.getKey('KeyE');
 
-    this.pauseConsumed = this.getKey('Escape');
-    this.bombConsumed = this.getKey('KeyZ');
+    let horizontalAxis = (right ? 1 : 0) - (left ? 1 : 0);
+    let verticalAxis = (up ? 1 : 0) - (down ? 1 : 0);
 
-    let horizontalAxis = 0;
-    let verticalAxis = 0;
-    if (left) horizontalAxis -= 1;
-    if (right) horizontalAxis += 1;
-    if (up) verticalAxis += 1;
-    if (down) verticalAxis -= 1;
-
-    // Cancel opposites (left+right = 0, up+down = 0) so mixed keys don't amplify.
-    horizontalAxis = THREE.MathUtils.clamp(horizontalAxis, -1, 1);
-    verticalAxis = THREE.MathUtils.clamp(verticalAxis, -1, 1);
-
-    // ── Gamepad overrides movement axes if present ──
-    const gamepads = navigator.getGamepads();
+    // ── Gamepad ──
+    const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
     for (let i = 0; i < gamepads.length; i++) {
       const gp = gamepads[i];
-      if (gp) {
-        const deadzone = 0.2;
-        const lx = Math.abs(gp.axes[0]) > deadzone ? gp.axes[0] : 0;
-        const ly = Math.abs(gp.axes[1]) > deadzone ? gp.axes[1] : 0;
-        if (Math.abs(lx) > Math.abs(horizontalAxis)) horizontalAxis = lx;
-        if (Math.abs(ly) > Math.abs(verticalAxis)) verticalAxis = ly;
-        break;
-      }
+      if (!gp) continue;
+      const deadzone = 0.2;
+      const lx = Math.abs(gp.axes[0] ?? 0) > deadzone ? gp.axes[0] : 0;
+      // Gamepad Y is +down; game vertical axis is +up.
+      const ly = Math.abs(gp.axes[1] ?? 0) > deadzone ? -gp.axes[1] : 0;
+      if (lx !== 0 || ly !== 0) this.setMouseMode(false);
+      if (Math.abs(lx) > Math.abs(horizontalAxis)) horizontalAxis = lx;
+      if (Math.abs(ly) > Math.abs(verticalAxis)) verticalAxis = ly;
+      const b = (n: number) => !!gp.buttons[n]?.pressed;
+      fire = fire || b(0) || b(7);
+      bombHeld = bombHeld || b(1);
+      boost = boost || b(2) || b(6);
+      rollL = rollL || b(4);
+      rollR = rollR || b(5);
+      pauseHeld = pauseHeld || b(9);
+      break;
     }
 
-    const cursorHidden = document.body.classList.contains('cursor-hidden');
-
-    // Normalised move target (-1..1). Mouse always wins when visible;
-    // otherwise keyboard / gamepad axes build a relative target handled by the
-    // PlayerShip / Game loop.
-    const moveX = cursorHidden ? this._mouseX : 0;
-    const moveY = cursorHidden ? this._mouseY : 0;
+    // Edge-triggered actions.
+    const pause = (pauseHeld && !this.prev.pause) || this.getTap('Escape') || this.getTap('KeyP');
+    const bomb = (bombHeld && !this.prev.bomb) || this.getTap('KeyZ');
+    const rollLeft = (rollL && !this.prev.rollL) || this.getTap('KeyQ');
+    const rollRight = (rollR && !this.prev.rollR) || this.getTap('KeyE');
+    fire = fire || this.getTap('Space');
+    this.tapped.clear();
+    this.prev.pause = pauseHeld;
+    this.prev.bomb = bombHeld;
+    this.prev.rollL = rollL;
+    this.prev.rollR = rollR;
 
     this._state = {
-      fire, bomb, pause,
-      horizontalAxis: Math.max(-1, Math.min(1, horizontalAxis)),
-      verticalAxis: Math.max(-1, Math.min(1, verticalAxis)),
+      fire, bomb, pause, boost, rollLeft, rollRight,
+      horizontalAxis: THREE.MathUtils.clamp(horizontalAxis, -1, 1),
+      verticalAxis: THREE.MathUtils.clamp(verticalAxis, -1, 1),
       aimX: 0,
       aimY: 0,
-      moveX,
-      moveY,
+      moveX: this._mouseMode ? this._mouseX : 0,
+      moveY: this._mouseMode ? this._mouseY : 0,
+      mouseMode: this._mouseMode,
     };
     return this._state;
   }
@@ -155,9 +186,9 @@ export class InputMapper {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('mousemove', this.onMouseMove);
-    window.removeEventListener('mouseenter', this.onMouseEnter);
-    window.removeEventListener('mouseleave', this.onMouseLeave);
     window.removeEventListener('mousedown', this.onMouseDown);
     window.removeEventListener('mouseup', this.onMouseUp);
+    window.removeEventListener('blur', this.onBlur);
+    window.removeEventListener('contextmenu', this.onContextMenu);
   }
 }

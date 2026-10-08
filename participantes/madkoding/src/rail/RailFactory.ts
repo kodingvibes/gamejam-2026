@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 import type { LevelRailConfig } from '../levels/LevelData';
+import { RAIL } from '../types/config';
 
 export class RailFactory {
   static create(segments = 40, length = 1200): THREE.Vector3[] {
@@ -16,11 +17,12 @@ export class RailFactory {
     return points;
   }
 
+  /** Stage path + boss arena tail (RAIL.ARENA_EXTENSION × the stage length). */
   static createFromConfig(config: LevelRailConfig): THREE.Vector3[] {
-    const segments = 40;
+    const segments = Math.round(40 * RAIL.ARENA_EXTENSION);
     const points: THREE.Vector3[] = [];
     for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
+      const t = (i / segments) * RAIL.ARENA_EXTENSION;
       const z = -t * config.length;
       const x = Math.sin(t * Math.PI * config.frequencyX) * config.amplitudeX;
       const y = Math.sin(t * Math.PI * config.frequencyY) * config.amplitudeY;

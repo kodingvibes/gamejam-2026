@@ -116,13 +116,17 @@ export class BossBase {
     }
 
     // Check phase transition
-    const phaseThreshold = this._totalPhases - this._currentPhase;
     const healthRatio = this._health / this._maxHealth;
-    const expectedPhase = Math.max(1, Math.ceil(healthRatio * this._totalPhases));
+    // Phase 1 at full health, escalating as health drops (the old formula
+    // was inverted: the very first hit jumped straight to the enraged phase).
+    const expectedPhase = THREE.MathUtils.clamp(
+      this._totalPhases - Math.ceil(healthRatio * this._totalPhases) + 1, 1, this._totalPhases,
+    );
 
     if (expectedPhase !== this._currentPhase) {
       this._currentPhase = expectedPhase;
       this.onPhaseChange(this._currentPhase);
+      this.eventBus.emit(GameEvent.BOSS_PHASE, { phase: this._currentPhase });
     }
 
     this.eventBus.emit(GameEvent.BOSS_DAMAGED, {
@@ -143,7 +147,7 @@ export class BossBase {
     this.eventBus.emit(GameEvent.BOSS_DESTROYED, { score: this._score });
   }
 
-  update(dt: number, playerPos: THREE.Vector3): void {
+  update(dt: number, playerPos: THREE.Vector3, _anchor?: THREE.Vector3): void {
     if (!this._active) return;
     this._age += dt;
   }

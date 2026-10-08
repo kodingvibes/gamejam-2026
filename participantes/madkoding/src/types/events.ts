@@ -20,6 +20,7 @@ export enum GameEvent {
   BOSS_SPAWNED = 'boss:spawned',
   BOSS_DAMAGED = 'boss:damaged',
   BOSS_DESTROYED = 'boss:destroyed',
+  BOSS_PHASE = 'boss:phase',
 
   // Waves
   WAVE_START = 'wave:start',
@@ -46,6 +47,7 @@ export type EventPayloads = {
   [GameEvent.BOSS_SPAWNED]: { name: string; maxHealth: number };
   [GameEvent.BOSS_DAMAGED]: { health: number; maxHealth: number };
   [GameEvent.BOSS_DESTROYED]: { score: number };
+  [GameEvent.BOSS_PHASE]: { phase: number };
 
   [GameEvent.WAVE_START]: { wave: number; totalWaves: number };
 

@@ -1,6 +1,7 @@
 // ─── Nebulae: colored cloud clusters that recycle relative to player ────────
 
 import * as THREE from 'three';
+import { getSoftParticleTexture } from './softTexture';
 
 const NEBULA_COLORS = [0x4422aa, 0xaa2266, 0x226699];
 
@@ -41,7 +42,7 @@ export class Nebulae {
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const points = new THREE.Points(geo, new THREE.PointsMaterial({
-      size: 3, vertexColors: true, transparent: true, opacity: 0.18,
+      map: getSoftParticleTexture(), size: 3, vertexColors: true, transparent: true, opacity: 0.18,
       blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
     }));
     points.frustumCulled = false;

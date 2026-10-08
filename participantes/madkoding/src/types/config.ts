@@ -14,6 +14,13 @@ export const RAIL = {
   VERTICAL_LERP_SPEED: 5,
   RAIL_SPEED: 12,
   RAIL_SPEED_BOSS: 6,
+  // Boost multiplier while SHIFT is held (drains the boost meter).
+  BOOST_MULT: 1.9,
+  // Extra rail generated past the stage length so the boss fight never runs
+  // out of track (the rail used to clamp at 1 and freeze the whole scene).
+  ARENA_EXTENSION: 1.6,
+  // Boss appears when the ship reaches this fraction of the STAGE length.
+  BOSS_AT: 0.92,
 } as const;
 
 export const CAMERA = {

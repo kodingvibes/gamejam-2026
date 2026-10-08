@@ -18,7 +18,9 @@ export class ScreenEffects {
 
     this.eventBus.on(GameEvent.PLAYER_DAMAGED, () => this.flashDamage());
     this.eventBus.on(GameEvent.PLAYER_SHIELD_LOST, () => this.flashDamage());
-    this.eventBus.on(GameEvent.ENEMY_FIRED, () => this.flashEnemyFire());
+    // (Full-screen blue pulse on every enemy shot removed — with dozens of
+    // shots per second it read as constant flicker. The post pass handles
+    // impact feedback now.)
   }
 
   flashDamage(): void {

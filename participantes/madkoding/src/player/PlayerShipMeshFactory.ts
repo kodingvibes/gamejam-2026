@@ -111,7 +111,7 @@ export class PlayerShipMeshFactory {
     }
 
     // Engine SpotLight: cyan thruster glow at the rear, casting backward.
-    const engineLight = new THREE.SpotLight(0x55eeff, 7000.0);
+    const engineLight = new THREE.SpotLight(0x55eeff, 160.0);
     engineLight.position.set(0, 0, -2.1);
     engineLight.target.position.set(0, 0, -8);
     engineLight.angle = Math.PI / 2.2;

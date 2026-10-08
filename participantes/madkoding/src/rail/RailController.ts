@@ -23,6 +23,7 @@ export class RailController {
   private _scratchRight = new THREE.Vector3();
   private _scratchUp = new THREE.Vector3();
   private _scratchPos = new THREE.Vector3();
+  private static readonly _worldUp = new THREE.Vector3(0, 1, 0);
 
   constructor(waypoints: THREE.Vector3[], speed = RAIL.RAIL_SPEED) {
     this.curve = new THREE.CatmullRomCurve3(waypoints);
@@ -38,9 +39,18 @@ export class RailController {
     this._speed = value;
   }
 
-  /** Rail travel progress, 0 (start) → 1 (end of the stage path). */
+  /** Rail travel progress, 0 (start) → 1 (end of the stage path + arena). */
   get progress(): number {
     return this._progress;
+  }
+
+  /** Progress through the STAGE portion only (boss arena excluded). */
+  get stageProgress(): number {
+    return Math.min(1, this._progress * RAIL.ARENA_EXTENSION);
+  }
+
+  get length(): number {
+    return this.totalLength;
   }
 
   /** The underlying Catmull-Rom curve, so environment systems (e.g. tunnel
@@ -75,11 +85,13 @@ export class RailController {
   }
 
   private _getPosition(offsetX: number, offsetY: number): RailPosition {
-    const point = this._scratchPoint.copy(this.curve.getPoint(this._progress));
-    const tangent = this._scratchTangent.copy(this.curve.getTangent(this._progress)).normalize();
+    // Arc-length parameterisation: progress is distance-based, so use the
+    // *At variants for constant speed along the whole curve.
+    const point = this.curve.getPointAt(this._progress, this._scratchPoint);
+    const tangent = this.curve.getTangentAt(this._progress, this._scratchTangent).normalize();
 
     // Calculate right vector from tangent and world up
-    const worldUp = new THREE.Vector3(0, 1, 0);
+    const worldUp = RailController._worldUp;
     const right = this._scratchRight.crossVectors(tangent, worldUp).normalize();
     const up = this._scratchUp.crossVectors(right, tangent).normalize();
 

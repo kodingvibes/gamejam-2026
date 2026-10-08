@@ -7,6 +7,7 @@ import { EnemyManager } from '../enemies/EnemyManager';
 import { BossMothership } from '../enemies/bosses/BossMothership';
 import { WaveDefinition, EnemyType, PatternType } from './WaveDefinition';
 import { LEVELS, type LevelDefinition } from '../levels/LevelData';
+import { RAIL } from '../types/config';
 
 interface FormationEnemy {
   type: EnemyType;
@@ -53,6 +54,9 @@ export class WaveManager {
   private _tunnelRadius = 0;
   // Stops formation spawning once the boss stage begins.
   private _spawningStopped = false;
+  private _curveLength = 1;
+  private _railProgress = 0;
+  private _bossAnchor = new THREE.Vector3();
 
   constructor(scene: THREE.Scene, enemyManager: EnemyManager) {
     this.scene = scene;
@@ -76,6 +80,7 @@ export class WaveManager {
   /** Provide the rail curve + tunnel radius so formations spawn on the path. */
   setRail(curve: THREE.CatmullRomCurve3 | null, tunnelRadius = 0): void {
     this._curve = curve;
+    this._curveLength = curve ? curve.getLength() : 1;
     this._tunnelRadius = tunnelRadius;
   }
 
@@ -172,9 +177,14 @@ export class WaveManager {
     return enemies;
   }
 
-  update(dt: number, playerPos: THREE.Vector3, railProgress = 0): void {
+  /**
+   * @param stageProgress 0..1 through the stage (boss arena excluded)
+   * @param railProgress  0..1 through the whole generated rail
+   */
+  update(dt: number, playerPos: THREE.Vector3, stageProgress = 0, railProgress = 0): void {
     if (this._levelComplete) return;
     this._lastPlayerZ = playerPos.z;
+    this._railProgress = railProgress;
 
     // Loop formations until the boss stage so the rail is never empty.
     if (!this._bossActive && !this._spawningStopped && !this._engageMode && this._formationIndex >= this._formations.length) {
@@ -235,14 +245,19 @@ export class WaveManager {
     // when the waves are exhausted. The player must survive the whole run to
     // reach the boss. Once the rail is nearly done, stop spawning formations
     // and bring out the boss.
-    if (!this._bossActive && railProgress >= 0.92) {
+    if (!this._bossActive && stageProgress >= RAIL.BOSS_AT) {
       this._spawningStopped = true;
-      this.startBoss();
+      // Never drop the boss in during the ENGAGE countdown after a respawn.
+      if (!this._engageMode) this.startBoss();
     }
 
     // Boss logic — attack volleys are fired by the orchestrator when canAttack
-    if (this._bossActive && this.boss && this.boss.active) {
-      this.boss.update(dt, playerPos);
+    // The boss usually dies from player shots resolved AFTER this update, so
+    // completion must be checked even when it's already inactive (the old
+    // check lived inside `if (boss.active)` and could never fire — levels
+    // never advanced past the boss).
+    if (this._bossActive && this.boss) {
+      if (this.boss.active) this.boss.update(dt, playerPos, this.computeBossAnchor(45));
       if (!this.boss.active) {
         this._bossActive = false;
         this._levelComplete = true;
@@ -263,19 +278,22 @@ export class WaveManager {
 
     if (this._curve) {
       // Approximate the player's progress by projecting its Z onto the curve.
-      const prog = this._progressAtZ(playerPos.z);
-      const ahead = THREE.MathUtils.randFloat(0.03, 0.06); // 3-6% of the path ahead
+      const prog = this._railProgress;
+      // 36-72 world units ahead along the path (distance-based, so the longer
+      // boss-arena rail doesn't push spawns further away).
+      const ahead = THREE.MathUtils.randFloat(36, 72) / this._curveLength;
       const base = this._curve.getPointAt(Math.min(1, prog + ahead));
-      // Lateral offset within the tunnel radius (or a generous open-space band).
+      // Lateral offset RELATIVE to the rail (the old code clamped absolute
+      // world X/Y, so on a winding rail formations spawned off the path).
       const maxOff = this._tunnelRadius > 0 ? this._tunnelRadius * 0.6 : 14;
       spawnPos = new THREE.Vector3(
-        THREE.MathUtils.clamp(base.x + e.offsetX + THREE.MathUtils.randFloat(-3, 3), -maxOff, maxOff),
-        THREE.MathUtils.clamp(base.y + e.offsetY + THREE.MathUtils.randFloat(-3, 3), -maxOff * 0.7, maxOff * 0.7),
+        base.x + THREE.MathUtils.clamp(e.offsetX + THREE.MathUtils.randFloat(-3, 3), -maxOff, maxOff),
+        base.y + THREE.MathUtils.clamp(e.offsetY + THREE.MathUtils.randFloat(-3, 3), -maxOff * 0.7, maxOff * 0.7),
         base.z,
       );
       // Origin = a bit further ahead on the same curve so enemies emerge flying
       // toward the player along the path.
-      origin = this._curve.getPointAt(Math.min(1, prog + ahead + 0.04));
+      origin = this._curve.getPointAt(Math.min(1, prog + ahead + 48 / this._curveLength));
     } else {
       const dirs = [
         { x: 0, y: 1, z: -1 }, { x: 0, y: -1, z: -1 },
@@ -311,14 +329,18 @@ export class WaveManager {
     return (lo + hi) / 2;
   }
 
+  // Point on the rail `ahead` world units in front of the ship.
+  private computeBossAnchor(ahead: number): THREE.Vector3 {
+    if (!this._curve) return this._bossAnchor.set(0, 0, this._lastPlayerZ - ahead);
+    const t = Math.min(1, this._railProgress + ahead / this._curveLength);
+    return this._curve.getPointAt(t, this._bossAnchor);
+  }
+
   private startBoss(): void {
     if (!this.boss) return;
     this._bossActive = true;
-    const bossPos = new THREE.Vector3(0, 0, this._lastPlayerZ - 60);
-    this.boss.init(bossPos);
-    this.eventBus.emit(GameEvent.BOSS_SPAWNED, {
-      name: this.boss.name, maxHealth: this.boss.maxHealth,
-    });
+    // Spawn far down the rail; the boss swoops in to its standoff distance.
+    this.boss.init(this.computeBossAnchor(170).clone().add(new THREE.Vector3(0, 18, 0)));
   }
 
   reset(): void {
