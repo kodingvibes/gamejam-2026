@@ -211,6 +211,8 @@ export class PostProcessingPipeline {
   }
 
   /** Enable/disable ambient occlusion (also used by the adaptive fallback). */
+  get aoEnabled(): boolean { return this.aoPass.enabled; }
+
   setAO(on: boolean): void {
     this.aoPass.enabled = on;
   }

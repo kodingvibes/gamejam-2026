@@ -21,6 +21,24 @@ import {
 } from './TerrainField';
 import { getRailShape } from './RailShape';
 import { LiquidSurfaces } from './LiquidSurfaces';
+import { buildChunkProps, disposeChunkProps, tickProps } from './TerrainProps';
+import { liquidAt } from './TerrainField';
+
+const PROP_RANGE = 1150;       // chunks closer than this get trees/rocks/buildings
+
+// Shore shader (injected into the terrain material): animated foam bands and
+// wet sand along water, a glowing molten rim along lava.
+const SHORE_VERT_HEAD = 'attribute float aShore;\nvarying float vShore;\nvarying vec3 vShoreW;\n';
+const SHORE_FRAG_HEAD = `uniform float uShoreTime;
+uniform float uLiquid;
+varying float vShore;
+varying vec3 vShoreW;
+float shoreHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float shoreNoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(shoreHash(i), shoreHash(i + vec2(1, 0)), u.x), mix(shoreHash(i + vec2(0, 1)), shoreHash(i + vec2(1, 1)), u.x), u.y);
+}
+`;
 
 const CHUNK = 200;
 const HI_SEGS = 48;
@@ -40,6 +58,7 @@ export const FOG_FAR = 2050;
 
 interface Chunk {
   mesh: THREE.Mesh;
+  props: THREE.Group | null;
   ix: number;
   iz: number;
   lod: number;   // 0 = none built
@@ -74,7 +93,31 @@ export class TerrainManager {
       envMapIntensity: 0.35,
     });
     this.liquids = new LiquidSurfaces(scene);
+    this.material.onBeforeCompile = (sh) => {
+      sh.uniforms.uShoreTime = this.shoreTime;
+      sh.uniforms.uLiquid = this.liquidMode;
+      sh.vertexShader = SHORE_VERT_HEAD + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        vShore = aShore;
+        vShoreW = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+      sh.fragmentShader = SHORE_FRAG_HEAD + sh.fragmentShader
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          if (uLiquid > 0.5 && uLiquid < 1.5 && vShore > 0.01) {
+            float n = shoreNoise(vShoreW.xz * 0.4 + vec2(uShoreTime * 0.5, uShoreTime * 0.3));
+            float wave = 0.5 + 0.5 * sin(vShore * 14.0 - uShoreTime * 2.4 + n * 4.0);
+            float foam = smoothstep(0.6, 0.97, vShore) * smoothstep(0.45, 0.85, wave * 0.55 + n * 0.6);
+            diffuseColor.rgb *= 1.0 - 0.35 * smoothstep(0.25, 0.75, vShore);
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.95, 0.97, 1.0), foam * 0.9);
+          }`)
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+          if (uLiquid > 1.5 && vShore > 0.01) {
+            float n = shoreNoise(vShoreW.xz * 0.25 + uShoreTime * 0.2);
+            totalEmissiveRadiance += vec3(1.0, 0.33, 0.05) * pow(vShore, 2.2) * (1.3 + 0.9 * sin(uShoreTime * 2.2 + n * 7.0));
+          }`);
+    };
   }
+
+  private shoreTime = { value: 0 };
+  private liquidMode = { value: 0 };
 
   /** Switch biome. Rebuilds every chunk synchronously (hidden by the warp). */
   apply(terrain: TerrainType): void {
@@ -92,6 +135,7 @@ export class TerrainManager {
 
     for (const c of this.chunks.values()) this.releaseChunk(c);
     this.chunks.clear();
+    this.liquidMode.value = p?.liquid === 'water' ? 1 : p?.liquid === 'lava' ? 2 : 0;
 
     if (p?.liquid) {
       const level = -p.clearance + p.liquidOffset;
@@ -147,6 +191,7 @@ export class TerrainManager {
   }
 
   private releaseChunk(c: Chunk): void {
+    if (c.props) { this.scene.remove(c.props); disposeChunkProps(c.props); c.props = null; }
     this.scene.remove(c.mesh);
     this.pool.push(c.mesh);
   }
@@ -161,6 +206,7 @@ export class TerrainManager {
     const nor = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const uv = new Float32Array(count * 2);
+    const shore = new Float32Array(count);
 
     // Height grid padded by `pad` cells on every side: the first ring gives
     // seamless normals, the wider apron feeds the baked ambient occlusion.
@@ -215,6 +261,8 @@ export class TerrainManager {
         col[k * 3 + 2] = this._col.b * ao;
         uv[k * 2] = x / 14;
         uv[k * 2 + 1] = z / 14;
+        const lv = liquidAt(z);
+        shore[k] = lv === null ? 0 : Math.max(0, 1 - Math.abs(h - lv) / 3.5);
       }
     }
 
@@ -235,6 +283,7 @@ export class TerrainManager {
     g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    g.setAttribute('aShore', new THREE.BufferAttribute(shore, 1));
     g.setIndex(new THREE.BufferAttribute(idx, 1));
     g.computeBoundingSphere();
     mesh.geometry = g;
@@ -245,6 +294,8 @@ export class TerrainManager {
   update(_dt: number, _playerPos: THREE.Vector3, camPos?: THREE.Vector3): void {
     const cam = camPos ?? _playerPos;
     this.liquids.update(_dt, cam);
+    this.shoreTime.value += _dt;
+    tickProps(_dt);
     if (!this.visible || !hasGround()) return;
 
     const cix = Math.floor(cam.x / CHUNK);
@@ -273,12 +324,17 @@ export class TerrainManager {
       if (c && c.lod === lod) continue;
       if (performance.now() > deadline) continue;
       if (!c) {
-        c = { mesh: this.acquireMesh(), ix, iz, lod: 0 };
+        c = { mesh: this.acquireMesh(), ix, iz, lod: 0, props: null };
         this.chunks.set(key, c);
         this.scene.add(c.mesh);
       }
       this.buildGeometry(c.mesh, ix, iz, lod === 2 ? HI_SEGS : LO_SEGS);
       c.lod = lod;
+      if (c.props) { this.scene.remove(c.props); disposeChunkProps(c.props); c.props = null; }
+      if (dist < PROP_RANGE) {
+        c.props = buildChunkProps(this.current, ix * CHUNK, iz * CHUNK, CHUNK, lod === 2);
+        if (c.props) { c.props.visible = this.visible; this.scene.add(c.props); }
+      }
     }
 
     for (const [key, c] of this.chunks) {
@@ -372,7 +428,7 @@ export class TerrainManager {
   /** Show/hide the entire terrain (space-like biomes have no ground). */
   setVisible(visible: boolean): void {
     this.visible = visible;
-    for (const c of this.chunks.values()) c.mesh.visible = visible;
+    for (const c of this.chunks.values()) { c.mesh.visible = visible; if (c.props) c.props.visible = visible; }
     for (const w of this.walls) w.visible = visible;
     this.liquids.setVisible(visible);
   }

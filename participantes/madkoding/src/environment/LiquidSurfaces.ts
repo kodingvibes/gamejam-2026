@@ -20,7 +20,9 @@ const COMMON_VERT = /* glsl */ `
   uniform float uTime;
   uniform vec4 uRail;      // ampY, freqY*PI, length, levelOffset
   uniform float uHeave;
+  uniform mat4 uReflMatrix;
   varying vec3 vWorld;
+  varying vec4 vReflUv;
   float railY(float z) {
     float t = -z / uRail.z;
     float f = uRail.y;
@@ -31,6 +33,7 @@ const COMMON_VERT = /* glsl */ `
     w.y = railY(w.z) + uRail.w;
     w.y += (sin(w.x * 0.05 + uTime * 0.9) + sin(w.z * 0.043 - uTime * 0.7)) * uHeave;
     vWorld = w.xyz;
+    vReflUv = uReflMatrix * w;
     gl_Position = projectionMatrix * viewMatrix * w;
   }
 `;
@@ -54,7 +57,10 @@ const WATER_FRAG = /* glsl */ `
   uniform vec3 uSunColor;
   uniform float uChop;
   uniform float uGlint;
+  uniform sampler2D uRefl;
+  uniform float uHasRefl;
   varying vec3 vWorld;
+  varying vec4 vReflUv;
   ${FOG}
 
   // Analytic normal from a sum of directional waves.
@@ -99,6 +105,14 @@ const WATER_FRAG = /* glsl */ `
     vec3 body = mix(uShallow, uDeep, smoothstep(0.0, 0.6, 1.0 - V.y));
     // Reflection tinted by the water itself; capped so the body colour shows.
     vec3 refl = sky * mix(vec3(1.0), uShallow * 3.0, 0.35);
+    // Planar reflection of the world (ships, mountains, obstacles), rippled
+    // by the wave normals. Alpha marks where something solid was reflected.
+    if (uHasRefl > 0.5) {
+      vec4 ruv = vReflUv;
+      ruv.xy += N.xz * 6.0 * (1.0 - smoothstep(60.0, 900.0, dist));
+      vec4 world = texture2DProj(uRefl, ruv);
+      refl = mix(refl, world.rgb * mix(vec3(1.0), uShallow * 2.5, 0.25), world.a * 0.9);
+    }
     vec3 col = mix(body, refl * 0.9, min(fres, 0.72));
 
     // Tight sun glint (strength per biome: none under storm clouds).
@@ -172,7 +186,23 @@ export class LiquidSurfaces {
   private lavaMat: THREE.ShaderMaterial;
   private kind: 'water' | 'lava' | null = null;
 
+  // ── Planar reflection (water only) ──
+  private reflMatrix = new THREE.Matrix4();
+  private reflTarget: THREE.WebGLRenderTarget;
+  private mirrorCam = new THREE.PerspectiveCamera();
+  reflections = true;
+  private _rp = new THREE.Vector3();
+  private _cp = new THREE.Vector3();
+  private _rot = new THREE.Matrix4();
+  private _look = new THREE.Vector3();
+  private _n = new THREE.Vector3(0, 1, 0);
+  private _plane = new THREE.Plane();
+  private _clip = new THREE.Vector4();
+  private _q = new THREE.Vector4();
+  private _clear = new THREE.Color();
+
   constructor(private scene: THREE.Scene) {
+    this.reflTarget = new THREE.WebGLRenderTarget(512, 256, { type: THREE.HalfFloatType });
     const geo = new THREE.PlaneGeometry(SIZE, SIZE, 24, 160);
     geo.rotateX(-Math.PI / 2);
     const common = () => ({
@@ -181,6 +211,7 @@ export class LiquidSurfaces {
       uHeave: { value: 0.25 },
       uFogColor: { value: new THREE.Color(0x88aacc) },
       uFog: { value: new THREE.Vector2(250, 2000) },
+      uReflMatrix: { value: this.reflMatrix },
     });
     this.waterMat = new THREE.ShaderMaterial({
       vertexShader: COMMON_VERT,
@@ -195,6 +226,8 @@ export class LiquidSurfaces {
         uSunColor: { value: new THREE.Color(1, 0.95, 0.85) },
         uChop: { value: 1.0 },
         uGlint: { value: 1.2 },
+        uRefl: { value: null },
+        uHasRefl: { value: 0 },
       },
     });
     this.lavaMat = new THREE.ShaderMaterial({
@@ -231,6 +264,74 @@ export class LiquidSurfaces {
     }
   }
 
+  get waterVisible(): boolean {
+    return this.kind === 'water' && this.mesh.visible;
+  }
+
+  /**
+   * Render the mirrored scene into the reflection target (call before the
+   * main render). `level` is the water height under the camera. Objects in
+   * `hide` (sky sphere etc.) are skipped so they fall back to the sky lookup.
+   */
+  renderReflection(renderer: THREE.WebGLRenderer, camera: THREE.PerspectiveCamera, level: number, hide: THREE.Object3D[]): void {
+    const u = this.waterMat.uniforms;
+    if (!this.waterVisible || !this.reflections) { u.uHasRefl.value = 0; return; }
+    camera.updateMatrixWorld();
+    this._cp.setFromMatrixPosition(camera.matrixWorld);
+    if (this._cp.y < level + 0.2) { u.uHasRefl.value = 0; return; }
+
+    // Size: half the drawing buffer.
+    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+    const w = Math.max(64, Math.floor(size.x / 2)), h = Math.max(64, Math.floor(size.y / 2));
+    if (this.reflTarget.width !== w || this.reflTarget.height !== h) this.reflTarget.setSize(w, h);
+
+    // Mirror camera: position, look point and up vector reflected across
+    // the horizontal plane y = level.
+    this._rp.set(0, level, 0);
+    this._rot.extractRotation(camera.matrixWorld);
+    const mc = this.mirrorCam;
+    mc.position.set(this._cp.x, 2 * level - this._cp.y, this._cp.z);
+    this._look.set(0, 0, -1).applyMatrix4(this._rot).add(this._cp);
+    this._look.y = 2 * level - this._look.y;
+    mc.up.set(0, 1, 0).applyMatrix4(this._rot).reflect(this._n);
+    mc.lookAt(this._look);
+    mc.near = camera.near; mc.far = camera.far;
+    mc.updateMatrixWorld();
+    mc.projectionMatrix.copy(camera.projectionMatrix);
+
+    this.reflMatrix.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
+    this.reflMatrix.multiply(mc.projectionMatrix).multiply(mc.matrixWorldInverse);
+
+    // Oblique near plane = the water surface (nothing below it reflects).
+    this._plane.setFromNormalAndCoplanarPoint(this._n, this._rp).applyMatrix4(mc.matrixWorldInverse);
+    this._clip.set(this._plane.normal.x, this._plane.normal.y, this._plane.normal.z, this._plane.constant);
+    const pm = mc.projectionMatrix.elements;
+    this._q.set((Math.sign(this._clip.x) + pm[8]) / pm[0], (Math.sign(this._clip.y) + pm[9]) / pm[5], -1, (1 + pm[10]) / pm[14]);
+    this._clip.multiplyScalar(2 / this._clip.dot(this._q));
+    pm[2] = this._clip.x; pm[6] = this._clip.y; pm[10] = this._clip.z + 1 - 0.003; pm[14] = this._clip.w;
+
+    const vis = hide.map(o => o.visible);
+    hide.forEach(o => { o.visible = false; });
+    this.mesh.visible = false;
+    const prevTarget = renderer.getRenderTarget();
+    const prevAuto = renderer.shadowMap.autoUpdate;
+    renderer.getClearColor(this._clear);
+    const prevAlpha = renderer.getClearAlpha();
+    renderer.shadowMap.autoUpdate = false;
+    renderer.setClearColor(0x000000, 0);
+    renderer.setRenderTarget(this.reflTarget);
+    renderer.clear();
+    renderer.render(this.scene, mc);
+    renderer.setRenderTarget(prevTarget);
+    renderer.setClearColor(this._clear, prevAlpha);
+    renderer.shadowMap.autoUpdate = prevAuto;
+    this.mesh.visible = true;
+    hide.forEach((o, i) => { o.visible = vis[i]; });
+
+    u.uRefl.value = this.reflTarget.texture;
+    u.uHasRefl.value = 1;
+  }
+
   setSky(tex: THREE.Texture | null): void {
     this.waterMat.uniforms.uSky.value = tex;
     this.waterMat.uniforms.uHasSky.value = tex ? 1 : 0;
@@ -255,6 +356,7 @@ export class LiquidSurfaces {
   }
 
   dispose(): void {
+    this.reflTarget.dispose();
     this.scene.remove(this.mesh);
     this.mesh.geometry.dispose();
     this.waterMat.dispose();

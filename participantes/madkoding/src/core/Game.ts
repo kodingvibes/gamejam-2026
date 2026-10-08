@@ -29,7 +29,8 @@ import { FxDirector } from '../fx/FxDirector';
 import { LavaEruptions } from '../environment/LavaEruptions';
 import { SpaceScenery } from '../environment/SpaceScenery';
 import { setRailShape } from '../environment/RailShape';
-import { hasGround } from '../environment/TerrainField';
+import { hasGround, liquidAt, getBiomeProfile } from '../environment/TerrainField';
+import { WaterWake } from '../environment/WaterWake';
 import { FOG_NEAR, FOG_FAR } from '../environment/TerrainManager';
 import { TerrainManager } from '../environment/TerrainManager';
 import { TerrainDecorations } from '../environment/TerrainDecorations';
@@ -85,6 +86,7 @@ export class Game {
   private terrainManager: TerrainManager;
   private terrainDecorations: TerrainDecorations;
   private skybox: Skybox;
+  private waterWake: WaterWake;
   private powerUpManager: PowerUpManager;
   private obstacleManager: ObstacleManager;
   private lifeManager: PlayerLifeManager;
@@ -169,6 +171,7 @@ export class Game {
     this.skybox = new Skybox(this.scene, this.cameraRig.camera3D);
     this.lavaEruptions = new LavaEruptions(this.scene);
     this.spaceScenery = new SpaceScenery(this.scene, this.cameraRig.camera3D);
+    this.waterWake = new WaterWake(this.scene);
     // Keep fog + water reflections in sync with the active sky photo.
     this.pmrem = new THREE.PMREMGenerator(this.renderer);
     this.skybox.onSkyChange = (tex, horizon) => {
@@ -525,6 +528,7 @@ export class Game {
     this.lavaEruptions.reset();
     this.lifeManager.reset();
     this.terrainManager.reset();
+    this.waterWake.reset();
     this.terrainDecorations.reset();
     this.offScreenIndicator.reset();
     this.announcer.clear();
@@ -585,6 +589,11 @@ export class Game {
     this.spaceScenery.update(ambientDt);
     this.updateSunShadows();
     this.fx.update(rawDt, state === GameState.PAUSED);
+    // Planar water reflection; follows the adaptive quality fallback.
+    const liquids = this.terrainManager.liquids;
+    liquids.reflections = this.postProcessing.aoEnabled;
+    const lv = hasGround() ? liquidAt(this.playerShip.position.z) : null;
+    if (lv !== null) liquids.renderReflection(this.renderer, this.cameraRig.camera3D, lv, [this.skybox.object, this.spaceScenery.object]);
     this.postProcessing.render(rawDt);
   };
 
@@ -836,6 +845,8 @@ export class Game {
     this.weaponSystem.update(dt, this.playerShip.position);
     this.backgroundShips.update(dt, this.playerShip.position);
     this.terrainManager.update(dt, this.playerShip.position, this.cameraRig.camera3D.position);
+    const shipP = this.playerShip.position;
+    this.waterWake.update(dt, shipP, hasGround() ? liquidAt(shipP.z) : null, getBiomeProfile()?.liquid === 'lava', this._speedMult);
     this.terrainDecorations.update(dt, this.playerShip.position);
     this.waveManager.corvettePositions = this.backgroundShips.positions;
     this.waveManager.update(dt, this.playerShip.position, this.railController.stageProgress, this.railController.progress);
@@ -1045,6 +1056,7 @@ export class Game {
     this.skybox.dispose();
     this.lavaEruptions.dispose();
     this.spaceScenery.dispose();
+    this.waterWake.dispose();
     this.powerUpManager.dispose();
     this.obstacleManager.dispose();
     this.audioManager.dispose();

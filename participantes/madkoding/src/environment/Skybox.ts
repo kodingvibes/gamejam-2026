@@ -122,6 +122,8 @@ export class Skybox {
     this.onSkyChange?.(tex, this.horizons[terrain] ?? null);
   }
 
+  /** The sky dome (excluded from planar reflections). */
+  get object(): THREE.Object3D { return this.mesh; }
   get texture(): THREE.Texture | null { return this.textures[this.current] ?? null; }
   get horizon(): THREE.Color | null { return this.horizons[this.current] ?? null; }
 

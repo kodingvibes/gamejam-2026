@@ -63,9 +63,20 @@ export function asteroidGeometry(variant: number): THREE.BufferGeometry {
   return geo;
 }
 
+// Per-variant bend (local X offset at the top, unit height). Curved spires
+// read as eroded rock instead of telephone poles.
+const SPIRE_BEND = [0, 0.35, -0.5, 0.7, -0.25, 0.55, -0.8, 0.15];
+export const SPIRE_VARIANTS = SPIRE_BEND.length;
+
+/** Local-space centre of a spire's (bent) axis at height t ∈ [0,1]. */
+export function spireAxis(variant: number, t: number, out: THREE.Vector3): THREE.Vector3 {
+  const b = SPIRE_BEND[variant % SPIRE_BEND.length];
+  return out.set(b * t * t, t, 0);
+}
+
 /**
- * Rock spire: a tapered, twisted column with noisy strata. Unit height
- * (base at y=0, top at y=1), radius ≈ 1 at the base; scale to fit.
+ * Rock spire: a tapered, twisted, gently bent column with noisy strata. Unit
+ * height (base at y=0, top at y=1), radius ≈ 1 at the base; scale to fit.
  */
 export function spireGeometry(variant: number): THREE.BufferGeometry {
   const key = `spire${variant}`;
@@ -86,7 +97,8 @@ export function spireGeometry(variant: number): THREE.BufferGeometry {
     const k = (0.75 + n * 0.55 + strata) * (1 - v.y * 0.15);
     const nx = (v.x * Math.cos(twist) - v.z * Math.sin(twist)) * k;
     const nz = (v.x * Math.sin(twist) + v.z * Math.cos(twist)) * k;
-    pos.setXYZ(i, r > 0.001 ? nx : 0, v.y, r > 0.001 ? nz : 0);
+    const bend = SPIRE_BEND[variant % SPIRE_BEND.length] * v.y * v.y;
+    pos.setXYZ(i, (r > 0.001 ? nx : 0) + bend, v.y, r > 0.001 ? nz : 0);
     const shade = 0.75 + n * 0.45 + strata * 3;
     colors[i * 3] = shade; colors[i * 3 + 1] = shade; colors[i * 3 + 2] = shade;
   }

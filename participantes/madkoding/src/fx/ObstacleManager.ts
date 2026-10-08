@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { PLAYER } from '../types/config';
 import type { TerrainType } from '../levels/LevelData';
 import { heightAt, liquidAt } from '../environment/TerrainField';
-import { asteroidGeometry, crystalGeometry, spireGeometry } from '../environment/RockGeometry';
+import { asteroidGeometry, crystalGeometry, spireGeometry, spireAxis, SPIRE_VARIANTS } from '../environment/RockGeometry';
 import { getSoftParticleTexture } from './softTexture';
 
 export interface RailFrameLike {
@@ -137,7 +137,7 @@ export class ObstacleManager {
 
   setConfig(config: { spawnInterval: number; minRadius: number; maxRadius: number }): void {
     // Level values were tuned for tiny pebbles; obstacles are now set pieces.
-    this.spawnInterval = Math.max(1.1, config.spawnInterval * 1.4);
+    this.spawnInterval = Math.max(1.6, config.spawnInterval * 2.0);
     this._minRadius = config.minRadius;
     this._maxRadius = config.maxRadius;
   }
@@ -166,8 +166,9 @@ export class ObstacleManager {
     this.time += dt;
     this.spawnTimer += dt;
     if (railAhead && this.spawnTimer >= this.spawnInterval) {
-      this.spawnTimer = 0;
-      this.spawnOne(railAhead(THREE.MathUtils.randFloat(190, 240)));
+      // Jittered cadence so obstacles never arrive like fence posts.
+      this.spawnTimer = -Math.random() * this.spawnInterval * 0.6;
+      this.spawnOne(railAhead(THREE.MathUtils.randFloat(200, 300)));
     }
 
     const push = new THREE.Vector3();
@@ -271,6 +272,56 @@ export class ObstacleManager {
     return f.position.clone().addScaledVector(f.right, lateral).addScaledVector(f.up, vertical);
   }
 
+  /**
+   * Pick a lateral offset that keeps clear of nearby obstacles: the best of
+   * several candidates by distance to anything within 110 u along the track,
+   * so there is always room to manoeuvre instead of walls of pillars.
+   */
+  private pickLateral(f: RailFrameLike, range: number, minGap = 16): number {
+    let best = 0, bestScore = -Infinity;
+    const p = new THREE.Vector3();
+    for (let k = 0; k < 10; k++) {
+      const lat = THREE.MathUtils.randFloatSpread(range * 2);
+      p.copy(f.position).addScaledVector(f.right, lat);
+      let nearest = Infinity;
+      for (const o of this.obstacles) {
+        if (!o.active) continue;
+        const dx = o.center.x - p.x, dz = o.center.z - p.z;
+        const along = Math.abs(dx * f.forward.x + dz * f.forward.z);
+        if (along > 110) continue;
+        const side = Math.abs(dx * f.right.x + dz * f.right.z);
+        // Far-along obstacles count less: they are a different "beat".
+        nearest = Math.min(nearest, side + along * 0.25);
+      }
+      const score = Math.min(nearest, 60) + Math.random() * 4;
+      if (score > bestScore) { bestScore = score; best = lat; }
+      if (nearest > minGap * 1.6) break;
+    }
+    return best;
+  }
+
+  /** Random lean (radians) around a random horizontal axis. */
+  private lean(mesh: THREE.Object3D, max: number): void {
+    const ang = Math.random() * Math.PI * 2;
+    const tilt = THREE.MathUtils.randFloat(max * 0.25, max);
+    mesh.rotation.set(Math.cos(ang) * tilt, Math.random() * Math.PI * 2, Math.sin(ang) * tilt, 'YXZ');
+  }
+
+  /** Capsules that follow a (bent, leaning) spire's real axis. */
+  private capsFromSpire(o: Obstacle, mesh: THREE.Mesh, variant: number, rad: number, taper = 0.45): void {
+    o.group.updateMatrixWorld(true);
+    const ts = [0, 0.35, 0.7, 0.95];
+    let prev: THREE.Vector3 | null = null;
+    for (let i = 0; i < ts.length; i++) {
+      const pt = spireAxis(variant, ts[i], new THREE.Vector3()).applyMatrix4(mesh.matrixWorld);
+      if (prev) {
+        const tm = (ts[i] + ts[i - 1]) / 2;
+        this.addCap(o, prev, pt, rad * 0.72 * (1 - taper * tm));
+      }
+      prev = pt;
+    }
+  }
+
   /** Ground (or liquid surface) under a world point. */
   private groundUnder(x: number, z: number): number {
     const g = heightAt(x, z);
@@ -283,14 +334,16 @@ export class ObstacleManager {
   }
 
   private makeSpire(o: Obstacle, f: RailFrameLike): void {
-    const p = this.lanePoint(f, THREE.MathUtils.randFloat(-11, 11));
+    const p = this.lanePoint(f, this.pickLateral(f, 17));
     const base = this.groundUnder(p.x, p.z) - 2;
-    const top = f.position.y + THREE.MathUtils.randFloat(7, 16);
-    const h = Math.max(6, top - base);
-    const rad = THREE.MathUtils.randFloat(1.8, 3.0);
-    const mesh = new THREE.Mesh(spireGeometry(Math.floor(Math.random() * 5)), this.mats.rock);
+    // Heights vary a lot: some stubs you hop over, some towers you go around.
+    const top = f.position.y + THREE.MathUtils.randFloat(-2, 18);
+    const h = Math.max(8, top - base);
+    const rad = THREE.MathUtils.randFloat(1.6, 3.2);
+    const variant = Math.floor(Math.random() * SPIRE_VARIANTS);
+    const mesh = new THREE.Mesh(spireGeometry(variant), this.mats.rock);
     mesh.scale.set(rad, h, rad);
-    mesh.rotation.y = Math.random() * Math.PI * 2;
+    this.lean(mesh, 0.32);
     o.group.add(mesh);
     o.group.position.set(p.x, base, p.z);
     o.kind = 'spire';
@@ -298,18 +351,20 @@ export class ObstacleManager {
     o.color = PALETTES[this.terrain].rock;
     o.size = rad * 2;
     o.center.set(p.x, base + h / 2, p.z);
-    this.addCap(o, new THREE.Vector3(p.x, base, p.z), new THREE.Vector3(p.x, base + h * 0.92, p.z), rad * 0.72);
+    this.capsFromSpire(o, mesh, variant, rad);
   }
 
   private makeStalactite(o: Obstacle, f: RailFrameLike): void {
-    const p = this.lanePoint(f, THREE.MathUtils.randFloat(-9, 9));
+    const p = this.lanePoint(f, this.pickLateral(f, 11, 12));
     const ceil = f.position.y + 18;
-    const tip = f.position.y + THREE.MathUtils.randFloat(-4, 3);
+    const tip = f.position.y + THREE.MathUtils.randFloat(-5, 4);
     const h = ceil - tip;
-    const rad = THREE.MathUtils.randFloat(1.6, 2.6);
-    const mesh = new THREE.Mesh(spireGeometry(Math.floor(Math.random() * 5)), this.mats.rock);
+    const rad = THREE.MathUtils.randFloat(1.5, 2.6);
+    const variant = Math.floor(Math.random() * SPIRE_VARIANTS);
+    const mesh = new THREE.Mesh(spireGeometry(variant), this.mats.rock);
     mesh.scale.set(rad, h, rad);
-    mesh.rotation.x = Math.PI;      // hang from the ceiling
+    this.lean(mesh, 0.22);
+    mesh.rotation.x += Math.PI;     // hang from the ceiling
     o.group.add(mesh);
     o.group.position.set(p.x, ceil, p.z);
     o.kind = 'stalactite';
@@ -317,31 +372,35 @@ export class ObstacleManager {
     o.color = PALETTES[this.terrain].rock;
     o.size = rad * 2;
     o.center.set(p.x, ceil - h / 2, p.z);
-    this.addCap(o, new THREE.Vector3(p.x, ceil, p.z), new THREE.Vector3(p.x, tip + 1, p.z), rad * 0.62);
+    this.capsFromSpire(o, mesh, variant, rad, 0.55);
   }
 
   private makeArch(o: Obstacle, f: RailFrameLike, metal: boolean): void {
-    const c = this.lanePoint(f, THREE.MathUtils.randFloat(-5, 5));
-    const gap = THREE.MathUtils.randFloat(7, 9.5);
-    const lintelY = f.position.y + THREE.MathUtils.randFloat(5, 8.5);
+    const c = this.lanePoint(f, this.pickLateral(f, 7, 20));
+    const gap = THREE.MathUtils.randFloat(8, 11);
+    // Uneven legs → a tilted lintel, like a natural rock arch.
+    const tiltY = THREE.MathUtils.randFloat(-2.5, 2.5);
+    const lintelY = f.position.y + THREE.MathUtils.randFloat(6, 9.5);
     const legR = 2.1;
     const mat = metal ? this.mats.metal : this.mats.rock;
     const legs: THREE.Vector3[] = [];
     for (const side of [-1, 1]) {
-      const lp = c.clone().addScaledVector(f.right, side * gap);
+      const lp = c.clone().addScaledVector(f.right, side * gap)
+        .addScaledVector(f.forward, THREE.MathUtils.randFloat(-3, 3));
       const base = this.groundUnder(lp.x, lp.z) - 2;
-      const h = lintelY + 2 - base;
-      const leg = new THREE.Mesh(spireGeometry(side > 0 ? 1 : 3), mat);
+      const legTop = lintelY + side * tiltY;
+      const h = legTop + 2 - base;
+      const leg = new THREE.Mesh(spireGeometry(side > 0 ? 0 : 7), mat);
       leg.scale.set(legR, h, legR);
       leg.position.set(lp.x - c.x, base - c.y, lp.z - c.z);
       o.group.add(leg);
-      this.addCap(o, new THREE.Vector3(lp.x, base, lp.z), new THREE.Vector3(lp.x, lintelY, lp.z), legR * 0.75);
-      legs.push(new THREE.Vector3(lp.x, lintelY, lp.z));
+      this.addCap(o, new THREE.Vector3(lp.x, base, lp.z), new THREE.Vector3(lp.x, legTop, lp.z), legR * 0.75);
+      legs.push(new THREE.Vector3(lp.x, legTop, lp.z));
     }
     // Lintel: a rock beam lying across both legs (pivot at the left leg top).
     const span = legs[0].distanceTo(legs[1]);
     const pivot = new THREE.Group();
-    const beam = new THREE.Mesh(metal ? BOX_GEO : spireGeometry(2), mat);
+    const beam = new THREE.Mesh(metal ? BOX_GEO : spireGeometry(0), mat);
     if (metal) {
       beam.scale.set(span + 3, 1.6, 2.2);
       beam.position.x = span / 2;
@@ -352,11 +411,13 @@ export class ObstacleManager {
     }
     pivot.add(beam);
     pivot.position.set(legs[0].x - c.x, lintelY + 0.8 - c.y, legs[0].z - c.z);
+    pivot.rotation.order = 'YZX';
     pivot.rotation.y = -Math.atan2(legs[1].z - legs[0].z, legs[1].x - legs[0].x);
+    pivot.rotation.z = Math.atan2(legs[1].y - legs[0].y, Math.hypot(legs[1].x - legs[0].x, legs[1].z - legs[0].z));
     o.group.add(pivot);
     const mid = legs[0].clone().add(legs[1]).multiplyScalar(0.5);
     o.group.position.copy(c);
-    this.addCap(o, legs[0].clone().setY(lintelY + 0.8), legs[1].clone().setY(lintelY + 0.8), 1.9);
+    this.addCap(o, legs[0].clone().setY(legs[0].y + 0.8), legs[1].clone().setY(legs[1].y + 0.8), 1.9);
     o.kind = 'arch';
     o.destructible = false;
     o.color = PALETTES[this.terrain].rock;
@@ -365,14 +426,14 @@ export class ObstacleManager {
   }
 
   private makeCrystal(o: Obstacle, f: RailFrameLike): void {
-    const p = this.lanePoint(f, THREE.MathUtils.randFloat(-9, 9));
+    const p = this.lanePoint(f, this.pickLateral(f, 14));
     const base = this.groundUnder(p.x, p.z) - 1;
-    const top = f.position.y + THREE.MathUtils.randFloat(1, 7);
+    const top = f.position.y + THREE.MathUtils.randFloat(-1, 7);
     const h = Math.max(5, top - base);
     const mesh = new THREE.Mesh(crystalGeometry(Math.floor(Math.random() * 3)), this.mats.crystal);
     const w = THREE.MathUtils.randFloat(3.2, 4.2);
     mesh.scale.set(w, h, w);
-    mesh.rotation.y = Math.random() * Math.PI;
+    this.lean(mesh, 0.25);
     o.group.add(mesh);
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
       map: this.glowTex, color: PALETTES[this.terrain].crystal, transparent: true, opacity: 0.28,
@@ -387,13 +448,15 @@ export class ObstacleManager {
     o.color = PALETTES[this.terrain].crystal;
     o.size = 2.5;
     o.center.set(p.x, base + h * 0.6, p.z);
-    this.addCap(o, new THREE.Vector3(p.x, base, p.z), new THREE.Vector3(p.x, base + h * 0.95, p.z), 1.6);
+    o.group.updateMatrixWorld(true);
+    const tipPt = new THREE.Vector3(0, 0.95, 0).applyMatrix4(mesh.matrixWorld);
+    this.addCap(o, new THREE.Vector3(p.x, base, p.z), tipPt, 1.6);
   }
 
   private makePylon(o: Obstacle, f: RailFrameLike): void {
-    const p = this.lanePoint(f, THREE.MathUtils.randFloat(-10, 10));
+    const p = this.lanePoint(f, this.pickLateral(f, 15));
     const base = this.groundUnder(p.x, p.z);
-    const top = f.position.y + THREE.MathUtils.randFloat(8, 18);
+    const top = f.position.y + THREE.MathUtils.randFloat(4, 18);
     const h = top - base;
     const mast = new THREE.Mesh(MAST_GEO, this.mats.metal);
     mast.scale.y = h;
@@ -425,7 +488,7 @@ export class ObstacleManager {
     const rad = big
       ? THREE.MathUtils.randFloat(2.6, 4.2)
       : THREE.MathUtils.randFloat(this._minRadius + 0.4, this._maxRadius + 0.8);
-    const p = this.lanePoint(f, THREE.MathUtils.randFloat(-12, 12), THREE.MathUtils.randFloat(-6, 6));
+    const p = this.lanePoint(f, this.pickLateral(f, 17, 14), THREE.MathUtils.randFloat(-8, 8));
     const mesh = new THREE.Mesh(asteroidGeometry(Math.floor(Math.random() * 6)), this.mats.asteroid);
     mesh.scale.setScalar(rad);
     o.group.add(mesh);

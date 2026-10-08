@@ -91,6 +91,7 @@ interface Rock { pos: THREE.Vector3; rot: THREE.Euler; spin: THREE.Vector3; scal
 
 export class SpaceScenery {
   private group = new THREE.Group();
+  get object(): THREE.Object3D { return this.group; }
   private planet: THREE.Mesh;
   private planetMat: THREE.ShaderMaterial;
   private ring: THREE.Mesh;

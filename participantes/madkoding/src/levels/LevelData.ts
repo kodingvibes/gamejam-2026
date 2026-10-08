@@ -146,7 +146,7 @@ export const LEVELS: LevelDefinition[] = [
   },
   {
     id: 12, name: 'Cuevas de Cristal',
-    environment: { skyColor: 0x0a1a2a, fogColor: 0x0a1a2a, fogDensity: 0.002, starfield: { count: 600, depth: 300, speed: 10 }, nebulae: { colors: [0x44ffcc, 0x22aacc], count: 2 }, terrain: 'ice', ambientLight: 0.2, backgroundShips: false },
+    environment: { skyColor: 0x0a1a2a, fogColor: 0x0a1a2a, fogDensity: 0.002, starfield: { count: 600, depth: 300, speed: 10 }, nebulae: { colors: [0x44ffcc, 0x22aacc], count: 2 }, terrain: 'cave', ambientLight: 0.45, backgroundShips: false },
     rail: { amplitudeX: 7, amplitudeY: 4, frequencyX: 2.5, frequencyY: 3.0, length: 1200 },
     obstacles: { spawnInterval: 0.7, minRadius: 0.5, maxRadius: 1.4 },
     waves: [W('INTERCEPTOR', 4, 'CIRCLE', 700), W('FIGHTER', 6, 'DIVE', 800), W('SCOUT', 8, 'SWEEP', 400)],
@@ -180,7 +180,7 @@ export const LEVELS: LevelDefinition[] = [
   // ═══ 16-20: Very Hard (everything maxed) ═══
   {
     id: 16, name: 'Infierno de Metal',
-    environment: { skyColor: 0x3a0a0a, fogColor: 0x3a0a0a, fogDensity: 0.005, starfield: { count: 200, depth: 100, speed: 5 }, nebulae: { colors: [0xff2200, 0xcc4400], count: 2 }, terrain: 'lava', ambientLight: 0.15, backgroundShips: false },
+    environment: { skyColor: 0x3a0a0a, fogColor: 0x3a0a0a, fogDensity: 0.005, starfield: { count: 200, depth: 100, speed: 5 }, nebulae: { colors: [0xff2200, 0xcc4400], count: 2 }, terrain: 'city', ambientLight: 0.15, backgroundShips: false },
     rail: { amplitudeX: 13, amplitudeY: 7, frequencyX: 1.7, frequencyY: 2.3, length: 1200 },
     obstacles: { spawnInterval: 0.4, minRadius: 0.6, maxRadius: 1.8 },
     waves: [W('BOMBER', 3, 'DIVE', 1800), W('FIGHTER', 10, 'DIVE_BOMB', 1000), W('INTERCEPTOR', 6, 'ZIGZAG', 800)],
