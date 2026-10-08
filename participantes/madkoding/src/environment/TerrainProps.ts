@@ -14,7 +14,7 @@ import type { TerrainType } from '../levels/LevelData';
 import { asteroidGeometry, crystalGeometry } from './RockGeometry';
 import { getBiomeProfile, heightAt, liquidAt, floorAt } from './TerrainField';
 import { railAtZ } from './RailShape';
-import { buildChunkStreet, getFacadeMaterial } from './CityStreets';
+import { buildChunkStreet, buildCityAccents, getFacadeMaterial, releaseStreetObject, tickCity, type TowerSlot } from './CityStreets';
 
 type Kind = 'tree' | 'rock' | 'dead' | 'building' | 'crystal';
 
@@ -169,6 +169,7 @@ export function buildChunkProps(terrain: TerrainType, x0: number, z0: number, si
   const group = new THREE.Group();
   const rnd = seeded(Math.round(x0), Math.round(z0) + (hi ? 7 : 3));
   const M = getMats();
+  const towers: TowerSlot[] = [];
 
   for (const spec of specs) {
     const im = new THREE.InstancedMesh(spec.geo, M[spec.kind], spec.count);
@@ -203,6 +204,7 @@ export function buildChunkProps(terrain: TerrainType, x0: number, z0: number, si
         _s.set(sc, tall, sc * (0.7 + rnd() * 0.6));
         _e.set(0, Math.round(rnd() * 4) * Math.PI / 2 + (rnd() - 0.5) * 0.1, 0);
         _p.set(x, h - 2, z);
+        towers.push({ x, y: h - 2, z, w: _s.x, h: _s.y, d: _s.z, rot: _e.y });
       } else if (spec.kind === 'rock') {
         _s.set(sc * (0.8 + rnd() * 0.6), sc * (0.45 + rnd() * 0.4), sc * (0.8 + rnd() * 0.6));
         _e.set(rnd() * 6, rnd() * 6, rnd() * 6);
@@ -227,12 +229,17 @@ export function buildChunkProps(terrain: TerrainType, x0: number, z0: number, si
     im.computeBoundingSphere();
     if (n > 0) group.add(im); else im.dispose();
   }
-  if (terrain === 'city') for (const o of buildChunkStreet(x0, z0, size)) group.add(o);
+  if (terrain === 'city') {
+    for (const o of buildChunkStreet(x0, z0, size)) group.add(o);
+    for (const o of buildCityAccents(towers, rnd)) group.add(o);
+  }
   return group.children.length ? group : null;
 }
 
 export function disposeChunkProps(group: THREE.Group): void {
   for (const c of group.children) {
+    releaseStreetObject(c);
+    if (c.userData.ownGeo) (c as THREE.Mesh).geometry.dispose();
     if (c instanceof THREE.InstancedMesh) c.dispose();          // geometry is shared
     else if (c instanceof THREE.Mesh) c.geometry.dispose();     // per-chunk road strip
   }
@@ -241,4 +248,5 @@ export function disposeChunkProps(group: THREE.Group): void {
 
 export function tickProps(dt: number): void {
   windTime.value += dt;
+  tickCity(dt);
 }

@@ -31,6 +31,7 @@ import { SpaceScenery } from '../environment/SpaceScenery';
 import { setRailShape } from '../environment/RailShape';
 import { hasGround, liquidAt, getBiomeProfile } from '../environment/TerrainField';
 import { WaterWake } from '../environment/WaterWake';
+import { setCityNight, streetLampHit } from '../environment/CityStreets';
 import { FOG_NEAR, FOG_FAR } from '../environment/TerrainManager';
 import { TerrainManager } from '../environment/TerrainManager';
 import { TerrainDecorations } from '../environment/TerrainDecorations';
@@ -126,6 +127,7 @@ export class Game {
   // Boost / movement
   private _boostMeter = 1;
   private _boosting = false;
+  private _lampCooldown = 0;
   private _knockX = 0;
   private _knockY = 0;
   private _locked = false;
@@ -850,6 +852,7 @@ export class Game {
     this.terrainDecorations.update(dt, this.playerShip.position);
     this.waveManager.corvettePositions = this.backgroundShips.positions;
     this.waveManager.update(dt, this.playerShip.position, this.railController.stageProgress, this.railController.progress);
+    setCityNight(this.railController.stageProgress);
 
     const playerProjectiles = this.weaponSystem.projectilesList.filter(p => p.active && p.isPlayerProjectile);
     this.enemyManager.setFrame(railCameraPos);
@@ -910,6 +913,18 @@ export class Game {
       this.hitSpark.spawn(this.playerShip.position.clone(), 0xff6622, 1.4);
       this.cameraRig.addTrauma(0.45);
       this.fx.flash(0.2, 0xff5500, 4);
+    }
+    // Street lights on the city avenue are solid too.
+    this._lampCooldown = Math.max(0, this._lampCooldown - dt);
+    const lamp = this._lampCooldown <= 0 && !invulnerable ? streetLampHit(this.playerShip.position) : null;
+    if (lamp) {
+      this._lampCooldown = 0.8;
+      this.playerShip.takeDamage(10);
+      this.hitSpark.spawn(this.playerShip.position.clone(), 0xffcc66, 1.1);
+      this.cameraRig.addTrauma(0.35);
+      const right = shipWorldPos.forward.clone().cross(shipWorldPos.up).normalize();
+      this._knockX += lamp.dot(right) * 0.08;
+      this._knockY += lamp.dot(shipWorldPos.up) * 0.08;
     }
     if (obs.hit && !invulnerable) {
       this.playerShip.takeDamage(15);

@@ -22,6 +22,7 @@ import {
 import { getRailShape } from './RailShape';
 import { LiquidSurfaces } from './LiquidSurfaces';
 import { buildChunkProps, disposeChunkProps, tickProps } from './TerrainProps';
+import { CityTraffic } from './CityStreets';
 import { liquidAt } from './TerrainField';
 
 const PROP_RANGE = 1150;       // chunks closer than this get trees/rocks/buildings
@@ -118,10 +119,13 @@ export class TerrainManager {
 
   private shoreTime = { value: 0 };
   private liquidMode = { value: 0 };
+  private traffic: CityTraffic | null = null;
 
   /** Switch biome. Rebuilds every chunk synchronously (hidden by the warp). */
   apply(terrain: TerrainType): void {
     this.current = terrain;
+    if (terrain === 'city' && !this.traffic) this.traffic = new CityTraffic(this.scene);
+    this.traffic?.setActive(terrain === 'city' && this.visible);
     setTerrainBiome(terrain);
     const p = getBiomeProfile();
     const tex = getBiomeTexture(terrain);
@@ -296,6 +300,7 @@ export class TerrainManager {
     this.liquids.update(_dt, cam);
     this.shoreTime.value += _dt;
     tickProps(_dt);
+    this.traffic?.update(_dt, _playerPos.z);
     if (!this.visible || !hasGround()) return;
 
     const cix = Math.floor(cam.x / CHUNK);
@@ -431,6 +436,7 @@ export class TerrainManager {
     for (const c of this.chunks.values()) { c.mesh.visible = visible; if (c.props) c.props.visible = visible; }
     for (const w of this.walls) w.visible = visible;
     this.liquids.setVisible(visible);
+    this.traffic?.setActive(visible && this.current === 'city');
   }
 
   reset(): void {
@@ -445,5 +451,6 @@ export class TerrainManager {
     this.material.dispose();
     this.clearWalls();
     this.liquids.dispose();
+    this.traffic?.dispose();
   }
 }
