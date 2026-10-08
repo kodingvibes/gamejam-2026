@@ -59,24 +59,21 @@ export class CollisionSystem {
     }
   }
 
-  /** Lasers can shatter destructible columns; bombs destroy any column. */
+  /** Obstacles block shots: crystals / small asteroids shatter, bombs break anything. */
   checkProjectilesVsObstacles(): void {
     if (!this.obstacleManager) return;
-    const projectiles = this.weaponSystem.projectilesList;
-    for (const proj of projectiles) {
+    for (const proj of this.weaponSystem.projectilesList) {
       if (!proj.active || !proj.isPlayerProjectile) continue;
-      for (const o of this.obstacleManager.obstacles) {
-        if (!o.active) continue;
-        const dist = distPointToSegment(o.position, proj.prevPosition, proj.position);
-        if (dist < o.radius + 0.5) {
-          if (proj.kind === 'BOMB' || o.destructible) {
-            this.obstacleManager.destroyColumn(o);
-            this.hitSpark.spawn(proj.position.clone(), 0xffaa44);
-            this.weaponSystem.releaseProjectile(proj);
-          }
-          break;
-        }
+      const o = this.obstacleManager.projectileHit(proj.prevPosition, proj.position);
+      if (!o) continue;
+      if (proj.kind === 'BOMB') {
+        this.weaponSystem.explodeBomb(proj.position, proj);
+        this.obstacleManager.destroy(o);
+        continue;
       }
+      this.hitSpark.spawn(proj.position.clone(), o.destructible ? 0xffffff : 0xffaa44, o.destructible ? 1 : 0.6);
+      if (o.destructible) this.obstacleManager.destroy(o);
+      this.weaponSystem.releaseProjectile(proj);
     }
   }
 

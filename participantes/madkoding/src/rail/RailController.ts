@@ -111,6 +111,16 @@ export class RailController {
     };
   }
 
+  /** Rail frame `dist` world units ahead of the current progress. */
+  frameAhead(dist: number): { position: THREE.Vector3; forward: THREE.Vector3; up: THREE.Vector3; right: THREE.Vector3 } {
+    const t = THREE.MathUtils.clamp(this._progress + dist / this.totalLength, 0, 1);
+    const position = this.curve.getPointAt(t, new THREE.Vector3());
+    const forward = this.curve.getTangentAt(t, new THREE.Vector3()).normalize();
+    const right = new THREE.Vector3().crossVectors(forward, RailController._worldUp).normalize();
+    const up = new THREE.Vector3().crossVectors(right, forward).normalize();
+    return { position, forward, up, right };
+  }
+
   reset(): void {
     this._progress = 0;
     this._screenOffsetX = 0;

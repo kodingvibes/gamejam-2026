@@ -26,7 +26,11 @@ import { HitSpark } from '../fx/HitSpark';
 import { ScreenEffects } from '../fx/ScreenEffects';
 import { BackgroundShips } from '../fx/BackgroundShips';
 import { FxDirector } from '../fx/FxDirector';
-import { ParticleTerrain } from '../environment/ParticleTerrain';
+import { LavaEruptions } from '../environment/LavaEruptions';
+import { SpaceScenery } from '../environment/SpaceScenery';
+import { setRailShape } from '../environment/RailShape';
+import { hasGround } from '../environment/TerrainField';
+import { FOG_NEAR, FOG_FAR } from '../environment/TerrainManager';
 import { TerrainManager } from '../environment/TerrainManager';
 import { TerrainDecorations } from '../environment/TerrainDecorations';
 import { Skybox, getEnvironmentColors } from '../environment/Skybox';
@@ -76,7 +80,8 @@ export class Game {
   private hitSpark: HitSpark;
   private screenEffects: ScreenEffects;
   private backgroundShips: BackgroundShips;
-  private particleTerrain: ParticleTerrain;
+  private lavaEruptions: LavaEruptions;
+  private spaceScenery: SpaceScenery;
   private terrainManager: TerrainManager;
   private terrainDecorations: TerrainDecorations;
   private skybox: Skybox;
@@ -99,6 +104,11 @@ export class Game {
   private eventBinder: GameEventBinder;
   private offScreenIndicator: OffScreenIndicator;
   private levelManager: LevelManager;
+
+  private pmrem!: THREE.PMREMGenerator;
+  private envCache = new Map<THREE.Texture, THREE.Texture>();
+  private _shadowScan = 0;
+  private _sunOffset = new THREE.Vector3(10, 20, 10).normalize().multiplyScalar(260);
 
   private _animFrameId = 0;
   private _running = false;
@@ -157,9 +167,34 @@ export class Game {
     this.terrainManager = new TerrainManager(this.scene);
     this.terrainDecorations = new TerrainDecorations(this.scene);
     this.skybox = new Skybox(this.scene, this.cameraRig.camera3D);
-    this.particleTerrain = new ParticleTerrain(this.scene, this.cameraRig.camera3D);
+    this.lavaEruptions = new LavaEruptions(this.scene);
+    this.spaceScenery = new SpaceScenery(this.scene, this.cameraRig.camera3D);
+    // Keep fog + water reflections in sync with the active sky photo.
+    this.pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.skybox.onSkyChange = (tex, horizon) => {
+      this.terrainManager.setHorizon(horizon, tex);
+      // Image-based lighting from the same photo: metals and hulls reflect
+      // the actual sky of the biome.
+      if (tex) {
+        let env = this.envCache.get(tex);
+        if (!env) {
+          env = this.pmrem.fromEquirectangular(tex).texture;
+          this.envCache.set(tex, env);
+        }
+        this.scene.environment = env;
+      }
+      if (this.scene.fog instanceof THREE.Fog) this.scene.fog.color.copy(this.terrainManager.horizonColor);
+    };
     this.powerUpManager = new PowerUpManager(this.scene);
     this.obstacleManager = new ObstacleManager(this.scene);
+    this.obstacleManager.onDestroyed = (center, color, size) => {
+      this.explosionSystem.spawn(center, Math.max(2.5, size * 1.6), color);
+      this.hitSpark.spawn(center, color, 1.8);
+      this.audioManager.playSmallExplosion();
+      this.cameraRig.addTrauma(0.12);
+      this.scorePopups.spawn(center, 50, 1);
+      this.scoreSystem.addBonus(50);
+    };
     this.audioManager = new AudioManager();
     this.musicPlayer = new MusicPlayer();
 
@@ -374,6 +409,8 @@ export class Game {
       RAIL.RAIL_SPEED,
     );
     this.terrainManager.setCurve(this.railController.getCurve());
+    this.obstacleManager.reset();
+    this.lavaEruptions.reset();
     this.obstacleManager.setConfig(level.obstacles);
     this.obstacleManager.setTerrain(level.environment.terrain);
     this.enemyManager.reset();
@@ -403,18 +440,21 @@ export class Game {
     // Photo skybox: 360° hyperrealistic backdrop matching the terrain's context.
     this.skybox.apply(env.terrain);
     this.scene.background = null;
-    // No linear fog — terrain renders as particles that fade out individually.
-    this.scene.fog = null;
+    // The rail shape drives the terrain valley and the liquid levels, so it
+    // must be set before the terrain is (re)built.
+    setRailShape(level.rail);
     this.particleManager.reconfigure(env.starfield, env.nebulae);
     const ambient = this.scene.userData.ambientLight as THREE.AmbientLight | undefined;
-    if (ambient) ambient.intensity = 2.2 + env.ambientLight * 3.0;
+    // Flat ambient is lower than before: IBL from the sky + baked/screen AO
+    // now carry the fill light, which keeps contact shadows readable.
+    if (ambient) ambient.intensity = 1.6 + env.ambientLight * 2.4;
     // Tint the hemisphere + directional lights with the zone's sky/ground
     // colors so ships and props are lit by the environment (not pasted on top).
     const hemi = this.scene.userData.hemisphereLight as THREE.HemisphereLight | undefined;
     if (hemi) {
       hemi.color.copy(envColors.sky).lerp(new THREE.Color(0xffffff), 0.5);
       hemi.groundColor.copy(envColors.ground).lerp(new THREE.Color(0xffffff), 0.5);
-      hemi.intensity = 2.0 + env.ambientLight * 1.5;
+      hemi.intensity = 1.8 + env.ambientLight * 1.4;
     }
     const dirLight = this.scene.userData.dirLight as THREE.DirectionalLight | undefined;
     if (dirLight) {
@@ -436,10 +476,14 @@ export class Game {
     // starfield read as open space. Terrain biomes keep the ground visible.
     const spaceLike = env.terrain === 'space' || env.terrain === 'nebula' ||
                       env.terrain === 'void' || env.terrain === 'aurora';
-    this.terrainManager.setVisible(!spaceLike);
-    this.particleTerrain.setVisible(!spaceLike);
     this.terrainManager.apply(env.terrain);
+    this.terrainManager.setVisible(!spaceLike && hasGround());
+    this.terrainManager.setHorizon(this.skybox.horizon, this.skybox.texture);
+    // Distance fog only where there is ground to fade into the horizon.
+    this.scene.fog = hasGround() ? new THREE.Fog(this.terrainManager.horizonColor.clone(), FOG_NEAR, FOG_FAR) : null;
     this.terrainDecorations.apply(env.terrain);
+    this.lavaEruptions.setEnabled(env.terrain === 'lava');
+    this.spaceScenery.apply(env.terrain, this.cameraRig.camera3D.position);
   }
 
   private returnToMenu(): void {
@@ -478,6 +522,7 @@ export class Game {
     this.enemyProjectileMgr.clear();
     this.powerUpManager.reset();
     this.obstacleManager.reset();
+    this.lavaEruptions.reset();
     this.lifeManager.reset();
     this.terrainManager.reset();
     this.terrainDecorations.reset();
@@ -537,10 +582,32 @@ export class Game {
     const ambientDt = state === GameState.PAUSED ? 0 : dt;
     this.particleManager.update(ambientDt, this.playerShip.position);
     this.skybox.update();
-    this.particleTerrain.update(ambientDt, this.playerShip.position);
+    this.spaceScenery.update(ambientDt);
+    this.updateSunShadows();
     this.fx.update(rawDt, state === GameState.PAUSED);
     this.postProcessing.render(rawDt);
   };
+
+  // Keep the shadow box on the ship, and flag new solid meshes as casters
+  // (ships, enemies, obstacles spawn over time; GLBs load asynchronously).
+  private updateSunShadows(): void {
+    const sun = this.scene.userData.dirLight as THREE.DirectionalLight | undefined;
+    if (!sun) return;
+    const p = this.playerShip.position;
+    sun.position.copy(p).add(this._sunOffset);
+    sun.target.position.copy(p);
+    sun.target.updateMatrixWorld();
+    if (++this._shadowScan % 30 !== 0) return;
+    this.scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || o.userData.noCast || m.castShadow) return;
+      const mat = m.material as THREE.MeshStandardMaterial;
+      if (!mat || mat.transparent || mat.blending === THREE.AdditiveBlending || mat.side === THREE.BackSide) return;
+      if (!(mat.isMeshStandardMaterial || (mat as unknown as THREE.MeshPhongMaterial).isMeshPhongMaterial)) return;
+      m.castShadow = true;
+      m.receiveShadow = true;
+    });
+  }
 
   private handlePauseToggle(input: InputState, state: GameState): void {
     if (input.pause && state === GameState.PLAYING) {
@@ -768,7 +835,7 @@ export class Game {
 
     this.weaponSystem.update(dt, this.playerShip.position);
     this.backgroundShips.update(dt, this.playerShip.position);
-    this.terrainManager.update(dt, this.playerShip.position);
+    this.terrainManager.update(dt, this.playerShip.position, this.cameraRig.camera3D.position);
     this.terrainDecorations.update(dt, this.playerShip.position);
     this.waveManager.corvettePositions = this.backgroundShips.positions;
     this.waveManager.update(dt, this.playerShip.position, this.railController.stageProgress, this.railController.progress);
@@ -824,7 +891,15 @@ export class Game {
 
     // Obstacles (asteroids the player must dodge) — on hit, damage + sparks +
     // knockback push away from the asteroid.
-    const obs = this.obstacleManager.update(dt, this.playerShip.position);
+    const railAhead = (d: number) => this.railController.frameAhead(d);
+    const obs = this.obstacleManager.update(dt, this.playerShip.position, this.railController.frameAhead(0), railAhead);
+    const lava = this.lavaEruptions.update(dt, this.playerShip.position, railAhead, invulnerable);
+    if (lava.hit) {
+      this.playerShip.takeDamage(12);
+      this.hitSpark.spawn(this.playerShip.position.clone(), 0xff6622, 1.4);
+      this.cameraRig.addTrauma(0.45);
+      this.fx.flash(0.2, 0xff5500, 4);
+    }
     if (obs.hit && !invulnerable) {
       this.playerShip.takeDamage(15);
       this.hitSpark.spawn(this.playerShip.position.clone(), 0xff8800, 1.3);
@@ -968,7 +1043,8 @@ export class Game {
     this.terrainManager.dispose();
     this.terrainDecorations.dispose();
     this.skybox.dispose();
-    this.particleTerrain.dispose();
+    this.lavaEruptions.dispose();
+    this.spaceScenery.dispose();
     this.powerUpManager.dispose();
     this.obstacleManager.dispose();
     this.audioManager.dispose();

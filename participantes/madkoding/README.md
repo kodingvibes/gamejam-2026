@@ -51,6 +51,15 @@ El esquema activo (mouse o teclado/gamepad) sigue al último dispositivo usado.
 - **Enemigos y boss**: aparición con rebote, squash al recibir daño, flash blanco real, boss que sigue el riel con patrones por fase (abanico y anillo giratorio).
 - **Pilotos enemigos**: 5 naves con silueta propia (dron de cuchillas, dardo explorador, caza delta, interceptor de alas en X, bombardero ala volante) con toberas animadas y luces de navegación. Vuelan maniobras coreografiadas en el marco del riel —pasadas cruzadas, adelantamientos desde atrás con giro en U, picados, loops, zigzag con snap-rolls, justas de frente—, se inclinan en cada curva, esquivan tus láseres con barrel rolls, cargan los cañones antes de disparar y pueden embestirte.
 
+## Mundos y terreno
+
+- **Terreno por chunks** hasta el horizonte (±1000 u de ancho, 2200 de profundidad) con LOD y faldones; se genera una vez por chunk, no por frame.
+- **Valle o cañón que sigue al riel**: el camino serpentea entre cordilleras de crestas reales, con paleta por altura y pendiente (playa, pasto, roca, nieve en cumbres) y niebla del color exacto del horizonte del cielo.
+- **Agua** con oleaje, Fresnel, reflejo del cielo del bioma y destello del sol; **lava** con corteza agrietada, flujo y **erupciones** (burbujas que se hinchan y revientan en fuentes de magma que dañan).
+- **Espacio** con planeta en el horizonte (continentes, gigante gaseoso con anillos, mundo muerto agrietado, mundo helado con aurora) y cinturón de asteroides con paralaje.
+- **Obstáculos reales en la franja de vuelo**: agujas de roca, arcos que hay que cruzar por el hueco, cristales destructibles, estalactitas, pilones y asteroides a la deriva, con colisión tipo cápsula para nave y láseres.
+- **Realismo**: oclusión ambiental horneada en el terreno + GTAO en pantalla (adaptativa), iluminación por imagen (IBL) desde la foto del cielo y sombras del sol que siguen a la nave.
+
 ## Stack tecnológico
 
 - **Three.js** `^0.160.0` — renderizado 3D.
@@ -91,3 +100,4 @@ src/
 - **Sistema de vidas**: `PlayerLifeManager` gestiona las 3 vidas, los escudos y los power-ups.
 - **Audio**: la banda sonora original se carga desde `public/` y se gestiona a través de `AudioManager` / `MusicPlayer`.
 - **Pooling**: `ObjectPool` reutiliza objetos (proyectiles, partículas) para evitar picos de garbage collection.
+- **Entorno** (`src/environment`): `RailShape` (forma del riel compartida), `TerrainField` (altura/color por bioma), `TerrainManager` (chunks), `LiquidSurfaces`, `LavaEruptions`, `SpaceScenery`, `RockGeometry`.

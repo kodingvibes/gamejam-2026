@@ -27,7 +27,16 @@ export class GameSceneFactory {
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
     dirLight.position.set(10, 20, 10);
+    // Sun shadows: a tight box that follows the ship (Game moves it).
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    const sc = dirLight.shadow.camera;
+    sc.left = -70; sc.right = 70; sc.top = 70; sc.bottom = -70;
+    sc.near = 1; sc.far = 600;
+    dirLight.shadow.bias = -0.0004;
+    dirLight.shadow.normalBias = 0.6;
     scene.add(dirLight);
+    scene.add(dirLight.target);
     scene.userData.dirLight = dirLight;
 
     const fillLight = new THREE.DirectionalLight(0x6688ff, 1.5);
@@ -56,6 +65,8 @@ export class GameSceneFactory {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // ponytail: 8.5 was blown-out; 1.5 is a sane ACES baseline. Tune if the
     // scene reads too dark/bright after the lighting pass.
     renderer.toneMappingExposure = 1.5;

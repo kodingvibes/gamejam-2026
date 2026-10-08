@@ -40,14 +40,21 @@ export class CameraRig {
   private _pitch = 0;
   private _pitchTarget = 0;
 
+  // Bank with the rail's own curvature (carving through the canyon).
+  private _fwd = new THREE.Vector3(0, 0, -1);
+  private _prevFwd = new THREE.Vector3(0, 0, -1);
+  private _railUp = new THREE.Vector3(0, 1, 0);
+  private _curveRoll = 0;
+  private _cross = new THREE.Vector3();
+
   // Attract-mode orbit (menu)
   private _orbitAngle = 0;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(70, aspect, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(70, aspect, 0.5, 3200);
     this.camera.position.set(0, 4, 10);
     this.camera.lookAt(0, 0, -10);
-    this.stable = new THREE.PerspectiveCamera(70, aspect, 0.1, 1000);
+    this.stable = new THREE.PerspectiveCamera(70, aspect, 0.5, 3200);
     this.syncStable();
   }
 
@@ -89,6 +96,8 @@ export class CameraRig {
       .addScaledVector(railPos.up, CAMERA.LOOK_UP + shipOffsetY * 0.08);
 
     this._rollTarget = THREE.MathUtils.clamp(-shipOffsetX * 0.012, -0.16, 0.16);
+    this._fwd.copy(railPos.forward);
+    this._railUp.copy(railPos.up);
     this._pitchTarget = THREE.MathUtils.clamp(shipOffsetY * 0.006, -0.06, 0.06);
   }
 
@@ -118,11 +127,18 @@ export class CameraRig {
     }
 
     this._roll = THREE.MathUtils.lerp(this._roll, this._rollTarget, 1 - Math.exp(-4 * dt));
+    if (dt > 0) {
+      const yaw = this._cross.crossVectors(this._prevFwd, this._fwd).dot(this._railUp);
+      const yawRate = Math.asin(THREE.MathUtils.clamp(yaw, -1, 1)) / dt;
+      const target = THREE.MathUtils.clamp(yawRate * 1.6, -0.28, 0.28);
+      this._curveRoll = THREE.MathUtils.lerp(this._curveRoll, target, 1 - Math.exp(-2.5 * dt));
+      this._prevFwd.copy(this._fwd);
+    }
     this._pitch = THREE.MathUtils.lerp(this._pitch, this._pitchTarget, 1 - Math.exp(-4 * dt));
 
     this.camera.position.copy(this._chasePos);
     this.camera.lookAt(this._chaseLook);
-    this.camera.rotateZ(this._roll);
+    this.camera.rotateZ(this._roll + this._curveRoll);
     this.camera.rotateX(this._pitch);
     this.syncStable();
     this.applyShake(dt);
@@ -167,6 +183,8 @@ export class CameraRig {
   /** Jump straight to the current target next update (level loads). */
   snap(): void {
     this._initialized = false;
+    this._prevFwd.copy(this._fwd);
+    this._curveRoll = 0;
   }
 
   reset(): void {

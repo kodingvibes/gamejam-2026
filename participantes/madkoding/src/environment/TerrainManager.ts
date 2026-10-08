@@ -1,332 +1,393 @@
-// ─── Terrain Manager: procedurally-generated 3D terrain with real volume ────
-// The ground is built from scrolling segments whose vertices are displaced by
-// a heightmap (fBm value noise) sampled at WORLD coordinates. As the ship
-// flies toward -Z, segments that fall behind the camera are recycled to the
-// front, so the terrain appears to scroll toward +Z (toward the camera) with
-// genuine hills, canyons, ridges, etc. Each terrain type reads visually
-// distinct (amplitude, frequency, colors, emissive glow, tunnel walls).
+// ─── Terrain Manager: chunked landscape out to the horizon ──────────────────
+//
+// The world is tiled into fixed 200×200 chunks around the camera (±1000 wide,
+// 2200 deep). Each chunk is built ONCE from TerrainField (heights, analytic
+// normals and biome colours) and only rebuilt when it changes level of
+// detail — the old terrain re-ran fBm on every vertex every frame.
+//
+//   • Near chunks: 48×48 cells (~4 u); far chunks: 14×14 (~14 u).
+//   • Each chunk carries a skirt that hangs below its border, hiding LOD cracks.
+//   • Normals come from finite differences of the height function itself, so
+//     chunk borders shade seamlessly.
+//   • Distance fog fades the far ridges into the skybox's own horizon colour.
+//
+// Liquids (water/lava) and the cave half-tube are managed here as well.
 
 import * as THREE from 'three';
 import type { TerrainType } from '../levels/LevelData';
-import { fbm } from '../utils/noise';
 import { getBiomeTexture } from './BiomeTextures';
+import {
+  colorAt, getBiomeProfile, hasGround, heightAt, setTerrainBiome,
+} from './TerrainField';
+import { getRailShape } from './RailShape';
+import { LiquidSurfaces } from './LiquidSurfaces';
 
-interface TerrainStyle {
-  baseColor: number;          // color at low elevation
-  heightColor: number;        // color at high elevation (vertex blend)
-  amplitude: number;          // max height displacement (world units)
-  frequency: number;          // noise frequency (per world unit)
-  octaves: number;            // fBm octaves
-  groundY: number;            // base y of the terrain surface
-  walls: boolean;             // tunnel walls (cave / ice)
-  wallColor: number;
-  wallDistance: number;       // half-width of the tunnel
-  wallHeight: number;         // wall plane height
-  wallTop: number;            // ceiling height (y of the top)
-  emissive: number;
-  emissiveIntensity: number;
-  roughness: number;
-  metalness: number;
+const CHUNK = 200;
+const HI_SEGS = 48;
+const LO_SEGS = 14;
+const HI_RANGE = 520;          // chunk-centre distance for high detail
+const X_CHUNKS = 5;            // ±5 chunks sideways (±1000 u)
+const Z_AHEAD = 11;            // chunks ahead of the camera
+const Z_BEHIND = 1;
+const SKIRT = 40;
+const AO_RADIUS = 26;          // world units scanned for baked occlusion
+const AO_DIRS = new Float32Array([1, 0, 0.707, 0.707, 0, 1, -0.707, 0.707, -1, 0, -0.707, -0.707, 0, -1, 0.707, -0.707]);
+const BUILD_BUDGET_MS = 3;     // per-frame time budget for chunk rebuilds
+const FIRST_FILL_MS = 140;     // level load: build the near field at once
+
+export const FOG_NEAR = 260;
+export const FOG_FAR = 2050;
+
+interface Chunk {
+  mesh: THREE.Mesh;
+  ix: number;
+  iz: number;
+  lod: number;   // 0 = none built
 }
 
-const STYLES: Record<TerrainType, TerrainStyle> = {
-  space:      { baseColor: 0x2a2a44, heightColor: 0x4a4a6a, amplitude: 10,  frequency: 0.06, octaves: 5, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0x111122, emissiveIntensity: 0.4,  roughness: 0.8, metalness: 0.1 },
-  atmosphere: { baseColor: 0x3a6a3a, heightColor: 0x6a9a5a, amplitude: 30,  frequency: 0.05,  octaves: 6, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0x224422, emissiveIntensity: 0.6,  roughness: 0.8, metalness: 0.1 },
-  cave:       { baseColor: 0x4a3a2a, heightColor: 0x8a7a6a, amplitude: 34,  frequency: 0.06,  octaves: 6, groundY: -35, walls: true,  wallColor: 0x5a4a3a, wallDistance: 16, wallHeight: 26, wallTop: 12, emissive: 0x2a1a0e, emissiveIntensity: 0.5,  roughness: 0.8, metalness: 0.1 },
-  nebula:     { baseColor: 0x4a2a6a, heightColor: 0xaa66cc, amplitude: 26,  frequency: 0.05,  octaves: 6, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0x331155, emissiveIntensity: 0.7,  roughness: 0.7, metalness: 0.15 },
-  storm:      { baseColor: 0x3a3a3a, heightColor: 0x777777, amplitude: 34,  frequency: 0.08,  octaves: 7, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0x222222, emissiveIntensity: 0.3,  roughness: 0.9, metalness: 0.05 },
-  ice:        { baseColor: 0x3a6a9a, heightColor: 0xaaddff, amplitude: 30,  frequency: 0.07,  octaves: 6, groundY: -35, walls: true,  wallColor: 0x4a6a8a, wallDistance: 18, wallHeight: 28, wallTop: 14, emissive: 0x336688, emissiveIntensity: 0.7,  roughness: 0.5, metalness: 0.2 },
-  lava:       { baseColor: 0x5a1a00, heightColor: 0xff8844, amplitude: 30,  frequency: 0.06,  octaves: 6, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0xff5500, emissiveIntensity: 1.2,  roughness: 0.7, metalness: 0.1 },
-  city:       { baseColor: 0x1a1a3a, heightColor: 0x66ccff, amplitude: 34,  frequency: 0.05,  octaves: 6, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0x113366, emissiveIntensity: 0.8,  roughness: 0.7, metalness: 0.15 },
-  void:       { baseColor: 0x1a1a1a, heightColor: 0x333333, amplitude: 8,   frequency: 0.06,  octaves: 5, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0x0a0a0a, emissiveIntensity: 0.2,  roughness: 0.8, metalness: 0.1 },
-  aurora:     { baseColor: 0x1a3a4a, heightColor: 0x66ffcc, amplitude: 30,  frequency: 0.05,  octaves: 6, groundY: -35, walls: false, wallColor: 0x000000, wallDistance: 0, wallHeight: 0, wallTop: 0, emissive: 0x226655, emissiveIntensity: 0.8,  roughness: 0.7, metalness: 0.15 },
-};
-
-// ── Biome-specific height shaping ────────────────────────────────────────────
-// Each terrain type gets its own profile so the ground reads as a real place:
-//   - atmosphere → rolling green hills (gentle, centered)
-//   - ice        → smooth, mostly-flat ice sheets with soft ridges
-//   - lava       → volcanic: sharp peaks + flat lava valleys (ridged)
-//   - storm      → rugged rocky highlands (sharp, high frequency)
-//   - city       → flat urban ground (subtle variation)
-//   - cave       → gentle cave-floor undulation
-//   - space-like → untouched (ground is hidden anyway)
-function shapeTerrain(terrain: TerrainType, h: number): number {
-  switch (terrain) {
-    case 'atmosphere': return 0.5 + (h - 0.5) * 0.7;
-    case 'ice':        return 0.5 + (h - 0.5) * 0.35;
-    case 'lava':       return 0.5 + Math.sign(h - 0.5) * Math.pow(Math.abs(h - 0.5) * 2, 1.4) * 0.4;
-    case 'storm':      return 0.5 + (h - 0.5) * 1.1;
-    case 'city':       return 0.5 + (h - 0.5) * 0.15;
-    case 'cave':       return 0.5 + (h - 0.5) * 0.5;
-    default:           return h;
-  }
+// Also exported for older callers (obstacles/decorations import it).
+export function terrainHeightAt(_terrain: TerrainType, x: number, z: number): number {
+  return heightAt(x, z);
 }
-
-/** Normalized elevation factor [0,1] used for both height and vertex color. */
-export function terrainElevation(terrain: TerrainType, x: number, z: number): number {
-  const s = STYLES[terrain];
-  return shapeTerrain(terrain, fbm(x * s.frequency, z * s.frequency, s.octaves));
-}
-
-/** World-space height of the terrain surface at (x, z) for a given type. */
-export function terrainHeightAt(terrain: TerrainType, x: number, z: number): number {
-  const s = STYLES[terrain];
-  return terrainElevation(terrain, x, z) * s.amplitude + s.groundY;
-}
-
-// Segment geometry (world units).
-const SEGMENT_WIDTH = 400;
-const SEGMENT_DEPTH = 60;
-const SEGMENT_COUNT = 14;          // covers +60 (behind camera) to -780 (ahead)
-const WIDTH_SEGS = 40;
-const DEPTH_SEGS = 8;
 
 export class TerrainManager {
   private scene: THREE.Scene;
-  private segments: THREE.Mesh[] = [];
+  private chunks = new Map<string, Chunk>();
+  private pool: THREE.Mesh[] = [];
+  private material: THREE.MeshStandardMaterial;
   private walls: THREE.Mesh[] = [];
   private current: TerrainType = 'space';
-  private style: TerrainStyle = STYLES.space;
-  private material: THREE.MeshStandardMaterial;
   private curve: THREE.CatmullRomCurve3 | null = null;
+  private visible = false;
+  private fogColor = new THREE.Color(0x88aacc);
+  private skyTexture: THREE.Texture | null = null;
+  readonly liquids: LiquidSurfaces;
+  private _col = new THREE.Color();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     this.material = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      map: getBiomeTexture('space'),
-      roughness: STYLES.space.roughness,
-      metalness: STYLES.space.metalness,
-      emissive: STYLES.space.emissive,
-      emissiveIntensity: STYLES.space.emissiveIntensity,
+      roughness: 0.9,
+      metalness: 0.0,
+      map: getBiomeTexture('atmosphere'),
+      envMapIntensity: 0.35,
     });
-
-    // Build the scrolling segments.
-    for (let i = 0; i < SEGMENT_COUNT; i++) {
-      const geo = new THREE.PlaneGeometry(SEGMENT_WIDTH, SEGMENT_DEPTH, WIDTH_SEGS, DEPTH_SEGS);
-      // Add a vertex color attribute (filled in updateColors).
-      const count = geo.attributes.position.count;
-      geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
-      const mesh = new THREE.Mesh(geo, this.material);
-      mesh.rotation.x = -Math.PI / 2;
-      // Offset from +SEGMENT_DEPTH (behind camera) to -(SEGMENT_COUNT-1)*SEGMENT_DEPTH (ahead).
-      mesh.position.set(0, STYLES.space.groundY, SEGMENT_DEPTH - i * SEGMENT_DEPTH);
-      mesh.frustumCulled = false;
-      scene.add(mesh);
-      this.segments.push(mesh);
-    }
-
-    this.apply('space');
+    this.liquids = new LiquidSurfaces(scene);
   }
 
-  /** Apply a terrain type: recolor, retune height, and build/remove tunnel walls. */
+  /** Switch biome. Rebuilds every chunk synchronously (hidden by the warp). */
   apply(terrain: TerrainType): void {
-    if (terrain === this.current) return;
     this.current = terrain;
-    this.style = STYLES[terrain];
-
-    this.material.roughness = this.style.roughness;
-    this.material.metalness = this.style.metalness;
-    this.material.emissive.setHex(this.style.emissive);
-    this.material.emissiveIntensity = this.style.emissiveIntensity;
-    // Swap in the biome's procedural surface texture.
+    setTerrainBiome(terrain);
+    const p = getBiomeProfile();
     const tex = getBiomeTexture(terrain);
-    tex.repeat.set(SEGMENT_WIDTH / 8, SEGMENT_DEPTH / 8);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     this.material.map = tex;
+    this.material.roughness = p?.roughness ?? 0.9;
+    // The scene lights are tuned bright for the ships; tone the ground down
+    // (snow most of all) so it keeps contrast and doesn't bloom.
+    this.material.color.setScalar(terrain === 'ice' ? 0.62 : terrain === 'lava' ? 0.95 : terrain === 'storm' ? 1.25 : 0.9);
     this.material.needsUpdate = true;
 
-    for (const seg of this.segments) {
-      seg.position.y = this.style.groundY;
+    for (const c of this.chunks.values()) this.releaseChunk(c);
+    this.chunks.clear();
+
+    if (p?.liquid) {
+      const level = -p.clearance + p.liquidOffset;
+      const palette = terrain === 'ice'
+        ? { deep: 0x0b2a44, shallow: 0x3a7a98, chop: 0.7, glint: 0.8 }
+        : terrain === 'storm'
+          ? { deep: 0x111d24, shallow: 0x34505a, chop: 1.6, glint: 0.0 }
+          : { deep: 0x04283c, shallow: 0x135f6a, chop: 1.0, glint: 1.0 };
+      this.liquids.configure(p.liquid, getRailShape(), level, { ...palette, sky: this.skyTexture });
+    } else {
+      this.liquids.configure(null, getRailShape(), 0);
     }
 
-    if (this.style.walls) this.buildWalls(this.style);
+    if (terrain === 'cave') this.buildWalls();
     else this.clearWalls();
+    this.updateFog();
   }
 
-  /** Give the tunnel walls the rail curve so they wind with the path. */
+  /** Re-shape for a new level's rail (same biome may come with a new path). */
   setCurve(curve: THREE.CatmullRomCurve3 | null): void {
     this.curve = curve;
-    if (this.style.walls) this.buildWalls(this.style);
+    // The valley follows the rail, so every chunk must be rebuilt.
+    for (const c of this.chunks.values()) this.releaseChunk(c);
+    this.chunks.clear();
+    if (this.current === 'cave') this.buildWalls();
   }
 
-  private buildWalls(style: TerrainStyle): void {
-    this.clearWalls();
-    const d = style.wallDistance;
-    const h = style.wallHeight;
-    const top = style.wallTop;
-    const mat = new THREE.MeshStandardMaterial({
-      color: style.wallColor,
-      map: getBiomeTexture(this.current),
-      roughness: 0.95, metalness: 0.05,
-    });
-    mat.map!.repeat.set(4, 4);
+  /** Horizon colour sampled from the skybox photo (keeps fog seamless). */
+  setHorizon(color: THREE.Color | null, sky: THREE.Texture | null): void {
+    const p = getBiomeProfile();
+    this.fogColor.copy(color ?? new THREE.Color(p?.fog ?? 0x000000));
+    this.skyTexture = sky;
+    this.liquids.setSky(sky);
+    this.updateFog();
+  }
 
-    // If a rail curve is available, build a curved tunnel that follows the
-    // winding path the ship flies. Otherwise fall back to straight planes.
-    if (this.curve) {
-      // Half-tube: walls + ceiling along the upper semicircle of the rail
-      // curve, leaving the bottom open so the terrain floor shows through.
-      // The tunnel genuinely curves with the path instead of flat planes.
-      const tube = new THREE.Mesh(this.buildHalfTube(this.curve, d), mat);
-      tube.frustumCulled = false;
-      this.scene.add(tube);
-      this.walls.push(tube);
-      return;
+  private updateFog(): void {
+    this.liquids.setFog(this.fogColor, FOG_NEAR, FOG_FAR);
+  }
+
+  get horizonColor(): THREE.Color { return this.fogColor; }
+
+  // ── Chunk building ────────────────────────────────────────────────────────
+
+  private acquireMesh(): THREE.Mesh {
+    const m = this.pool.pop();
+    if (m) return m;
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), this.material);
+    mesh.matrixAutoUpdate = false;
+    mesh.receiveShadow = true;
+    mesh.userData.noCast = true;
+    return mesh;
+  }
+
+  private releaseChunk(c: Chunk): void {
+    this.scene.remove(c.mesh);
+    this.pool.push(c.mesh);
+  }
+
+  private buildGeometry(mesh: THREE.Mesh, ix: number, iz: number, segs: number): void {
+    const n = segs + 3;                // grid + 1-vertex skirt ring
+    const step = CHUNK / segs;
+    const x0 = ix * CHUNK;
+    const z0 = iz * CHUNK;
+    const count = n * n;
+    const pos = new Float32Array(count * 3);
+    const nor = new Float32Array(count * 3);
+    const col = new Float32Array(count * 3);
+    const uv = new Float32Array(count * 2);
+
+    // Height grid padded by `pad` cells on every side: the first ring gives
+    // seamless normals, the wider apron feeds the baked ambient occlusion.
+    const pad = Math.max(1, Math.round(AO_RADIUS / step));
+    const W = segs + 1 + pad * 2;
+    const H = new Float32Array(W * W);
+    for (let j = 0; j < W; j++) {
+      for (let i = 0; i < W; i++) {
+        H[j * W + i] = heightAt(x0 + (i - pad) * step, z0 + (j - pad) * step);
+      }
+    }
+    const hAt = (gi: number, gj: number) => H[(gj + pad) * W + (gi + pad)];
+
+    for (let j = 0; j < n; j++) {
+      const gj = THREE.MathUtils.clamp(j - 1, 0, segs);
+      for (let i = 0; i < n; i++) {
+        const gi = THREE.MathUtils.clamp(i - 1, 0, segs);
+        const x = x0 + gi * step;
+        const z = z0 + gj * step;
+        const h = hAt(gi, gj);
+        const hx = hAt(gi + 1, gj) - hAt(gi - 1, gj);
+        const hz = hAt(gi, gj + 1) - hAt(gi, gj - 1);
+        const nx = -hx, ny = 2 * step, nz = -hz;
+        const inv = 1 / Math.hypot(nx, ny, nz);
+
+        // Horizon-based AO: in 8 directions, the steepest rise within the
+        // apron occludes the sky. Valleys, gullies and cliff feet darken.
+        let occ = 0;
+        for (let d = 0; d < 8; d++) {
+          const dx = AO_DIRS[d * 2], dz = AO_DIRS[d * 2 + 1];
+          let maxSlope = 0;
+          for (let k = 1; k <= pad; k++) {
+            const sx = Math.round(gi + dx * k), sz = Math.round(gj + dz * k);
+            const slope = (hAt(sx, sz) - h) / (k * step);
+            if (slope > maxSlope) maxSlope = slope;
+          }
+          occ += maxSlope / Math.sqrt(1 + maxSlope * maxSlope); // sin(horizon angle)
+        }
+        const ao = 1 - Math.min(0.75, (occ / 8) * 1.35);
+
+        const skirt = i === 0 || j === 0 || i === n - 1 || j === n - 1;
+        const k = j * n + i;
+        pos[k * 3] = x;
+        pos[k * 3 + 1] = skirt ? h - SKIRT : h;
+        pos[k * 3 + 2] = z;
+        nor[k * 3] = nx * inv;
+        nor[k * 3 + 1] = ny * inv;
+        nor[k * 3 + 2] = nz * inv;
+        colorAt(x, z, h, ny * inv, this._col);
+        col[k * 3] = this._col.r * ao;
+        col[k * 3 + 1] = this._col.g * ao;
+        col[k * 3 + 2] = this._col.b * ao;
+        uv[k * 2] = x / 14;
+        uv[k * 2 + 1] = z / 14;
+      }
     }
 
-    const len = 900;
+    const idx = new Uint32Array((n - 1) * (n - 1) * 6);
+    let o = 0;
+    for (let j = 0; j < n - 1; j++) {
+      for (let i = 0; i < n - 1; i++) {
+        const a = j * n + i, b = a + 1, c = a + n, d = c + 1;
+        idx[o++] = a; idx[o++] = c; idx[o++] = b;
+        idx[o++] = b; idx[o++] = c; idx[o++] = d;
+      }
+    }
 
-    const left = new THREE.Mesh(new THREE.PlaneGeometry(len, h), mat);
-    left.rotation.y = Math.PI / 2;
-    left.position.set(-d, top - h / 2, 0);
-    left.frustumCulled = false;
-    this.scene.add(left);
-    this.walls.push(left);
+    const geo = mesh.geometry;
+    geo.dispose();
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.computeBoundingSphere();
+    mesh.geometry = g;
+    mesh.updateMatrix();
+  }
 
-    const right = new THREE.Mesh(new THREE.PlaneGeometry(len, h), mat);
-    right.rotation.y = -Math.PI / 2;
-    right.position.set(d, top - h / 2, 0);
-    right.frustumCulled = false;
-    this.scene.add(right);
-    this.walls.push(right);
+  /** Stream chunks around the camera; rebuilds are budgeted per frame. */
+  update(_dt: number, _playerPos: THREE.Vector3, camPos?: THREE.Vector3): void {
+    const cam = camPos ?? _playerPos;
+    this.liquids.update(_dt, cam);
+    if (!this.visible || !hasGround()) return;
 
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(len, d * 2), mat);
-    ceil.rotation.x = Math.PI / 2;
-    ceil.position.set(0, top, 0);
-    ceil.frustumCulled = false;
-    this.scene.add(ceil);
-    this.walls.push(ceil);
+    const cix = Math.floor(cam.x / CHUNK);
+    const ciz = Math.floor(cam.z / CHUNK);
+    const wanted = new Set<string>();
+    const first = this.chunks.size === 0;
+    const deadline = performance.now() + (first ? FIRST_FILL_MS : BUILD_BUDGET_MS);
+
+    // Nearest-first so the area around the ship is always ready.
+    const order: [number, number, number][] = [];
+    for (let dz = -Z_AHEAD; dz <= Z_BEHIND; dz++) {
+      for (let dx = -X_CHUNKS; dx <= X_CHUNKS; dx++) {
+        const ix = cix + dx, iz = ciz + dz;
+        const cx = (ix + 0.5) * CHUNK - cam.x;
+        const cz = (iz + 0.5) * CHUNK - cam.z;
+        order.push([ix, iz, Math.hypot(cx, cz)]);
+      }
+    }
+    order.sort((a, b) => a[2] - b[2]);
+
+    for (const [ix, iz, dist] of order) {
+      const key = `${ix},${iz}`;
+      wanted.add(key);
+      const lod = dist < HI_RANGE ? 2 : 1;
+      let c = this.chunks.get(key);
+      if (c && c.lod === lod) continue;
+      if (performance.now() > deadline) continue;
+      if (!c) {
+        c = { mesh: this.acquireMesh(), ix, iz, lod: 0 };
+        this.chunks.set(key, c);
+        this.scene.add(c.mesh);
+      }
+      this.buildGeometry(c.mesh, ix, iz, lod === 2 ? HI_SEGS : LO_SEGS);
+      c.lod = lod;
+    }
+
+    for (const [key, c] of this.chunks) {
+      if (!wanted.has(key)) {
+        this.releaseChunk(c);
+        this.chunks.delete(key);
+      }
+    }
+  }
+
+  // ── Cave tube ─────────────────────────────────────────────────────────────
+
+  private buildWalls(): void {
+    this.clearWalls();
+    if (!this.curve) return;
+    const tex = getBiomeTexture('cave').clone();
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(60, 3);
+    tex.needsUpdate = true;
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x6a5a48, map: tex, roughness: 0.95, metalness: 0.0, side: THREE.DoubleSide,
+    });
+    const tube = new THREE.Mesh(this.buildHalfTube(this.curve, 17), mat);
+    tube.frustumCulled = false;
+    tube.receiveShadow = true;
+    tube.userData.noCast = true;
+    tube.visible = this.visible;
+    this.scene.add(tube);
+    this.walls.push(tube);
   }
 
   private clearWalls(): void {
     for (const w of this.walls) {
       this.scene.remove(w);
       w.geometry.dispose();
-      (w.material as THREE.Material).dispose();
+      const m = w.material as THREE.MeshStandardMaterial;
+      m.map?.dispose();
+      m.dispose();
     }
     this.walls = [];
   }
 
-  // Build a half-tube (walls + ceiling) along a curve. The upper semicircle
-  // of each cross-section is filled so the tunnel curves with the rail path
-  // while the bottom stays open to reveal the terrain floor.
+  // Rocky half-tube (walls + ceiling) following the rail, with noisy radius so
+  // it reads as carved rock rather than a pipe.
   private buildHalfTube(curve: THREE.CatmullRomCurve3, radius: number): THREE.BufferGeometry {
-    const tubularSegments = 200;
-    const radialSegments = 16; // only top half used → 16 segments ≈ 180°
+    const tubular = 480;
+    const radial = 24;
     const positions: number[] = [];
+    const uvs: number[] = [];
     const indices: number[] = [];
-
-    const frames = curve.computeFrenetFrames(tubularSegments, false);
-    const tangent = new THREE.Vector3();
     const point = new THREE.Vector3();
+    const tangent = new THREE.Vector3();
+    const worldUp = new THREE.Vector3(0, 1, 0);
+    const right = new THREE.Vector3();
+    const up = new THREE.Vector3();
 
-    for (let i = 0; i <= tubularSegments; i++) {
-      const u = i / tubularSegments;
+    for (let i = 0; i <= tubular; i++) {
+      const u = i / tubular;
       curve.getPointAt(u, point);
-      tangent.copy(frames.tangents[i]);
-      // Rebuild a local frame from tangent + world up (matches rail).
-      const worldUp = new THREE.Vector3(0, 1, 0);
-      const right = new THREE.Vector3().crossVectors(tangent, worldUp).normalize();
-      const up = new THREE.Vector3().crossVectors(right, tangent).normalize();
-
-      // Upper semicircle from angle 0 (right) to PI (left).
-      for (let j = 0; j <= radialSegments; j++) {
-        const a = (j / radialSegments) * Math.PI;
-        const dx = Math.cos(a) * radius;
-        const dy = Math.sin(a) * radius;
-        const p = point.clone()
-          .add(right.clone().multiplyScalar(dx))
-          .add(up.clone().multiplyScalar(dy));
-        positions.push(p.x, p.y, p.z);
+      curve.getTangentAt(u, tangent);
+      right.crossVectors(tangent, worldUp).normalize();
+      up.crossVectors(right, tangent).normalize();
+      for (let j = 0; j <= radial; j++) {
+        // Slightly past a semicircle so the walls meet the floor.
+        const a = -0.25 + (j / radial) * (Math.PI + 0.5);
+        const bump = 1 + Math.sin(i * 0.37 + j * 1.3) * 0.08 + Math.sin(i * 0.11 - j * 0.7) * 0.12;
+        const r = radius * bump;
+        positions.push(
+          point.x + right.x * Math.cos(a) * r + up.x * Math.sin(a) * r,
+          point.y + right.y * Math.cos(a) * r + up.y * Math.sin(a) * r,
+          point.z + right.z * Math.cos(a) * r + up.z * Math.sin(a) * r,
+        );
+        uvs.push(u, j / radial);
       }
     }
-
-    // Grid indices (two triangles per quad).
-    for (let i = 0; i < tubularSegments; i++) {
-      for (let j = 0; j < radialSegments; j++) {
-        const a = i * (radialSegments + 1) + j;
-        const b = a + radialSegments + 1;
-        indices.push(a, b, a + 1);
-        indices.push(b, b + 1, a + 1);
+    for (let i = 0; i < tubular; i++) {
+      for (let j = 0; j < radial; j++) {
+        const a = i * (radial + 1) + j;
+        const b = a + radial + 1;
+        indices.push(a, b, a + 1, b, b + 1, a + 1);
       }
     }
-
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(indices);
     geo.computeVertexNormals();
     return geo;
   }
 
-  /** Displace a segment's vertices from the heightmap sampled at world coords. */
-  private updateSegment(mesh: THREE.Mesh, style: TerrainStyle): void {
-    const pos = mesh.geometry.attributes.position as THREE.BufferAttribute;
-    const col = mesh.geometry.attributes.color as THREE.BufferAttribute;
-    const count = pos.count;
-    const px = mesh.position.x;
-    const pz = mesh.position.z;
-    const base = new THREE.Color(style.baseColor);
-    const high = new THREE.Color(style.heightColor);
-    const amp = style.amplitude;
-
-    for (let i = 0; i < count; i++) {
-      const lx = pos.getX(i);
-      const ly = pos.getY(i);
-      // After rotation.x = -PI/2, local Y maps to world -Z.
-      const worldX = px + lx;
-      const worldZ = pz - ly;
-      const elev = terrainElevation(this.current, worldX, worldZ);
-      pos.setZ(i, elev * amp);
-      // Vertex color: blend base → height color by elevation, plus a subtle
-      // high-frequency patchiness so the surface reads as textured rock/soil
-      // instead of a flat gradient.
-      const patch = fbm(worldX * style.frequency * 3, worldZ * style.frequency * 3, 3);
-      const t = Math.min(1, elev * 0.7 + patch * 0.3);
-      const c = base.clone().lerp(high, t);
-      col.setXYZ(i, c.r, c.g, c.b);
-    }
-    pos.needsUpdate = true;
-    col.needsUpdate = true;
-    mesh.geometry.computeVertexNormals();
-  }
-
-  /** Follow the player: recycle segments behind the camera to the front. */
-  update(_dt: number, playerPos: THREE.Vector3): void {
-    for (const seg of this.segments) {
-      // If the segment has fallen behind the camera, recycle it far ahead.
-      if (seg.position.z > playerPos.z + SEGMENT_DEPTH) {
-        seg.position.z = playerPos.z - (SEGMENT_COUNT - 1) * SEGMENT_DEPTH;
-      }
-      this.updateSegment(seg, this.style);
-    }
-    // Curved tunnel walls are fixed along the rail curve (they span the whole
-    // path), so they don't need to follow the player. Only translate the
-    // legacy straight-plane walls.
-    if (!this.curve) {
-      for (const w of this.walls) {
-        w.position.z = playerPos.z;
-      }
-    }
-  }
-
-  /** Show/hide the entire terrain (used to hide ground on space-like biomes). */
+  /** Show/hide the entire terrain (space-like biomes have no ground). */
   setVisible(visible: boolean): void {
-    for (const seg of this.segments) seg.visible = visible;
+    this.visible = visible;
+    for (const c of this.chunks.values()) c.mesh.visible = visible;
     for (const w of this.walls) w.visible = visible;
+    this.liquids.setVisible(visible);
   }
 
   reset(): void {
-    this.apply('space');
+    // Keep the current biome; chunks stream back in on the next update.
   }
 
   dispose(): void {
-    for (const seg of this.segments) {
-      this.scene.remove(seg);
-      seg.geometry.dispose();
-    }
-    this.segments = [];
+    for (const c of this.chunks.values()) this.releaseChunk(c);
+    this.chunks.clear();
+    for (const m of this.pool) m.geometry.dispose();
+    this.pool = [];
     this.material.dispose();
     this.clearWalls();
+    this.liquids.dispose();
   }
 }

@@ -15,7 +15,8 @@
 import * as THREE from 'three';
 import { getSoftParticleTexture } from '../fx/softTexture';
 import type { TerrainType } from '../levels/LevelData';
-import { terrainHeightAt } from './TerrainManager';
+import { heightAt } from './TerrainField';
+import { railAtZ } from './RailShape';
 import { fbm } from '../utils/noise';
 
 interface Prop {
@@ -30,15 +31,17 @@ interface DecorConfig {
 }
 
 const CONFIGS: Record<TerrainType, DecorConfig> = {
-  space:      { enabled: true,  density: 6,  kinds: ['asteroid'] },
+  // Space-like biomes get the SpaceScenery belt instead; lava/water rivers are
+  // replaced by the LiquidSurfaces seas.
+  space:      { enabled: false, density: 0,  kinds: [] },
   atmosphere: { enabled: true,  density: 10, kinds: ['cloud'] },
   cave:       { enabled: true,  density: 14, kinds: ['stalactite', 'stalagmite'] },
   nebula:     { enabled: true,  density: 8,  kinds: ['crystal'] },
   storm:      { enabled: true,  density: 12, kinds: ['stormcloud'] },
-  ice:        { enabled: true,  density: 12, kinds: ['water', 'icecrystal'] },
-  lava:       { enabled: true,  density: 12, kinds: ['lava', 'ember'] },
+  ice:        { enabled: true,  density: 10, kinds: ['icecrystal'] },
+  lava:       { enabled: true,  density: 14, kinds: ['ember'] },
   city:       { enabled: true,  density: 8,  kinds: ['tower'] },
-  void:       { enabled: true,  density: 4,  kinds: ['asteroid'] },
+  void:       { enabled: false, density: 0,  kinds: [] },
   aurora:     { enabled: true,  density: 10, kinds: ['icecrystal'] },
 };
 
@@ -122,7 +125,11 @@ export class TerrainDecorations {
   private spawnProp(playerPos: THREE.Vector3): void {
     const kind = this.config.kinds[Math.floor(Math.random() * this.config.kinds.length)];
     const z = playerPos.z - THREE.MathUtils.randFloat(SPAWN_AHEAD_MIN, SPAWN_AHEAD_MAX);
-    const x = THREE.MathUtils.randFloat(-SPAWN_HALF_WIDTH, SPAWN_HALF_WIDTH);
+    // Cave props live inside the tunnel; everything else spreads around it.
+    const rail = railAtZ(z).x;
+    const x = this.current === 'cave'
+      ? rail + THREE.MathUtils.randFloat(-14, 14)
+      : rail + THREE.MathUtils.randFloat(-SPAWN_HALF_WIDTH, SPAWN_HALF_WIDTH);
     const mesh = this.buildProp(kind, x, z);
     if (!mesh) return;
     this.scene.add(mesh);
@@ -130,7 +137,7 @@ export class TerrainDecorations {
   }
 
   private buildProp(kind: string, x: number, z: number): THREE.Object3D | null {
-    const y = terrainHeightAt(this.current, x, z);
+    const y = heightAt(x, z);
     switch (kind) {
       case 'lava': return this.buildLavaRiver(x, y, z);
       case 'ember': return this.buildEmber(x, y, z);
@@ -294,8 +301,8 @@ export class TerrainDecorations {
       color: 0x5a4a3a, roughness: 0.95, metalness: 0.05,
     });
     const cone = new THREE.Mesh(geo, mat);
-    // Ceiling is at wallTop (12). Hang from it pointing down.
-    cone.position.y = 12 - h / 2;
+    // Hang from the tunnel ceiling (radius ~17 above the rail).
+    cone.position.y = railAtZ(z).y + 16 - h / 2;
     cone.rotation.x = Math.PI; // point down
     cone.rotation.y = THREE.MathUtils.randFloat(0, Math.PI * 2);
     group.add(cone);

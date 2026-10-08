@@ -1,6 +1,6 @@
 // ─── Post-Processing Pipeline ────────────────────────────────────────────────
 //
-// Render → Bloom (half-res, high threshold) → Cinematic pass → screen.
+// Render → GTAO (half-res) → Bloom (half-res, high threshold) → Cinematic pass → screen.
 //
 // The cinematic pass is driven every frame by FxDirector uniforms:
 //   - radial chromatic aberration (pulses on hits / explosions)
@@ -13,6 +13,28 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+
+// Ground-truth AO that only sees solid geometry: glows, sprites, particles,
+// lasers and the sky sphere are hidden from its normal/depth pre-pass so they
+// never cast dark halos. Runs its buffers at half resolution.
+class SolidGTAOPass extends GTAOPass {
+  overrideVisibility(): void {
+    const cache = (this as unknown as { _visibilityCache: Map<THREE.Object3D, boolean> })._visibilityCache;
+    this.scene.traverse((o) => {
+      cache.set(o, o.visible);
+      const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+      const skip = (o as THREE.Points).isPoints || (o as THREE.Line).isLine || (o as THREE.Sprite).isSprite ||
+        (m && (m.transparent || m.blending === THREE.AdditiveBlending || m.side === THREE.BackSide)) ||
+        (o as THREE.InstancedMesh).isInstancedMesh && !(m as THREE.MeshStandardMaterial)?.isMeshStandardMaterial;
+      if (skip) o.visible = false;
+    });
+  }
+
+  setSize(width: number, height: number): void {
+    super.setSize(Math.max(1, Math.floor(width / 2)), Math.max(1, Math.floor(height / 2)));
+  }
+}
 
 export interface CinematicParams {
   aberration: number;   // 0..1+  radial RGB split strength
@@ -127,6 +149,10 @@ const CinematicShader = {
 export class PostProcessingPipeline {
   private composer: EffectComposer;
   private bloomPass: UnrealBloomPass;
+  private aoPass: SolidGTAOPass;
+  // Adaptive quality: AO switches off if the frame time stays high.
+  private _frameAvg = 1 / 60;
+  private _slowTime = 0;
   private cinematicPass: ShaderPass;
   private _time = 0;
   private baseBloom = 0.55;
@@ -142,6 +168,12 @@ export class PostProcessingPipeline {
     this.composer.setPixelRatio(renderer.getPixelRatio());
     this.composer.setSize(width, height);
     this.composer.addPass(new RenderPass(scene, camera));
+
+    this.aoPass = new SolidGTAOPass(scene, camera, width, height);
+    this.aoPass.updateGtaoMaterial({ radius: 3.2, distanceExponent: 1.4, thickness: 3, scale: 1.25, samples: 12 });
+    this.aoPass.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    this.aoPass.blendIntensity = 0.95;
+    this.composer.addPass(this.aoPass);
 
     // Half-resolution bloom keeps the cost low while making every laser,
     // engine and explosion glow.
@@ -178,13 +210,25 @@ export class PostProcessingPipeline {
     this.bloomPass.strength = this.baseBloom * p.bloom;
   }
 
+  /** Enable/disable ambient occlusion (also used by the adaptive fallback). */
+  setAO(on: boolean): void {
+    this.aoPass.enabled = on;
+  }
+
   render(delta: number): void {
     this._time += delta;
+    // Adaptive quality: ~5 s under 38 fps turns AO off for the session.
+    this._frameAvg = this._frameAvg * 0.95 + delta * 0.05;
+    if (this.aoPass.enabled && this._time > 4) {
+      this._slowTime = this._frameAvg > 1 / 38 ? this._slowTime + delta : 0;
+      if (this._slowTime > 5) this.aoPass.enabled = false;
+    }
     this.cinematicPass.uniforms.uTime.value = this._time;
     this.composer.render(delta);
   }
 
   dispose(): void {
+    this.aoPass.dispose();
     this.bloomPass.dispose();
     this.composer.dispose();
   }
