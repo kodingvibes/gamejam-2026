@@ -2,12 +2,14 @@
 // Keyboard: WASD / arrows move · SPACE fire · Z bomb · SHIFT boost · Q/E roll
 // Mouse:    pointer steers · left click fire · right click bomb
 // Gamepad:  left stick move · A/RT fire · B bomb · LT/X boost · LB/RB roll
+// Touch:    floating stick (left) · FUEGO/BOOST hold · BOMBA · ⟲ ⟳ · II
 //
 // The active scheme (mouse vs keys/pad) follows the LAST device the player
 // touched. The old version relied on window mouseenter/mouseleave, which
 // browsers don't fire reliably, so mouse steering often never engaged.
 
 import * as THREE from 'three';
+import { TouchControls } from './TouchControls';
 
 export interface InputState {
   fire: boolean;
@@ -46,6 +48,7 @@ export class InputMapper {
   private _rightDown = false;
   private _mouseMode = false;
   private _lastMouse = { x: -1, y: -1 };
+  readonly touch: TouchControls;
 
   constructor() {
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -62,6 +65,12 @@ export class InputMapper {
     window.addEventListener('mouseup', this.onMouseUp);
     window.addEventListener('blur', this.onBlur);
     window.addEventListener('contextmenu', this.onContextMenu);
+    this.touch = new TouchControls(document.getElementById('game-container') ?? document.body);
+  }
+
+  /** Mouse events the browser synthesizes right after a touch are not a mouse. */
+  private fromTouch(): boolean {
+    return performance.now() - this.touch.lastTouch < 1200;
   }
 
   private setMouseMode(on: boolean): void {
@@ -85,11 +94,13 @@ export class InputMapper {
     this.tapped.clear();
     this._mouseDown = false;
     this._rightDown = false;
+    this.touch.release();
   }
   private getKey(key: string): boolean { return this.keys.has(key); }
   private getTap(key: string): boolean { return this.tapped.has(key); }
 
   private onMouseMove(e: MouseEvent): void {
+    if (this.fromTouch()) return;
     const w = window.innerWidth;
     const h = window.innerHeight;
     this._mouseX = (e.clientX / w) * 2 - 1;
@@ -103,6 +114,7 @@ export class InputMapper {
   }
 
   private onMouseDown(e: MouseEvent): void {
+    if (this.fromTouch()) return;
     if (e.button === 0) this._mouseDown = true;
     if (e.button === 2) this._rightDown = true;
   }
@@ -154,11 +166,21 @@ export class InputMapper {
       break;
     }
 
+    // ── Touch ──
+    const t = this.touch.poll();
+    if (t.axisX !== 0 || t.axisY !== 0) {
+      this.setMouseMode(false);
+      if (Math.abs(t.axisX) > Math.abs(horizontalAxis)) horizontalAxis = t.axisX;
+      if (Math.abs(t.axisY) > Math.abs(verticalAxis)) verticalAxis = t.axisY;
+    }
+    fire = fire || t.fire;
+    boost = boost || t.boost;
+
     // Edge-triggered actions.
-    const pause = (pauseHeld && !this.prev.pause) || this.getTap('Escape') || this.getTap('KeyP');
-    const bomb = (bombHeld && !this.prev.bomb) || this.getTap('KeyZ');
-    const rollLeft = (rollL && !this.prev.rollL) || this.getTap('KeyQ');
-    const rollRight = (rollR && !this.prev.rollR) || this.getTap('KeyE');
+    const pause = (pauseHeld && !this.prev.pause) || this.getTap('Escape') || this.getTap('KeyP') || t.pause;
+    const bomb = (bombHeld && !this.prev.bomb) || this.getTap('KeyZ') || t.bomb;
+    const rollLeft = (rollL && !this.prev.rollL) || this.getTap('KeyQ') || t.rollLeft;
+    const rollRight = (rollR && !this.prev.rollR) || this.getTap('KeyE') || t.rollRight;
     fire = fire || this.getTap('Space');
     this.tapped.clear();
     this.prev.pause = pauseHeld;
@@ -190,5 +212,6 @@ export class InputMapper {
     window.removeEventListener('mouseup', this.onMouseUp);
     window.removeEventListener('blur', this.onBlur);
     window.removeEventListener('contextmenu', this.onContextMenu);
+    this.touch.dispose();
   }
 }

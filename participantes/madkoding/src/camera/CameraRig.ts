@@ -21,6 +21,18 @@ function smoothNoise(t: number, seed: number): number {
   );
 }
 
+/**
+ * Vertical FOV for a viewport aspect. 70° on landscape; on tall (portrait
+ * phone) screens it widens so the horizontal view keeps the lanes, enemies
+ * and the ship in frame instead of cropping the sides away.
+ */
+export function baseFovFor(aspect: number): number {
+  const REF_ASPECT = 1.25;
+  if (aspect >= REF_ASPECT) return 70;
+  const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(35)) * REF_ASPECT / aspect);
+  return Math.min(100, THREE.MathUtils.radToDeg(half * 2));
+}
+
 export class CameraRig {
   private camera: THREE.PerspectiveCamera;
   // Same pose as the render camera but without shake / FOV kicks. Gameplay
@@ -51,10 +63,10 @@ export class CameraRig {
   private _orbitAngle = 0;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(70, aspect, 0.5, 3200);
+    this.camera = new THREE.PerspectiveCamera(baseFovFor(aspect), aspect, 0.5, 3200);
     this.camera.position.set(0, 4, 10);
     this.camera.lookAt(0, 0, -10);
-    this.stable = new THREE.PerspectiveCamera(70, aspect, 0.5, 3200);
+    this.stable = new THREE.PerspectiveCamera(baseFovFor(aspect), aspect, 0.5, 3200);
     this.syncStable();
   }
 
@@ -72,6 +84,7 @@ export class CameraRig {
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();
     this.stable.aspect = aspect;
+    this.stable.fov = baseFovFor(aspect);
     this.stable.updateProjectionMatrix();
   }
 

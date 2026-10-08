@@ -28,17 +28,17 @@ npm run preview
 
 ## Controles
 
-| Teclado | Mouse | Gamepad | Acción |
-|---------|-------|---------|--------|
-| `WASD` / `Flechas` | mover el puntero | stick izquierdo | mover la nave y la mira |
-| `ESPACIO` | clic izquierdo | `A` / `RT` | disparar láseres |
-| `Z` | clic derecho | `B` | bomba (5 en total, limpia disparos enemigos) |
-| `SHIFT` | — | `X` / `LT` | boost (consume el medidor) |
-| `Q` / `E` | — | `LB` / `RB` | barrel roll (desvía disparos) |
-| `ESC` / `P` | — | `START` | pausa |
-| `ENTER` / `ESPACIO` | clic | — | iniciar / reintentar |
+| Teclado | Mouse | Gamepad | Táctil | Acción |
+|---------|-------|---------|--------|--------|
+| `WASD` / `Flechas` | mover el puntero | stick izquierdo | arrastrar en la mitad izquierda (stick flotante) | mover la nave y la mira |
+| `ESPACIO` | clic izquierdo | `A` / `RT` | mantener **FUEGO** | disparar láseres |
+| `Z` | clic derecho | `B` | **BOMBA** | bomba (5 en total, limpia disparos enemigos) |
+| `SHIFT` | — | `X` / `LT` | mantener **BOOST** | boost (consume el medidor) |
+| `Q` / `E` | — | `LB` / `RB` | **⟲** / **⟳** | barrel roll (desvía disparos) |
+| `ESC` / `P` | — | `START` | **II** | pausa |
+| `ENTER` / `ESPACIO` | clic | — | tocar el botón | iniciar / reintentar |
 
-El esquema activo (mouse o teclado/gamepad) sigue al último dispositivo usado.
+El esquema activo (mouse o teclado/gamepad/táctil) sigue al último dispositivo usado. En celulares (vertical u horizontal) el HUD se compacta, respeta las zonas seguras (notch) y la cámara amplía su campo de visión en vertical para no recortar los costados.
 
 ## Motion design y efectos
 

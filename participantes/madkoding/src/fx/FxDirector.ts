@@ -13,8 +13,8 @@
 import * as THREE from 'three';
 import { Timekeeper } from '../core/Timekeeper';
 import type { CinematicParams, PostProcessingPipeline } from '../camera/PostProcessingPipeline';
+import { baseFovFor } from '../camera/CameraRig';
 
-const BASE_FOV = 70;
 
 export class FxDirector {
   private timekeeper = Timekeeper.getInstance();
@@ -156,7 +156,7 @@ export class FxDirector {
     this.saturation = damp(this.saturation, this.saturationTarget, 3, realDt);
 
     // Camera FOV: base + boost stretch + warp stretch + impulses.
-    const fov = BASE_FOV + this.boost * 12 + this.warp * 38 + this.fovImpulse;
+    const fov = baseFovFor(this.camera.aspect) + this.boost * 12 + this.warp * 38 + this.fovImpulse;
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();

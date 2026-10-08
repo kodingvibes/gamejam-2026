@@ -2,7 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#02040a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>FoxStar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,9 +22,16 @@
         <h1 class="game-title">FOXSTAR</h1>
         <div class="menu-sub">Defiende la galaxia. Haz un barrel roll.</div>
         <button id="start-button" class="menu-button primary">INICIAR MISIÓN</button>
-        <div class="press-hint">PRESIONA <kbd>ENTER</kbd></div>
+        <div class="press-hint desktop-only">PRESIONA <kbd>ENTER</kbd></div>
         <div id="menu-best" class="menu-best"></div>
-        <div class="controls-info">
+        <div class="controls-info touch-only">
+          <div><kbd>STICK</kbd><span>Arrastra a la izquierda para mover</span></div>
+          <div><kbd>FUEGO</kbd><span>Mantén para disparar</span></div>
+          <div><kbd>BOMBA</kbd><kbd>BOOST</kbd><span>Bomba · acelerar</span></div>
+          <div><kbd>⟲</kbd><kbd>⟳</kbd><span>Barrel roll · desvía disparos</span></div>
+          <div><kbd>II</kbd><span>Pausa</span></div>
+        </div>
+        <div class="controls-info desktop-only">
           <div><kbd>WASD</kbd><kbd>←↑↓→</kbd><span>Mover · o usa el mouse</span></div>
           <div><kbd>ESPACIO</kbd><kbd>CLIC</kbd><span>Disparar</span></div>
           <div><kbd>Z</kbd><kbd>CLIC DER</kbd><span>Bomba</span></div>
